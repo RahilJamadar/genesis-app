@@ -1,0 +1,113 @@
+:root {
+  --bg-main: #0d0d15;
+  --card-bg: #161b22;
+  --accent: #00ffe0;
+  --accent-hover: #5afefe;
+  --danger: #f26c6c;
+  --danger-hover: #d45050;
+  --border: #2b2f3a;
+  --text-main: #e0e6f0;
+  --text-muted: #9ca6b8;
+  --radius: 12px;
+  --shadow: 0 2px 20px rgba(0, 255, 224, 0.15);
+  --font: 'Orbitron', 'Segoe UI', sans-serif;
+}
+
+/* 🧾 Page */
+.scoring {
+  padding: 3rem 1.5rem;
+  background-color: var(--bg-main);
+  font-family: var(--font);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 🧭 Heading */
+.scoring h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(0,255,224,0.2);
+}
+
+/* 📦 Form Box */
+.scoring form {
+  background-color: var(--card-bg);
+  padding: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 500px;
+  animation: fadeInScore 0.5s ease-out;
+}
+
+/* 🎯 Inputs & Selects */
+.scoring input,
+.scoring select {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  background-color: #0f121b;
+  color: var(--text-main);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.scoring input:focus,
+.scoring select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,255,224,0.3);
+}
+
+/* 🟩 Submit Button */
+.scoring button {
+  background-color: var(--accent);
+  color: #0c0c1f;
+  font-weight: 600;
+  padding: 0.8rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.scoring button:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.02);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+/* ✨ Animation */
+@keyframes fadeInScore {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 📱 Responsive */
+@media (max-width: 600px) {
+  .scoring form {
+    padding: 1.5rem;
+  }
+
+  .scoring h2 {
+    font-size: 1.5rem;
+  }
+
+  .scoring button {
+    font-size: 0.95rem;
+  }
+}

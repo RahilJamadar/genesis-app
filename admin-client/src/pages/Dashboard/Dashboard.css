@@ -1,0 +1,138 @@
+:root {
+  --genesis-bg: #0d1117;
+  --genesis-card: #161b22;
+  --genesis-accent: #007aff;
+  --genesis-accent-hover: #339cff;
+  --genesis-text: #d1d5db;
+  --genesis-muted: #8999aa;
+  --genesis-border: #2a2f3a;
+  --radius: 12px;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  --font: 'Segoe UI', 'Orbitron', sans-serif;
+}
+
+/* 🌒 Container setup */
+.dashboard-container {
+  padding: 2rem 1rem;
+  background-color: var(--genesis-bg);
+  font-family: var(--font);
+  color: var(--genesis-text);
+  height: 100vh;
+}
+
+/* 🧭 Dashboard title */
+.dashboard-container h2 {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--genesis-accent);
+  border-bottom: 1px solid var(--genesis-border);
+  padding-bottom: 0.5rem;
+}
+
+/* 📊 Cards layout */
+.dashboard-cards {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+/* 🧮 Individual card */
+.card {
+  background-color: var(--genesis-card);
+  border: 1px solid var(--genesis-border);
+  border-left: 4px solid var(--genesis-accent);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 220px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 30px rgba(0, 122, 255, 0.2);
+}
+
+.card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--genesis-accent);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.card p {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0;
+  color: white;
+}
+
+/* 🏆 Leaderboard */
+.leaderboard-section {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.leaderboard-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: var(--genesis-accent);
+  font-weight: 600;
+  border-bottom: 2px solid var(--genesis-border);
+  padding-bottom: 0.5rem;
+  text-align: left;
+}
+
+/* 📋 Leaderboard list */
+.leaderboard-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leaderboard-section li {
+  padding: 0.8rem 1rem;
+  background-color: var(--genesis-card);
+  border-left: 4px solid var(--genesis-accent);
+  border-radius: var(--radius);
+  margin-bottom: 0.8rem;
+  box-shadow: 0 2px 6px rgba(0,122,255,0.05);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--genesis-text);
+  transition: background-color 0.2s ease;
+}
+
+.leaderboard-section li:hover {
+  background-color: #1e2532;
+}
+
+/* 📱 Responsive layout */
+@media (max-width: 600px) {
+  .dashboard-cards {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .dashboard-container h2 {
+    font-size: 1.6rem;
+  }
+
+  .card h3 {
+    font-size: 0.95rem;
+  }
+
+  .card p {
+    font-size: 1.6rem;;
+  }
+}

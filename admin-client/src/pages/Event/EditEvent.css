@@ -1,0 +1,133 @@
+:root {
+  --bg-main: #0d0d15;
+  --bg-card: #161b22;
+  --accent: #007aff;
+  --accent-hover: #339cff;
+  --text-main: #e0e6f0;
+  --text-muted: #9daabb;
+  --border-color: #2a2f3a;
+  --radius: 10px;
+  --shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
+  --font: 'Segoe UI', 'Orbitron', sans-serif;
+}
+
+/* 📦 Container */
+.edit-event {
+  max-width: 720px;
+  margin: 60px auto;
+  background-color: var(--bg-card);
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  font-family: var(--font);
+  color: var(--text-main);
+}
+
+/* 🧭 Heading */
+.edit-event h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+/* 🔤 Labels */
+.edit-event label {
+  display: block;
+  margin-top: 1.2rem;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+/* ✏️ Inputs & Selects */
+.edit-event input,
+.edit-event select,
+.edit-event textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: #0f1117;
+  color: var(--text-main);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.edit-event input:focus,
+.edit-event select:focus,
+.edit-event textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.3);
+  outline: none;
+}
+
+/* 📝 Textarea */
+.edit-event textarea {
+  resize: vertical;
+  min-height: 120px;
+  font-family: var(--font);
+}
+
+/* 🚀 Primary button */
+.edit-event button {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.8rem 1.2rem;
+  margin-top: 1.5rem;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.edit-event button:hover {
+  background-color: var(--accent-hover);
+}
+
+/* 🔙 Secondary / Back button */
+.edit-event button.back {
+  margin-top: 1rem;
+  background-color: #2a2f3a;
+  color: var(--text-muted);
+}
+
+.edit-event button.back:hover {
+  background-color: #3c4353;
+}
+
+/* ⚙️ Optional visibility row */
+.edit-event .visibility-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+/* 📱 Responsive */
+@media (max-width: 600px) {
+  .edit-event {
+    padding: 1.2rem;
+    margin: 40px 1rem;
+  }
+
+  .edit-event h2 {
+    font-size: 1.5rem;
+  }
+
+  .edit-event button {
+    font-size: 0.95rem;
+    padding: 0.7rem;
+  }
+}

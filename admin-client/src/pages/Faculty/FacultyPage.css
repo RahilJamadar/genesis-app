@@ -1,0 +1,164 @@
+:root {
+  --bg-main: #0c0c14;
+  --bg-card: #161b22;
+  --text-main: #e0e6f0;
+  --text-muted: #a5acb8;
+  --accent: #00ffff;
+  --accent-hover: #5afefe;
+  --danger: #f26c6c;
+  --danger-hover: #d45050;
+  --radius: 10px;
+  --shadow: 0 2px 16px rgba(0,0,0,0.5);
+  --font: 'Segoe UI', 'Orbitron', sans-serif;
+}
+
+/* 📦 Page container */
+.faculty-page {
+  max-width: 800px;
+  margin: auto;
+  padding: 3rem 1.5rem;
+  background-color: var(--bg-main);
+  font-family: var(--font);
+  color: var(--text-main);
+}
+
+/* 🧭 Page heading */
+.faculty-page h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 2rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,255,255,0.2);
+  padding-bottom: 0.5rem;
+}
+
+/* 📝 Faculty form */
+.faculty-page form {
+  background-color: var(--bg-card);
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 2rem;
+  border: 1px solid #2b2f3a;
+}
+
+/* Form elements */
+.faculty-page form label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.faculty-page form input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  /* margin-bottom: 1rem; */
+  border: 1px solid #2a2e38;
+  border-radius: var(--radius);
+  background-color: #10131a;
+  color: var(--text-main);
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.faculty-page form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,255,255,0.2);
+  outline: none;
+}
+
+/* Form button */
+.faculty-page form button {
+  background-color: var(--accent);
+  color: #0c0c1f;
+  padding: 0.75rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  /* margin-top: 1rem; */
+}
+
+.faculty-page form button:hover {
+  background-color: var(--accent-hover);
+}
+
+/* 📋 Faculty List */
+.faculty-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 👤 Faculty Card */
+.faculty-card {
+  background-color: var(--bg-card);
+  border: 1px solid #2b2f3a;
+  padding: 1.2rem;
+  border-radius: var(--radius);
+  /* margin-bottom: 1rem; */
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.faculty-card strong {
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.faculty-card span {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-left: 0.75rem;
+}
+
+/* 🎮 Actions */
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+/* ✏️ Edit button */
+.actions button:first-child {
+  background-color: var(--accent);
+  color: #0c0c1f;
+}
+
+.actions button:first-child:hover {
+  background-color: var(--accent-hover);
+}
+
+/* ❌ Delete button */
+.actions button:last-child {
+  background-color: var(--danger);
+  color: #fff;
+}
+
+.actions button:last-child:hover {
+  background-color: var(--danger-hover);
+}
+
+/* Legacy fix */
+.admin-manage-page h2 {
+  color: var(--text-main);
+}

@@ -1,0 +1,168 @@
+:root {
+  --bg-main: #0d0d15;
+  --card-bg: #161b22;
+  --text-main: #e0e6f0;
+  --text-muted: #9ca6b8;
+  --accent: #00ffe0;
+  --accent-hover: #5afefe;
+  --primary: #007bff;
+  --primary-dark: #0056b3;
+  --warning: #ffe083;
+  --warning-hover: #ffd45f;
+  --danger: #ff4d4d;
+  --danger-hover: #d93636;
+  --radius: 10px;
+  --shadow: 0 2px 18px rgba(0,255,224,0.1);
+  --font: 'Orbitron', 'Segoe UI', sans-serif;
+}
+
+/* 🌒 Page container */
+.coordinator-page {
+  max-width: 900px;
+  margin: auto;
+  padding: 3rem 1.5rem;
+  background-color: var(--bg-main);
+  font-family: var(--font);
+  color: var(--text-main);
+}
+
+/* 🧭 Header */
+.coordinator-page h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(0,255,224,0.2);
+}
+
+/* 📝 Form */
+form {
+  background-color: var(--card-bg);
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2.5rem;
+  border: 1px solid #2b2f3a;
+}
+
+/* Labels & Inputs */
+form label {
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+}
+
+form input {
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid #2b2f3a;
+  font-size: 1rem;
+  background-color: #10141f;
+  color: var(--text-main);
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: #131824;
+  box-shadow: 0 0 0 3px rgba(0,255,224,0.3);
+}
+
+/* Submit button */
+form button {
+  padding: 0.8rem 1.2rem;
+  background-color: var(--accent);
+  color: #0c0c1f;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+form button:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.02);
+}
+
+/* 📋 Coordinator List */
+.coordinator-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1.2rem;
+}
+
+/* 👤 Coordinator Card */
+.coordinator-card {
+  background-color: var(--card-bg);
+  border: 1px solid #2b2f3a;
+  border-left: 5px solid var(--accent);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease;
+  flex-wrap: wrap;
+}
+
+.coordinator-card:hover {
+  transform: translateY(-3px);
+}
+
+.coordinator-card strong {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ⚙️ Actions */
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.actions button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+/* ✏️ Edit */
+.actions button:first-child {
+  background-color: var(--warning);
+  color: #333;
+}
+
+.actions button:first-child:hover {
+  background-color: var(--warning-hover);
+}
+
+/* ❌ Delete */
+.actions button:last-child {
+  background-color: var(--danger);
+  color: white;
+}
+
+.actions button:last-child:hover {
+  background-color: var(--danger-hover);
+}
+
+/* 🪫 Error Message */
+.error-message {
+  color: var(--danger-hover);
+  font-size: 0.9rem;
+  margin-top: -0.5rem;
+}

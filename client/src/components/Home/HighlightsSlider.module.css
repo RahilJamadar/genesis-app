@@ -1,0 +1,69 @@
+.sliderContainer {
+  background-color: #0a0a1a;
+  padding: 60px 20px;
+  text-align: center;
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.heading {
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff;
+}
+
+.slide {
+  position: relative;
+  padding: 20px;
+}
+
+.image {
+  width: 100%;
+  max-width: 700px;
+  height: 400px;
+  margin: 0 auto;
+  border-radius: 20px;
+  box-shadow:
+    0 0 30px rgba(0, 255, 255, 0.4),
+    0 0 10px rgba(255, 255, 255, 0.1);
+  transition: transform 0.5s ease;
+}
+
+.image:hover {
+  transform: scale(1.02);
+}
+
+.caption {
+  margin-top: 16px;
+  font-size: 1rem;
+  color: #ccc;
+  text-shadow: 0 0 5px #000;
+}
+
+/* Slider dot styling */
+.slick-dots {
+  margin-top: 30px;
+  padding: 0;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex !important;
+  justify-content: center;
+}
+
+.slick-dots li button:before {
+  color: #00ffff;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.slick-dots li.slick-active button:before {
+  color: #ff007f;
+  opacity: 1;
+}
+
+.slick-prev,
+.slick-next {
+  display: none !important;
+}
