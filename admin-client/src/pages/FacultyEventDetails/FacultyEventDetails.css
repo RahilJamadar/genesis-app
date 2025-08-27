@@ -1,0 +1,95 @@
+.event-details {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-family: var(--font);
+  color: var(--text-main);
+}
+
+.event-details h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  text-align: center;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  margin-bottom: 1rem;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.category-Tech { background-color: #00bfff; }
+.category-Cultural { background-color: #e07c9c; }
+.category-Sports { background-color: #4cb050; }
+.category-Gaming { background-color: #ffa500; }
+.category-Pre-events { background-color: #9370db; }
+
+.faculty-inline {
+  margin: 1rem 0;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.faculty-inline strong {
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.rules-block {
+  margin-top: 1.5rem;
+  background-color: #10141f;
+  padding: 1rem 1.2rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.08);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.rules-block strong {
+  display: block;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.back-button {
+  margin-top: 2rem;
+  background-color: var(--accent);
+  color: #0c0c1f;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: var(--accent-hover);
+}
+
+@media (max-width: 768px) {
+  .event-details {
+    padding: 1.5rem;
+  }
+
+  .event-details h2 {
+    font-size: 1.6rem;
+  }
+
+  .back-button {
+    width: 100%;
+    margin-top: 1.5rem;
+  }
+}

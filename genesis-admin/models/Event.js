@@ -6,9 +6,9 @@ const EventSchema = new mongoose.Schema({
     required: true
   },
   category: String,
-  faculties: [String], // Faculty in-charges by name
-  studentCoordinators: [String], // Coordinator names
-  rules: String // Markdown or plain text rules
+  faculties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Faculty' }], // ✅ updated
+  studentCoordinators: [String],
+  rules: String
 });
 
 module.exports = mongoose.model('Event', EventSchema);

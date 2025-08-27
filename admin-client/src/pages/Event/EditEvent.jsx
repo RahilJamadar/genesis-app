@@ -16,15 +16,19 @@ function EditEvent() {
   const [coordinatorInput, setCoordinatorInput] = useState('');
 
   useEffect(() => {
-    API.get(`/events/${id}`)
-      .then(res => setEvent(res.data))
+    API.get(`/admin/events/${id}`)
+      .then(res => {
+        const raw = res.data;
+        const facultyNames = raw.faculties?.map(f => f.name) || [];
+        setEvent({ ...raw, faculties: facultyNames });
+      })
       .catch(err => console.error('Fetch error:', err));
 
-    API.get('/faculty')
+    API.get('/admin/faculty')
       .then(res => setFacultyList(res.data.map(f => f.name)))
       .catch(err => console.error('Faculty fetch error:', err));
 
-    API.get('/student-coordinators')
+    API.get('/admin/student-coordinators')
       .then(res => setCoordinatorList(res.data.map(c => c.name)))
       .catch(err => console.error('Coordinator fetch error:', err));
   }, [id]);
@@ -67,7 +71,7 @@ function EditEvent() {
 
   const handleSave = async () => {
     try {
-      await API.put(`/events/${id}`, event);
+      await API.put(`/admin/events/${id}`, event);
       alert('Event updated ✅');
       navigate('/events');
     } catch (err) {

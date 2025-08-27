@@ -22,15 +22,15 @@ function Events() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    API.get('/events')
+    API.get('/admin/events')
       .then(res => setEvents(res.data))
       .catch(err => console.error('Event fetch error:', err));
 
-    API.get('/faculty')
+    API.get('/admin/faculty')
       .then(res => setFacultyList(res.data.map(f => f.name)))
       .catch(err => console.error('Faculty list error:', err));
 
-    API.get('/student-coordinators')
+    API.get('/admin/student-coordinators')
       .then(res => setCoordinatorList(res.data.map(c => ({ id: c._id, name: c.name }))))
       .catch(err => console.error('Coordinator list error:', err));
   }, []);
@@ -77,7 +77,7 @@ function Events() {
   const handleAdd = async e => {
     e.preventDefault();
     try {
-      const res = await API.post('/events', newEvent);
+      const res = await API.post('/admin/events', newEvent);
       const savedEvent = res.data.event;
       setEvents([...events, savedEvent]);
       setNewEvent({
@@ -98,7 +98,7 @@ function Events() {
   const handleDelete = async id => {
     if (!window.confirm('Delete this event?')) return;
     try {
-      await API.delete(`/events/${id}`);
+      await API.delete(`/admin/events/${id}`);
       setEvents(events.filter(e => e._id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
@@ -212,38 +212,29 @@ function Events() {
           <button type="submit">Add Event</button>
         </form>
 
-        <ul>
+        <div className="event-grid">
           {events.map(event => (
-            <li key={event._id} className="event-item">
+            <div key={event._id} className="event-card">
               <div className="event-info">
-                <strong>{event.name}</strong>{' '}
+                <strong>{event.name}</strong>
                 <span className={`category-badge category-${event.category}`}>
                   {event.category}
                 </span>
-                {event.faculties?.length > 0 && (
-                  <div className="faculty-inline">
-                    Faculty: {event.faculties.join(', ')}
-                  </div>
-                )}
-                {event.studentCoordinators?.length > 0 && (
-                  <div className="faculty-inline">
-                    Coordinators: {event.studentCoordinators.join(', ')}
-                  </div>
-                )}
-                {event.rules && (
-                  <div className="rules-block">
-                    <strong>Rules:</strong>
-                    <p>{event.rules}</p>
-                  </div>
-                )}
               </div>
               <div className="event-actions">
-                <button onClick={() => handleDelete(event._id)}>Delete</button>
-                <button onClick={() => handleEdit(event._id)}>Edit</button>
+                <button onClick={() => navigate(`/events/view/${event._id}`)}>
+                  View
+                </button>
+                <button onClick={() => handleEdit(event._id)}>
+                  Edit
+                </button>
+                <button onClick={() => handleDelete(event._id)}>
+                  Delete
+                </button>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </>
   );

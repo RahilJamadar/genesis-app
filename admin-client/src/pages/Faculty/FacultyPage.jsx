@@ -18,7 +18,7 @@ function FacultyPage() {
 
   const loadFaculty = async () => {
     try {
-      const res = await API.get('/faculty');
+      const res = await API.get('/admin/faculty');
       setFacultyList(res.data);
     } catch (err) {
       console.error('❌ Failed to load faculty:', err);
@@ -32,7 +32,7 @@ function FacultyPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/faculty', formData);
+      await API.post('/admin/faculty', formData);
       resetForm();
       loadFaculty();
     } catch (err) {
@@ -51,7 +51,7 @@ function FacultyPage() {
 
   const handleUpdate = async () => {
     try {
-      await API.put(`/faculty/${isEditing}`, formData);
+      await API.put(`/admin/faculty/${isEditing}`, formData);
       setIsEditing(null);
       resetForm();
       loadFaculty();
@@ -62,7 +62,7 @@ function FacultyPage() {
 
   const handleDelete = async (id) => {
     try {
-      await API.delete(`/faculty/${id}`);
+      await API.delete(`/admin/faculty/${id}`);
       loadFaculty();
     } catch (err) {
       console.error('❌ Failed to delete faculty:', err);

@@ -11,7 +11,7 @@ function Scoring() {
     eventId: '',
     points: ''
   });
-
+  const [selectedRound, setSelectedRound] = useState('');
   const [scores, setScores] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
 
@@ -19,9 +19,9 @@ function Scoring() {
     async function fetchInitial() {
       try {
         const [tRes, eRes, lRes] = await Promise.all([
-          API.get('/teams'),
-          API.get('/events'),
-          API.get('/scoring/leaderboard')
+          API.get('/admin/teams'),
+          API.get('/admin/events'),
+          API.get('/admin/scoring/leaderboard')
         ]);
         setTeams(tRes.data);
         setEvents(eRes.data);
@@ -36,7 +36,7 @@ function Scoring() {
   const handleAssign = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/scoring', {
+      await API.post('/admin/scoring', {
         teamId: form.teamId,
         eventId: form.eventId,
         points: parseInt(form.points)
@@ -49,9 +49,25 @@ function Scoring() {
     }
   };
 
+  const finalizeScoring = async () => {
+    if (!form.eventId || !selectedRound) {
+      alert('⚠️ Please select both event and round before finalizing.');
+      return;
+    }
+    try {
+      await API.post(`/admin/scoring/finalize/${form.eventId}/${selectedRound}`);
+      alert('✅ Final scoring completed');
+      const lRes = await API.get('/admin/scoring/leaderboard');
+      setLeaderboard(lRes.data);
+    } catch (err) {
+      console.error('Final scoring error:', err);
+      alert('❌ Final scoring failed');
+    }
+  };
+
   const fetchTeamScores = async (id) => {
     try {
-      const { data } = await API.get(`/scoring/team/${id}`);
+      const { data } = await API.get(`/admin/scoring/team/${id}`);
       setScores(data);
     } catch (err) {
       console.error('Failed to fetch team scores:', err);
@@ -104,6 +120,26 @@ function Scoring() {
         </form>
 
         <hr />
+
+        {/* 🧠 Finalize Scoring */}
+        <h3>🧠 Finalize Scoring</h3>
+        <select
+          value={selectedRound}
+          onChange={e => setSelectedRound(e.target.value)}
+          required
+        >
+          <option value="">Select Round</option>
+          <option value="Round 1">Round 1</option>
+          <option value="Round 2">Round 2</option>
+          <option value="Final">Final</option>
+        </select>
+
+        <button type="button" onClick={finalizeScoring}>
+          🧠 Finalize Scores
+        </button>
+
+        <hr />
+
         {/* 📊 Team Scores */}
         <h3>📊 View Team Scores</h3>
         <select onChange={e => fetchTeamScores(e.target.value)}>
@@ -124,6 +160,7 @@ function Scoring() {
         </ul>
 
         <hr />
+
         {/* 🏆 Leaderboard */}
         <h3>🏆 Leaderboard</h3>
         <ol>

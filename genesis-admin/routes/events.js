@@ -3,18 +3,19 @@ const router = express.Router();
 const verifyAdmin = require('../middleware/verifyAdmin');
 const Event = require('../models/Event');
 const Team = require('../models/team');
+const Faculty = require('../models/Faculty');
 
-// Get all events
+// 📃 Get all events
 router.get('/', verifyAdmin, async (req, res) => {
   try {
-    const events = await Event.find();
+    const events = await Event.find().populate('faculties', 'name');
     res.json(events);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching events' });
   }
 });
 
-// Get participants by college
+// 🏫 Get participants by college
 router.get('/college/:collegeName/participants', verifyAdmin, async (req, res) => {
   try {
     const collegeQuery = req.params.collegeName;
@@ -40,7 +41,7 @@ router.get('/college/:collegeName/participants', verifyAdmin, async (req, res) =
   }
 });
 
-// Get participants for specific event
+// 🎯 Get participants for specific event
 router.get('/:eventName/participants', verifyAdmin, async (req, res) => {
   try {
     const eventName = req.params.eventName;
@@ -69,7 +70,7 @@ router.get('/:eventName/participants', verifyAdmin, async (req, res) => {
   }
 });
 
-// Public route to fetch all events (no visibility filter)
+// 🌐 Public route to fetch all events
 router.get('/public-events', async (req, res) => {
   try {
     const events = await Event.find();
@@ -80,10 +81,10 @@ router.get('/public-events', async (req, res) => {
   }
 });
 
-// Get event by ID
+// 🔍 Get event by ID
 router.get('/:id', verifyAdmin, async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findById(req.params.id).populate('faculties', 'name');
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json(event);
   } catch (err) {
@@ -91,33 +92,61 @@ router.get('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// Create event
+// ➕ Create event (convert faculty names to ObjectIds)
 router.post('/', verifyAdmin, async (req, res) => {
   try {
-    const { name, category } = req.body;
+    const { name, category, faculties = [], studentCoordinators = [], rules = '' } = req.body;
     if (!name || !category) {
       return res.status(400).json({ error: 'Name and category are required' });
     }
 
-    const event = new Event(req.body);
+    const facultyIds = [];
+    for (const name of faculties) {
+      const faculty = await Faculty.findOne({ name });
+      if (faculty) facultyIds.push(faculty._id);
+    }
+
+    const event = new Event({
+      name,
+      category,
+      faculties: facultyIds,
+      studentCoordinators,
+      rules
+    });
+
     await event.save();
     res.json({ success: true, event });
   } catch (err) {
+    console.error('Event creation failed:', err);
     res.status(400).json({ error: err.message });
   }
 });
 
-// Update event
+// ✏️ Update event (convert faculty names to ObjectIds)
 router.put('/:id', verifyAdmin, async (req, res) => {
   try {
-    const updated = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { faculties = [], ...rest } = req.body;
+
+    const facultyIds = [];
+    for (const name of faculties) {
+      const faculty = await Faculty.findOne({ name });
+      if (faculty) facultyIds.push(faculty._id);
+    }
+
+    const updated = await Event.findByIdAndUpdate(
+      req.params.id,
+      { ...rest, faculties: facultyIds },
+      { new: true }
+    );
+
     res.json({ message: 'Event updated', event: updated });
   } catch (err) {
+    console.error('Event update failed:', err);
     res.status(400).json({ error: 'Failed to update event' });
   }
 });
 
-// Delete event
+// 🗑️ Delete event
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     await Event.findByIdAndDelete(req.params.id);

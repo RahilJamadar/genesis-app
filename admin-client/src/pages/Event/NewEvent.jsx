@@ -23,11 +23,11 @@ function NewEvent() {
   const [coordinatorInput, setCoordinatorInput] = useState('');
 
   useEffect(() => {
-    API.get('/faculty')
+    API.get('/admin/faculty')
       .then(res => setFacultyList(res.data.map(f => f.name)))
       .catch(err => console.error('Faculty fetch error:', err));
 
-    API.get('/student-coordinators')
+    API.get('/admin/student-coordinators')
       .then(res => setCoordinatorList(res.data.map(c => c.name)))
       .catch(err => console.error('Coordinator fetch error:', err));
   }, []);
@@ -71,7 +71,7 @@ function NewEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/events', eventData);
+      await API.post('/admin/events', eventData);
       alert('Event created successfully ✅');
       navigate('/events');
     } catch (err) {

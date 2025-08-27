@@ -15,9 +15,9 @@ function Dashboard() {
     const fetchStats = async () => {
       try {
         const [teamRes, eventRes, scoreRes] = await Promise.all([
-          API.get('/teams'),
-          API.get('/events'),
-          API.get('/scoring/leaderboard')
+          API.get('/admin/teams'),
+          API.get('/admin/events'),
+          API.get('/admin/scoring/leaderboard')
         ]);
 
         setStats({

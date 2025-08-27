@@ -17,7 +17,7 @@ function AdminManage() {
 
   const loadAdmins = async () => {
     try {
-      const res = await API.get('/manage');
+      const res = await API.get('/admin/manage');
       setAdminList(res.data);
     } catch (err) {
       console.error('Failed to fetch admins:', err);
@@ -31,7 +31,7 @@ function AdminManage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/manage', formData);
+      await API.post('/admin/manage', formData);
       resetForm();
       loadAdmins();
     } catch (err) {
@@ -49,7 +49,7 @@ const handleDelete = async (id) => {
 
   if (!window.confirm('Delete this admin?')) return;
   try {
-    await API.delete(`/manage/${id}`);
+    await API.delete(`/admin/manage/${id}`);
     loadAdmins();
   } catch (err) {
     console.error('Failed to delete admin:', err);
@@ -67,7 +67,7 @@ const handleDelete = async (id) => {
 
   const handleUpdate = async () => {
     try {
-      await API.put(`/manage/${isEditing}`, formData);
+      await API.put(`/admin/manage/${isEditing}`, formData);
       setIsEditing(null);
       resetForm();
       loadAdmins();

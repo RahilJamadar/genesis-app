@@ -16,6 +16,18 @@ import FacultyPage from './pages/Faculty/FacultyPage'; // Main Faculty Page
 import AdminManage from './pages/AdminManage/AdminManage';
 import StudentCoordinatorsPage from './pages/StudentCoordinator/StudentCoordinatorsPage'; // Main Student Coordinators Page
 import SchedulePage from './pages/Schedule/SchedulePage';
+import EventDetails from './pages/Event/EventDetails';
+import FacultyLogin from './pages/FacultyLogin/FacultyLogin';
+import FacultyDashboard from './pages/FacultyDashboard/FacultyDashboard'; // Faculty Dashboard
+import FacultyEventDetails from './pages/FacultyEventDetails/FacultyEventDetails';
+import FacultyEventScoring from './pages/FacultyEventScoring/FacultyEventScoring';
+
+
+
+
+
+
+
 
 function App() {
   return (
@@ -34,6 +46,17 @@ function App() {
         <Route path="/faculty" element={<FacultyPage />} />
         <Route path="/student-coordinators" element={<StudentCoordinatorsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
+
+        <Route path="/events/view/:id" element={<EventDetails />} />
+
+        <Route path="/faculty/login" element={<FacultyLogin />} />
+        <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
+
+        <Route path="/faculty/event/:id/details" element={<FacultyEventDetails />} />
+        <Route path="/faculty/event/:id/score" element={<FacultyEventScoring />} />
+
+
+
 
         <Route
           path="/admin-manage"

@@ -6,17 +6,23 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const teamRoutes = require('./routes/teams');
-const scoringRoutes = require('./routes/scoring');
 const facultyRoutes = require('./routes/faculty');
 const adminManageRoutes = require('./routes/admin'); // handles CRUD for admins
 const studentCoordinatorsRoutes = require('./routes/studentCoordinators');
 const scheduleRoutes = require('./routes/scheduleRoutes');
+const facultyAuth = require('./routes/facultyAuth');
+const facultyDashboard = require('./routes/facultyDashboard');
+const scoringRoutes = require('./routes/scoring');
+
+
+
+
 
 const app = express();
 
 // ✅ Middleware Setup
 const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.0.111:3000','http://192.168.0.111:3001'],
   credentials: true
 };
 
@@ -40,7 +46,13 @@ app.use('/api/admin/teams', teamRoutes);
 app.use('/api/admin/scoring', scoringRoutes);
 app.use('/api/admin/faculty', facultyRoutes);
 app.use('/api/admin/student-coordinators', studentCoordinatorsRoutes);
-app.use('/api/schedules', scheduleRoutes);
+app.use('/api/schedules', require('./routes/scheduleRoutes'));
+
+app.use('/api/faculty', facultyAuth);
+app.use('/api/faculty', facultyDashboard);
+app.use('/api/faculty', scoringRoutes);
+
+
 
 
 

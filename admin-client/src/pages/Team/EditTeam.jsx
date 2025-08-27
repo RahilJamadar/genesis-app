@@ -12,12 +12,12 @@ function EditTeam() {
 
   useEffect(() => {
     // Load team data
-    API.get(`/teams/${id}`)
+    API.get(`/admin/teams/${id}`)
       .then(res => setTeam(res.data))
       .catch(err => console.error('Fetch error:', err));
 
     // Load event options from backend
-    API.get('/events')
+    API.get('/admin/events')
       .then(res => {
         const visibleEvents = res.data.filter(ev => ev.isVisible);
         setEvents(visibleEvents.map(ev => ev.name));
@@ -50,7 +50,7 @@ function EditTeam() {
 
   const handleSave = async () => {
     try {
-      await API.put(`/teams/${id}`, team);
+      await API.put(`/admin/teams/${id}`, team);
       alert('Team updated ✅');
       navigate('/teams');
     } catch (err) {

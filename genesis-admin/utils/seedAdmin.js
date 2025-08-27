@@ -10,7 +10,7 @@ async function createAdmin() {
       useUnifiedTopology: true
     });
 
-    const existing = await Admin.findOne({ username: 'admin' });
+    const existing = await Admin.findOne({ name: 'admin' });
     if (existing) {
       console.log('Admin already exists. Skipping creation.');
       return;
@@ -18,7 +18,7 @@ async function createAdmin() {
 
     const hashed = await bcrypt.hash('admin123', 10); // you can change password
     const newAdmin = new Admin({
-      username: 'admin',
+      name: 'admin',
       password: hashed
     });
 

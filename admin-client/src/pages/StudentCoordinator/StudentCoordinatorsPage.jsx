@@ -19,7 +19,7 @@ function StudentCoordinatorsPage() {
 
   const fetchCoordinators = async () => {
     try {
-      const res = await API.get('/student-coordinators');
+      const res = await API.get('/admin/student-coordinators');
       setCoordinators(res.data);
     } catch (err) {
       console.error('❌ Failed to fetch coordinators:', err);
@@ -59,7 +59,7 @@ function StudentCoordinatorsPage() {
     }
 
     try {
-      await API.post('/student-coordinators', trimmed);
+      await API.post('/admin/student-coordinators', trimmed);
       resetForm();
       fetchCoordinators();
     } catch (err) {
@@ -76,7 +76,7 @@ function StudentCoordinatorsPage() {
     }
 
     try {
-      await API.put(`/student-coordinators/${isEditing}`, trimmed);
+      await API.put(`/admin/student-coordinators/${isEditing}`, trimmed);
       resetForm();
       fetchCoordinators();
     } catch (err) {
@@ -97,7 +97,7 @@ function StudentCoordinatorsPage() {
 
   const handleDelete = async (id) => {
     try {
-      await API.delete(`/student-coordinators/${id}`);
+      await API.delete(`/admin/student-coordinators/${id}`);
       fetchCoordinators();
     } catch (err) {
       console.error('❌ Failed to delete coordinator:', err);

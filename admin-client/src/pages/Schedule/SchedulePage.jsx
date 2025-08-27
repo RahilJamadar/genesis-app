@@ -3,42 +3,44 @@ import ScheduleForm from './ScheduleForm';
 import ScheduleTable from './ScheduleTable';
 import './schedule.css';
 import Navbar from '../../components/Navbar';
+import API from '../../api/adminApi';
 
 const SchedulePage = () => {
   const [schedules, setSchedules] = useState([]);
 
   useEffect(() => {
-    fetch('/api/schedules')
-      .then((res) => res.json())
-      .then((data) => setSchedules(data))
+    API.get('/schedules')
+      .then((res) => setSchedules(res.data))
       .catch((err) => console.error('Fetch failed:', err));
   }, []);
 
   const handleAddSchedule = async (newSchedule) => {
-    const res = await fetch('/api/schedules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSchedule),
-    });
-    const added = await res.json();
-    setSchedules((prev) => [...prev, added]);
+    try {
+      const res = await API.post('/schedules', newSchedule);
+      setSchedules((prev) => [...prev, res.data]);
+    } catch (err) {
+      console.error('Add failed:', err);
+    }
   };
 
   const handleDelete = async (id) => {
-    await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
-    setSchedules((prev) => prev.filter((item) => item._id !== id));
+    try {
+      await API.delete(`/schedules/${id}`);
+      setSchedules((prev) => prev.filter((item) => item._id !== id));
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
   };
 
   const handleEdit = async (id, updated) => {
-    const res = await fetch(`/api/schedules/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    });
-    const edited = await res.json();
-    setSchedules((prev) =>
-      prev.map((item) => (item._id === id ? edited : item))
-    );
+    try {
+      const res = await API.put(`/schedules/${id}`, updated);
+      setSchedules((prev) =>
+        prev.map((item) => (item._id === id ? res.data : item))
+      );
+    } catch (err) {
+      console.error('Edit failed:', err);
+    }
   };
 
   return (

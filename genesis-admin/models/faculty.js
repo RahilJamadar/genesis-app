@@ -4,7 +4,9 @@ const bcrypt = require('bcrypt');
 const FacultySchema = new mongoose.Schema({
   name: { type: String, required: true },
   number: { type: String, required: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  role: { type: String, default: 'faculty' }
+
 });
 
 // Hash password before saving

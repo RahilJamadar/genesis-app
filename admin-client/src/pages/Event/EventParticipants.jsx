@@ -12,7 +12,7 @@ function EventParticipants() {
 
   // Load all event names
   useEffect(() => {
-    API.get('/events')
+    API.get('/admin/events')
       .then(res => {
         const names = res.data.map(ev => ev.name);
         setEvents(names);
@@ -22,7 +22,7 @@ function EventParticipants() {
 
   // Load all college names
   useEffect(() => {
-    API.get('/teams')
+    API.get('/admin/teams')
       .then(res => {
         const collegeSet = new Set(res.data.map(team => team.college));
         setColleges([...collegeSet]);
@@ -33,7 +33,7 @@ function EventParticipants() {
   // Fetch by event
   useEffect(() => {
     if (!selectedEvent) return;
-    API.get(`/events/${selectedEvent}/participants`)
+    API.get(`/admin/events/${selectedEvent}/participants`)
       .then(res => setParticipants(res.data))
       .catch(err => console.error('Participant fetch error:', err));
   }, [selectedEvent]);
@@ -41,7 +41,7 @@ function EventParticipants() {
   // Fetch by college
   useEffect(() => {
     if (!selectedCollege) return;
-    API.get(`/events/college/${encodeURIComponent(selectedCollege)}/participants`)
+    API.get(`/admin/events/college/${encodeURIComponent(selectedCollege)}/participants`)
       .then(res => setParticipants(res.data))
       .catch(err => console.error('College participant fetch error:', err));
   }, [selectedCollege]);

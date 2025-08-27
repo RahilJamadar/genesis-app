@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Login.css'; // Optional styling
+import './Login.css';
 
 function Login() {
   const [name, setname] = useState('');
@@ -16,11 +16,9 @@ function Login() {
         password
       });
 
-
       const token = res.data.token;
       if (token) {
         localStorage.setItem('adminToken', token);
-        // console.log('✅ Token saved:', token);
         navigate('/dashboard');
       } else {
         alert('No token received');
@@ -29,6 +27,10 @@ function Login() {
       console.error('Login error:', err.response?.data || err.message);
       alert('Login failed');
     }
+  };
+
+  const goToFacultyLogin = () => {
+    navigate('/faculty/login');
   };
 
   return (
@@ -49,9 +51,16 @@ function Login() {
           onChange={e => setPassword(e.target.value)}
           required
         />
-
         <button type="submit">Login 🔐</button>
       </form>
+
+      <div className="login-divider">
+        <span>or</span>
+      </div>
+
+      <button className="faculty-login-button" onClick={goToFacultyLogin}>
+        Faculty Login
+      </button>
     </div>
   );
 }

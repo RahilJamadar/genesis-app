@@ -10,7 +10,7 @@ function ViewTeam() {
   const [team, setTeam] = useState(null);
 
   useEffect(() => {
-    API.get(`/teams/${id}`)
+    API.get(`/admin/teams/${id}`)
       .then(res => setTeam(res.data))
       .catch(err => console.error('View fetch error:', err));
   }, [id]);

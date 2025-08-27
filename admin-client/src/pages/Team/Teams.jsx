@@ -9,14 +9,14 @@ function Teams() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    API.get('/teams')
+    API.get('/admin/teams')
       .then(res => setTeams(res.data))
       .catch(console.error);
   }, []);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this team?')) return;
-    await API.delete(`/teams/${id}`);
+    await API.delete(`/admin/teams/${id}`);
     setTeams(teams.filter(t => t._id !== id));
   };
 
