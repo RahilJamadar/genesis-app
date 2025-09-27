@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../api/adminApi';
 import Navbar from '../../components/Navbar';
-import './Teams.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Teams() {
   const [teams, setTeams] = useState([]);
@@ -11,13 +12,18 @@ function Teams() {
   useEffect(() => {
     API.get('/admin/teams')
       .then(res => setTeams(res.data))
-      .catch(console.error);
+      .catch(() => toast.error('❌ Failed to fetch teams'));
   }, []);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this team?')) return;
-    await API.delete(`/admin/teams/${id}`);
-    setTeams(teams.filter(t => t._id !== id));
+    try {
+      await API.delete(`/admin/teams/${id}`);
+      setTeams(teams.filter(t => t._id !== id));
+      toast.success('🗑️ Team deleted');
+    } catch {
+      toast.error('❌ Failed to delete team');
+    }
   };
 
   const handleEdit = (id) => {
@@ -26,21 +32,42 @@ function Teams() {
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <Navbar />
-      <div className="teams">
-        <h2>Team Manager</h2>
-        <ul>
+      <div className="container py-5" style={{ backgroundColor: '#0d0d15', minHeight: '100vh' }}>
+        <h2 className="text-center text-info fw-bold mb-4">Team Manager</h2>
+
+        <div className="row gy-4">
           {teams.map(team => (
-            <li key={team._id}>
-              <strong>{team.leader}</strong> from {team.college} — {team.members.length} members
-              <div className="team-actions">
-                <button onClick={() => handleDelete(team._id)}>❌ Delete</button>
-                <button onClick={() => handleEdit(team._id)}>✏️ Edit</button>
-                <button onClick={() => navigate(`/teams/view/${team._id}`)}> 🔍 View</button>
+            <div key={team._id} className="col-md-6">
+              <div
+                className="p-3 rounded shadow-sm d-flex flex-column gap-2"
+                style={{
+                  backgroundColor: '#161b22',
+                  borderLeft: '4px solid #00ffe0',
+                  border: '1px solid #2a2f3a',
+                  color: '#e0e6f0'
+                }}
+              >
+                <div>
+                  <strong className="text-info">{team.leader}</strong> from {team.college}<br />
+                  <span className="text-white">{team.members.length} members</span>
+                </div>
+                <div className="d-flex gap-2 flex-wrap">
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDelete(team._id)}>
+                    ❌ Delete
+                  </button>
+                  <button className="btn btn-sm btn-warning" onClick={() => handleEdit(team._id)}>
+                    ✏️ Edit
+                  </button>
+                  <button className="btn btn-sm btn-info" onClick={() => navigate(`/teams/view/${team._id}`)}>
+                    🔍 View
+                  </button>
+                </div>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </>
   );

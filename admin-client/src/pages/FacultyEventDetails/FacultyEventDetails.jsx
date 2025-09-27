@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import facultyAPI from '../../api/facultyApi';
 import FacultyNavbar from '../../components/FacultyNavbar';
-import './FacultyEventDetails.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const FacultyEventDetails = () => {
   const { id } = useParams();
@@ -12,44 +13,75 @@ const FacultyEventDetails = () => {
   useEffect(() => {
     facultyAPI.get(`/event/${id}/details`)
       .then(res => setEvent(res.data))
-      .catch(err => console.error('Event details error:', err));
+      .catch(() => toast.error('❌ Failed to fetch event details'));
   }, [id]);
 
-  if (!event) return <p>Loading...</p>;
+  if (!event) return (
+    <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <p className="text-center text-light mt-5">Loading...</p>
+    </>
+  );
 
   const facultyNames = event.faculties?.map(f => f.name).join(', ') || 'N/A';
   const coordinatorNames = event.studentCoordinators?.join(', ') || 'N/A';
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <FacultyNavbar />
-      <div className="event-details">
-        <h2>{event.name}</h2>
-        <span className={`category-badge category-${event.category}`}>
-          {event.category}
-        </span>
+      <div className="container py-5" style={{ backgroundColor: '#0D0D15', minHeight: '100vh' }}>
+        <div className="mx-auto p-4 rounded shadow-sm text-light" style={{ maxWidth: '800px', backgroundColor: '#161b22', border: '1px solid #2b2f3a' }}>
+          <h2 className="text-center text-info fw-bold mb-3">{event.name}</h2>
+          <span className={`badge mb-3 px-3 py-2 fw-semibold`} style={{
+            backgroundColor: getCategoryColor(event.category),
+            borderRadius: '14px',
+            fontSize: '0.9rem'
+          }}>
+            {event.category}
+          </span>
 
-        <div className="faculty-inline">
-          <strong>Faculty In-Charge:</strong> {facultyNames}
-        </div>
-
-        <div className="faculty-inline">
-          <strong>Student Coordinators:</strong> {coordinatorNames}
-        </div>
-
-        {event.rules && (
-          <div className="rules-block">
-            <strong>Rules:</strong>
-            <p>{event.rules}</p>
+          <div className="mb-3">
+            <strong className="text-info me-2">Faculty In-Charge:</strong>
+            <span className="text-light">{facultyNames}</span>
           </div>
-        )}
 
-        <button className="back-button" onClick={() => navigate('/faculty/dashboard')}>
-          ← Back to Dashboard
-        </button>
+          <div className="mb-3">
+            <strong className="text-info me-2">Student Coordinators:</strong>
+            <span className="text-light">{coordinatorNames}</span>
+          </div>
+
+          {event.rules && (
+            <div className="mt-4 p-3 rounded" style={{ backgroundColor: '#10141f', border: '1px solid #2b2f3a' }}>
+              <strong className="text-info d-block mb-2">Rules:</strong>
+              <p className="text-light mb-0" style={{ lineHeight: '1.6', fontSize: '0.95rem' }}>{event.rules}</p>
+            </div>
+          )}
+
+          <div className="text-center mt-4">
+            <button
+              className="btn btn-info fw-semibold px-4 py-2"
+              onClick={() => navigate('/faculty/dashboard')}
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );
+};
+
+// Helper to map category to color
+const getCategoryColor = (category) => {
+  switch (category) {
+    case 'Tech': return '#00bfff';
+    case 'Cultural': return '#e07c9c';
+    case 'Sports': return '#4cb050';
+    case 'Gaming': return '#ffa500';
+    case 'Pre-events': return '#9370db';
+    default: return '#6c757d';
+  }
 };
 
 export default FacultyEventDetails;

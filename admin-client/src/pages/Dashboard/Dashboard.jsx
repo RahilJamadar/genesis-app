@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import API from '../../api/adminApi';
 import Navbar from '../../components/Navbar';
-import '../../App.css';
-import './Dashboard.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -23,10 +23,10 @@ function Dashboard() {
         setStats({
           teams: teamRes.data.length,
           events: eventRes.data.length,
-          topScores: scoreRes.data.slice(0, 3) // top 3 teams
+          topScores: scoreRes.data.slice(0, 3)
         });
-      } catch (err) {
-        console.error('❌ Failed to fetch dashboard data:', err);
+      } catch {
+        toast.error('❌ Failed to load dashboard data');
       }
     };
 
@@ -35,29 +35,51 @@ function Dashboard() {
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <Navbar />
-      <div className="dashboard-container">
-        <h2>🌟 Genesis Admin Overview</h2>
-        <div className="dashboard-cards">
-          <div className="card">
-            <h3>🧑‍🤝‍🧑 Teams Registered</h3>
-            <p>{stats.teams}</p>
+      <div className="container-fluid bg-dark text-light min-vh-100 py-5 px-4">
+        <div className="text-center mb-5">
+          <h2 className="fw-bold text-info">🌟 Genesis Admin Overview</h2>
+          <p className="text-muted">Quick stats and top performers</p>
+        </div>
+
+        <div className="row g-4 justify-content-center mb-5">
+          <div className="col-md-4">
+            <div className="card bg-secondary text-light border-0 shadow-sm">
+              <div className="card-body text-center">
+                <h5 className="card-title text-uppercase fw-semibold">🧑‍🤝‍🧑 Teams Registered</h5>
+                <p className="display-6 fw-bold text-info">{stats.teams}</p>
+              </div>
+            </div>
           </div>
-          <div className="card">
-            <h3>📅 Events Created</h3>
-            <p>{stats.events}</p>
+          <div className="col-md-4">
+            <div className="card bg-secondary text-light border-0 shadow-sm">
+              <div className="card-body text-center">
+                <h5 className="card-title text-uppercase fw-semibold">📅 Events Created</h5>
+                <p className="display-6 fw-bold text-warning">{stats.events}</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="leaderboard-section">
-          <h3>🏆 Top 3 Teams</h3>
-          <ol>
+        <div className="mx-auto" style={{ maxWidth: '720px' }}>
+          <h4 className="text-info border-bottom pb-2 mb-3">🏆 Top 3 Teams</h4>
+          <div className="list-group">
             {stats.topScores.map((team, i) => (
-              <li key={i}>
-                <strong>{team.teamName}</strong> ({team.college}) — {team.total} pts
-              </li>
+              <div
+                key={i}
+                className="list-group-item bg-dark border border-secondary rounded mb-3 shadow-sm"
+              >
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong className="text-info">{team.teamName}</strong>
+                    <span className="text-white ms-2">({team.college})</span>
+                  </div>
+                  <span className="badge bg-info text-dark fs-6">{team.total} pts</span>
+                </div>
+              </div>
             ))}
-          </ol>
+          </div>
         </div>
       </div>
     </>

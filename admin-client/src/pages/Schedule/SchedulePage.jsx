@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import ScheduleForm from './ScheduleForm';
 import ScheduleTable from './ScheduleTable';
-import './schedule.css';
 import Navbar from '../../components/Navbar';
 import API from '../../api/adminApi';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const SchedulePage = () => {
   const [schedules, setSchedules] = useState([]);
@@ -11,24 +12,27 @@ const SchedulePage = () => {
   useEffect(() => {
     API.get('/schedules')
       .then((res) => setSchedules(res.data))
-      .catch((err) => console.error('Fetch failed:', err));
+      .catch(() => toast.error('❌ Failed to fetch schedules'));
   }, []);
 
   const handleAddSchedule = async (newSchedule) => {
     try {
       const res = await API.post('/schedules', newSchedule);
       setSchedules((prev) => [...prev, res.data]);
-    } catch (err) {
-      console.error('Add failed:', err);
+      toast.success('✅ Schedule added');
+    } catch {
+      toast.error('❌ Failed to add schedule');
     }
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm('Delete this schedule?')) return;
     try {
       await API.delete(`/schedules/${id}`);
       setSchedules((prev) => prev.filter((item) => item._id !== id));
-    } catch (err) {
-      console.error('Delete failed:', err);
+      toast.success('🗑️ Schedule deleted');
+    } catch {
+      toast.error('❌ Failed to delete schedule');
     }
   };
 
@@ -38,13 +42,15 @@ const SchedulePage = () => {
       setSchedules((prev) =>
         prev.map((item) => (item._id === id ? res.data : item))
       );
-    } catch (err) {
-      console.error('Edit failed:', err);
+      toast.success('✏️ Schedule updated');
+    } catch {
+      toast.error('❌ Failed to update schedule');
     }
   };
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <Navbar />
       <div className="schedule-page">
         <h2>Genesis Scheduler</h2>

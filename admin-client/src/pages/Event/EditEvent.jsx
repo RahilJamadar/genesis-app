@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../api/adminApi';
 import Navbar from '../../components/Navbar';
-import './EditEvent.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events'];
 
@@ -19,18 +20,21 @@ function EditEvent() {
     API.get(`/admin/events/${id}`)
       .then(res => {
         const raw = res.data;
-        const facultyNames = raw.faculties?.map(f => f.name) || [];
-        setEvent({ ...raw, faculties: facultyNames });
+        setEvent({
+          ...raw,
+          judges: raw.judges || [],
+          rounds: raw.rounds || 1
+        });
       })
-      .catch(err => console.error('Fetch error:', err));
+      .catch(() => toast.error('❌ Failed to fetch event details'));
 
     API.get('/admin/faculty')
-      .then(res => setFacultyList(res.data.map(f => f.name)))
-      .catch(err => console.error('Faculty fetch error:', err));
+      .then(res => setFacultyList(res.data)) // full objects
+      .catch(() => toast.error('❌ Failed to fetch faculty list'));
 
     API.get('/admin/student-coordinators')
       .then(res => setCoordinatorList(res.data.map(c => c.name)))
-      .catch(err => console.error('Coordinator fetch error:', err));
+      .catch(() => toast.error('❌ Failed to fetch coordinator list'));
   }, [id]);
 
   const handleChange = (field, value) => {
@@ -38,19 +42,19 @@ function EditEvent() {
   };
 
   const handleAddFaculty = () => {
-    if (facultyInput && !event.faculties.includes(facultyInput)) {
+    if (facultyInput && !event.judges.includes(facultyInput)) {
       setEvent(prev => ({
         ...prev,
-        faculties: [...prev.faculties, facultyInput]
+        judges: [...prev.judges, facultyInput]
       }));
       setFacultyInput('');
     }
   };
 
   const handleRemoveFaculty = index => {
-    const updated = [...event.faculties];
+    const updated = [...event.judges];
     updated.splice(index, 1);
-    setEvent(prev => ({ ...prev, faculties: updated }));
+    setEvent(prev => ({ ...prev, judges: updated }));
   };
 
   const handleAddCoordinator = () => {
@@ -72,97 +76,135 @@ function EditEvent() {
   const handleSave = async () => {
     try {
       await API.put(`/admin/events/${id}`, event);
-      alert('Event updated ✅');
-      navigate('/events');
-    } catch (err) {
-      console.error('Update failed:', err);
-      alert('Failed to save changes');
+      toast.success('✅ Event updated successfully');
+      setTimeout(() => navigate('/events'), 1500);
+    } catch {
+      toast.error('❌ Failed to save changes');
     }
   };
 
-  if (!event) return <p>Loading event...</p>;
+  if (!event) return <p className="text-center text-light mt-5">Loading event...</p>;
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <Navbar />
-      <div className="edit-event">
-        <h2>Edit Event: {event.name}</h2>
+      <div className="container bg-dark text-light py-4 px-3 rounded shadow-lg mt-4" style={{ maxWidth: '720px' }}>
+        <h2 className="text-center text-primary border-bottom pb-2 mb-4">Edit Event: {event.name}</h2>
 
-        <label>Event Name</label>
-        <input
-          type="text"
-          value={event.name}
-          onChange={e => handleChange('name', e.target.value)}
-          placeholder="Event Name"
-        />
+        <div className="row g-3">
+          <div className="col-md-6">
+            <label className="form-label text-info">Event Name</label>
+            <input
+              type="text"
+              className="form-control form-control-sm bg-dark text-light border-secondary"
+              value={event.name}
+              onChange={e => handleChange('name', e.target.value)}
+              placeholder="Event Name"
+            />
+          </div>
 
-        <label>Category</label>
-        <select
-          value={event.category}
-          onChange={e => handleChange('category', e.target.value)}
-        >
-          <option value="">-- Select Category --</option>
-          {categories.map((cat, index) => (
-            <option key={index} value={cat}>{cat}</option>
-          ))}
-        </select>
+          <div className="col-md-6">
+            <label className="form-label text-info">Category</label>
+            <select
+              className="form-select form-select-sm bg-dark text-light border-secondary"
+              value={event.category}
+              onChange={e => handleChange('category', e.target.value)}
+            >
+              <option value="">-- Select --</option>
+              {categories.map((cat, index) => (
+                <option key={index} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
 
-        <label>Faculty In-Charge(s)</label>
-        <div className="faculty-section">
-          <select
-            value={facultyInput}
-            onChange={e => setFacultyInput(e.target.value)}
-          >
-            <option value="">-- Select Faculty --</option>
-            {facultyList.map((name, i) => (
-              <option key={i} value={name}>{name}</option>
-            ))}
-          </select>
-          <button type="button" onClick={handleAddFaculty}>Add Faculty</button>
+          <div className="col-md-6">
+            <label className="form-label text-info">Rounds</label>
+            <input
+              type="number"
+              min="1"
+              className="form-control form-control-sm bg-dark text-light border-secondary"
+              value={event.rounds}
+              onChange={e => handleChange('rounds', parseInt(e.target.value))}
+              placeholder="e.g. 3"
+            />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label text-info">Add Judge</label>
+            <div className="input-group input-group-sm">
+              <select
+                className="form-select bg-dark text-light border-secondary"
+                value={facultyInput}
+                onChange={e => setFacultyInput(e.target.value)}
+              >
+                <option value="">-- Select --</option>
+                {facultyList.map(f => (
+                  <option key={f._id} value={f._id}>{f.name}</option>
+                ))}
+              </select>
+              <button className="btn btn-outline-info" type="button" onClick={handleAddFaculty}>+</button>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label text-info">Add Coordinator</label>
+            <div className="input-group input-group-sm">
+              <select
+                className="form-select bg-dark text-light border-secondary"
+                value={coordinatorInput}
+                onChange={e => setCoordinatorInput(e.target.value)}
+              >
+                <option value="">-- Select --</option>
+                {coordinatorList.map((name, i) => (
+                  <option key={i} value={name}>{name}</option>
+                ))}
+              </select>
+              <button className="btn btn-outline-info" type="button" onClick={handleAddCoordinator}>+</button>
+            </div>
+          </div>
+
+          <div className="col-12">
+            <label className="form-label text-info">Event Rules</label>
+            <textarea
+              rows="4"
+              className="form-control form-control-sm bg-dark text-light border-secondary"
+              value={event.rules}
+              onChange={e => handleChange('rules', e.target.value)}
+              placeholder="Write rules..."
+            ></textarea>
+          </div>
         </div>
 
-        <ul className="faculty-list">
-          {event.faculties.map((faculty, index) => (
-            <li key={index}>
-              {faculty}
-              <button type="button" onClick={() => handleRemoveFaculty(index)}>Remove</button>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-4">
+          <label className="form-label text-info">Judges</label>
+          <ul className="list-group list-group-flush mb-3">
+            {event.judges.map((id, index) => {
+              const faculty = facultyList.find(f => f._id === id);
+              return (
+                <li key={index} className="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
+                  {faculty?.name || 'Unknown'}
+                  <button className="btn btn-sm btn-outline-danger" type="button" onClick={() => handleRemoveFaculty(index)}>Remove</button>
+                </li>
+              );
+            })}
+          </ul>
 
-        <label>Student Coordinator(s)</label>
-        <div className="faculty-section">
-          <select
-            value={coordinatorInput}
-            onChange={e => setCoordinatorInput(e.target.value)}
-          >
-            <option value="">-- Select Coordinator --</option>
-            {coordinatorList.map((name, i) => (
-              <option key={i} value={name}>{name}</option>
+          <label className="form-label text-info">Student Coordinators</label>
+          <ul className="list-group list-group-flush">
+            {event.studentCoordinators.map((coord, index) => (
+              <li key={index} className="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
+                {coord}
+                <button className="btn btn-sm btn-outline-danger" type="button" onClick={() => handleRemoveCoordinator(index)}>Remove</button>
+              </li>
             ))}
-          </select>
-          <button type="button" onClick={handleAddCoordinator}>Add Coordinator</button>
+          </ul>
         </div>
 
-        <ul className="faculty-list">
-          {event.studentCoordinators.map((coord, index) => (
-            <li key={index}>
-              {coord}
-              <button type="button" onClick={() => handleRemoveCoordinator(index)}>Remove</button>
-            </li>
-          ))}
-        </ul>
-
-        <label>Event Rules</label>
-        <textarea
-          rows="6"
-          value={event.rules}
-          onChange={e => handleChange('rules', e.target.value)}
-          placeholder="Write all rules and guidelines for this event..."
-        ></textarea>
-
-        <button onClick={handleSave}>Save Changes</button>
-        <button onClick={() => navigate('/events')}>← Back to Events</button>
+        <div className="d-flex gap-2 mt-4">
+          <button className="btn btn-sm btn-primary w-100 fw-semibold" onClick={handleSave}>💾 Save</button>
+          <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => navigate('/events')}>← Back</button>
+        </div>
       </div>
     </>
   );

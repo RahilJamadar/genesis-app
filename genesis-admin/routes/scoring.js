@@ -4,117 +4,75 @@ const mongoose = require('mongoose');
 const verifyAdmin = require('../middleware/verifyAdmin');
 const verifyFaculty = require('../middleware/verifyFaculty');
 const Event = require('../models/Event');
-const Team = require('../models/team');
-const RawScore = require('../models/RawScore');
-const FinalScore = require('../models/FinalScore');
-const { finalizeScores } = require('../services/scoringService');
+const Team = require('../models/Team');
+const Score = require('../models/Score');
 
-// ✅ Admin-only Raw Score Assignment
-router.post('/', verifyAdmin, async (req, res) => {
-  try {
-    const score = new RawScore(req.body);
-    await score.save();
-    res.json({ success: true, score });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+// 🔍 Admin: View Scores for Team/Round
+router.get('/admin/event/:eventId/scores/:teamId', verifyAdmin, async (req, res) => {
+  const { eventId, teamId } = req.params;
+  const { round } = req.query;
 
-// 🏆 Admin Leaderboard
-router.get('/leaderboard', verifyAdmin, async (req, res) => {
   try {
-    const scores = await FinalScore.aggregate([
-      {
-        $group: {
-          _id: '$team',
-          total: { $sum: '$points' }
-        }
-      },
-      {
-        $lookup: {
-          from: 'teams',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'teamInfo'
-        }
-      },
-      { $unwind: '$teamInfo' },
-      {
-        $project: {
-          teamName: '$teamInfo.name',
-          college: '$teamInfo.college',
-          total: 1
-        }
-      },
-      { $sort: { total: -1 } }
-    ]);
+    const scores = await Score.find({ event: eventId, team: teamId, round })
+      .populate('judge', 'name')
+      .populate('event', 'name category');
     res.json(scores);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    console.error('Admin score fetch failed:', err);
+    res.status(500).json({ error: 'Failed to fetch scores for round' });
   }
 });
 
-// 📊 Admin View Raw Scores by Team
-router.get('/team/:id', verifyAdmin, async (req, res) => {
-  try {
-    const teamId = req.params.id;
-    const scores = await RawScore.find({ teamId }).populate('eventId', 'name category');
-    const formatted = scores.map(s => ({
-      _id: s._id,
-      points: s.points,
-      round: s.round,
-      judge: s.judge,
-      comment: s.comment,
-      event: {
-        name: s.eventId.name,
-        category: s.eventId.category
-      }
-    }));
-    res.json(formatted);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch scores for team' });
-  }
-});
-
-// 👨‍🏫 Faculty: Submit Raw Score
+// 📝 Faculty: Submit Score
 router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
-  const { teamId, round, points, comment } = req.body;
+  const { teamId, round, points, participant, comment, finalized } = req.body;
   const { eventId } = req.params;
 
   try {
-    const existing = await RawScore.findOne({
-      teamId,
-      eventId,
-      round,
-      judge: req.user.id
-    });
-
-    if (existing) {
-      existing.points = points;
-      existing.comment = comment;
-      await existing.save();
-      return res.json({ success: true, message: 'Score updated', score: existing });
+    const event = await Event.findById(eventId);
+    if (!event || !event.judges.some(j => j.equals(req.user.id))) {
+      return res.status(403).json({ error: 'You are not assigned to this event' });
     }
 
     const team = await Team.findById(teamId);
     if (!team) {
-      return res.status(400).json({ error: 'Team not found — scoring aborted' });
+      return res.status(400).json({ error: 'Team not found' });
     }
 
-    const derivedName = team.name || team.members?.[0]?.name || 'Unnamed Team';
-
-    const score = new RawScore({
-      teamId,
-      teamName: derivedName,
-      college: team.college,
-      eventId,
-      points,
+    const existing = await Score.findOne({
+      team: teamId,
+      event: eventId,
       round,
-      comment,
-      judge: req.user.id
+      judge: req.user.id,
+      participant: participant || null
+    });
+
+    if (existing) {
+      if (existing.finalized) {
+        return res.status(403).json({ error: 'Score already finalized. No further edits allowed.' });
+      }
+
+      existing.points = points;
+      existing.comment = comment || '';
+      if (finalized) existing.finalized = true;
+      await existing.save();
+      return res.json({ success: true, message: 'Score updated', score: existing });
+    }
+
+    const score = new Score({
+      team: teamId,
+      event: eventId,
+      round,
+      judge: req.user.id,
+      points,
+      participant: participant || undefined,
+      comment: comment || '',
+      finalized: !!finalized
     });
 
     await score.save();
+    console.log('🔔 Incoming score payload:', req.body);
+    console.log('👤 Logged-in faculty:', req.user);
     res.status(201).json({ success: true, message: 'Score submitted', score });
   } catch (err) {
     console.error('Faculty score submit failed:', err);
@@ -122,48 +80,79 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
   }
 });
 
-// 👨‍🏫 Faculty: Delete Their Raw Score
-router.delete('/event/:eventId/score/:teamId', verifyFaculty, async (req, res) => {
-  const { eventId, teamId } = req.params;
-  const { round } = req.query;
-
-  try {
-    const removed = await RawScore.deleteOne({
-      teamId,
-      eventId,
-      round,
-      judge: req.user.id
-    });
-
-    if (removed.deletedCount > 0) {
-      res.json({ success: true, message: 'Score deleted' });
-    } else {
-      res.status(404).json({ error: 'Score not found or already removed' });
-    }
-  } catch (err) {
-    console.error('Score deletion failed:', err);
-    res.status(500).json({ error: 'Failed to delete score' });
-  }
-});
-
-// 👨‍🏫 Faculty: View Raw Score for Team/Round
+// 📄 Faculty: View Scores for Team/Round
 router.get('/event/:eventId/scores/:teamId', verifyFaculty, async (req, res) => {
   const { eventId, teamId } = req.params;
   const { round } = req.query;
 
   try {
-    const scores = await RawScore.find({ eventId, teamId, round }).populate('judge', 'name');
+    const scores = await Score.find({ event: eventId, team: teamId, round })
+      .populate('judge', 'name');
     res.json(scores);
   } catch (err) {
+    console.error('Faculty score fetch failed:', err);
     res.status(500).json({ error: 'Failed to fetch scores for round' });
   }
 });
 
-// 👨‍🏫 Faculty: Fetch Teams for Event
+// 🏆 Admin: Leaderboard
+router.get('/leaderboard', verifyAdmin, async (req, res) => {
+  const { eventId } = req.query;
+  const matchStage = eventId ? { event: new mongoose.Types.ObjectId(eventId) } : {};
+
+  try {
+    const scores = await Score.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: { team: '$team', event: '$event' },
+          totalPoints: { $sum: '$points' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'teams',
+          localField: '_id.team',
+          foreignField: '_id',
+          as: 'teamInfo'
+        }
+      },
+      { $unwind: '$teamInfo' },
+      {
+        $lookup: {
+          from: 'events',
+          localField: '_id.event',
+          foreignField: '_id',
+          as: 'eventInfo'
+        }
+      },
+      { $unwind: '$eventInfo' },
+      {
+        $project: {
+          teamName: '$teamInfo.leader',
+          college: '$teamInfo.college',
+          event: '$eventInfo.name',
+          category: '$eventInfo.category',
+          totalPoints: 1
+        }
+      },
+      { $sort: { totalPoints: -1 } }
+    ]);
+
+    res.json(scores);
+  } catch (err) {
+    console.error('Leaderboard fetch failed:', err);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// 👥 Faculty: Fetch Teams for Assigned Event
 router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (!event || !event.judges.some(j => j.equals(req.user.id))) {
+      return res.status(403).json({ error: 'You are not assigned to this event' });
+    }
 
     const teams = await Team.find({ 'members.events': event.name });
     res.json(teams);
@@ -173,14 +162,20 @@ router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
   }
 });
 
-// 🧠 Admin: Finalize Scores for Round
-router.post('/finalize/:eventId/:round', verifyAdmin, async (req, res) => {
+// 🧑‍⚖️ Faculty: Fetch Judges for Assigned Event
+router.get('/event/:eventId/judges', verifyFaculty, async (req, res) => {
   try {
-    const finalScores = await finalizeScores(req.params.eventId, req.params.round);
-    res.json({ success: true, message: 'Final scores assigned', finalScores });
+    const event = await Event.findById(req.params.eventId).populate('judges', 'name');
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    if (!event.judges.some(j => j.equals(req.user.id))) {
+      return res.status(403).json({ error: 'You are not assigned to this event' });
+    }
+
+    res.json(event.judges);
   } catch (err) {
-    console.error('Final scoring failed:', err);
-    res.status(500).json({ error: 'Failed to finalize scores' });
+    console.error('Judge fetch failed:', err);
+    res.status(500).json({ error: 'Failed to fetch judges' });
   }
 });
 

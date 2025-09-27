@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Login.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Login() {
   const [name, setname] = useState('');
@@ -19,13 +20,14 @@ function Login() {
       const token = res.data.token;
       if (token) {
         localStorage.setItem('adminToken', token);
-        navigate('/dashboard');
+        toast.success('✅ Login successful');
+        setTimeout(() => navigate('/dashboard'), 1500);
       } else {
-        alert('No token received');
+        toast.error('❌ No token received');
       }
     } catch (err) {
-      console.error('Login error:', err.response?.data || err.message);
-      alert('Login failed');
+      const msg = err.response?.data?.message || 'Login failed';
+      toast.error(`❌ ${msg}`);
     }
   };
 
@@ -34,33 +36,40 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
-      <h2>Genesis Admin Login</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={name}
-          onChange={e => setname(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Login 🔐</button>
-      </form>
+    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ backgroundColor: '#0D0D15', minHeight: '100vh' }}>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <div className="card bg-dark text-light p-4 shadow-sm" style={{ maxWidth: '400px', width: '100%', border: '1px solid #2b2f3a' }}>
+        <h2 className="text-center text-info fw-bold mb-4">Genesis Admin Login</h2>
+        <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+          <input
+            type="text"
+            className="form-control bg-secondary text-light border-0"
+            placeholder="Username"
+            value={name}
+            onChange={e => setname(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            className="form-control bg-secondary text-light border-0"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit" className="btn btn-info fw-semibold w-100">
+            Login 🔐
+          </button>
+        </form>
 
-      <div className="login-divider">
-        <span>or</span>
+        <div className="text-center my-3">
+          <span className="text-light fw-semibold">or</span>
+        </div>
+
+        <button className="btn btn-outline-light w-100 fw-semibold" onClick={goToFacultyLogin}>
+          Faculty Login
+        </button>
       </div>
-
-      <button className="faculty-login-button" onClick={goToFacultyLogin}>
-        Faculty Login
-      </button>
     </div>
   );
 }

@@ -1,34 +1,71 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './Navbar.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
-    navigate('/login');
+    toast.info('👋 Logged out successfully');
+    setTimeout(() => navigate('/login'), 1500);
   };
 
-  return (
-    <nav className="admin-navbar">
-      <h1 className="logo">Genesis Admin</h1>
-      <ul className="nav-links">
-        <li><Link to="/dashboard">Dashboard</Link></li>
-        <li><Link to="/teams">Teams</Link></li>
-        <li><Link to="/events">Events</Link></li>
-        <li><Link to="/schedule">Schedule</Link></li>
+  useEffect(() => {
+    const hamburger = document.querySelector('.hamburger');
+    const navCollapse = document.querySelector('.navbar-collapse');
 
-        <li><Link to="/events/participants">Participation</Link></li>
-        <li><Link to="/scoring">Scoring</Link></li>
-        <li><Link to="/faculty">Faculty</Link></li>
-        <li><Link to="/student-coordinators">Student Coordinators</Link></li>
-        <li><Link to="/admin-manage">Admin Settings</Link></li>
-        <li>
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
-        </li>
-      </ul>
-    </nav>
+    const toggleMenu = () => {
+      navCollapse.classList.toggle('show');
+    };
+
+    hamburger.addEventListener('click', toggleMenu);
+    return () => hamburger.removeEventListener('click', toggleMenu);
+  }, []);
+
+  return (
+    <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm border-bottom px-4 py-3">
+        <div className="container-fluid">
+          <Link className="navbar-brand text-primary fw-bold fs-4" to="/dashboard">
+            Genesis Admin
+          </Link>
+          <button className="navbar-toggler hamburger" type="button">
+            ☰
+          </button>
+
+          <div className="collapse navbar-collapse">
+            <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
+              {[
+                { label: 'Dashboard', path: '/dashboard' },
+                { label: 'Teams', path: '/teams' },
+                { label: 'Events', path: '/events' },
+                { label: 'Schedule', path: '/schedule' },
+                { label: 'Participation', path: '/events/participants' },
+                { label: 'Scoring', path: '/scoring' },
+                { label: 'Leaderboard', path: '/leaderboard' },
+                { label: 'Faculty', path: '/faculty' },
+                { label: 'Student Coordinators', path: '/student-coordinators' },
+                { label: 'Admin Settings', path: '/admin-manage' }
+              ].map(({ label, path }) => (
+                <li className="nav-item" key={path}>
+                  <Link className="nav-link text-light" to={path}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
+              <li className="nav-item">
+                <button className="btn btn-sm text-danger fw-semibold ms-lg-3" onClick={handleLogout}>
+                  Logout
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    </>
   );
 }
 

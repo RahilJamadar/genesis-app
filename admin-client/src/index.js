@@ -1,15 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import './App.css';
-import './styles/AdminTheme.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <div style={{ backgroundColor: '#0D0D15', minHeight: '100vh', color: '#e0e6f0' }}>
+      <App />
+    </div>
   </React.StrictMode>
 );
 

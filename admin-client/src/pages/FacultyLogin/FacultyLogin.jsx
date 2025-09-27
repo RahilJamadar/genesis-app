@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import facultyAPI from '../../api/facultyApi';
-import './FacultyLogin.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const FacultyLogin = () => {
   const [form, setForm] = useState({ name: '', password: '' });
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -14,44 +14,58 @@ const FacultyLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     try {
       const res = await facultyAPI.post('/login', form);
       localStorage.setItem('facultyToken', res.data.token);
-      navigate('/faculty/dashboard');
-    } catch (err) {
-      console.error('Login failed:', err);
-      setError('Invalid credentials');
+      toast.success('✅ Login successful');
+      setTimeout(() => navigate('/faculty/dashboard'), 1500);
+    } catch {
+      toast.error('❌ Invalid credentials');
     }
   };
 
   return (
-    <div className="faculty-login">
-      <h2>Faculty Login</h2>
-      <form onSubmit={handleSubmit}>
-        <label>Name</label>
-        <input
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="Enter your name"
-          required
-        />
+    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ backgroundColor: '#0D0D15', minHeight: '100vh' }}>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <div className="card bg-dark text-light p-4 shadow-sm" style={{ maxWidth: '400px', width: '100%', border: '1px solid #2b2f3a' }}>
+        <h2 className="text-center text-info fw-bold mb-4">Faculty Login</h2>
+        <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+          <div>
+            <label className="form-label text-light">Name</label>
+            <input
+              name="name"
+              type="text"
+              className="form-control bg-secondary text-light border-0"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Enter your name"
+              required
+            />
+          </div>
+          <div>
+            <label className="form-label text-light">Password</label>
+            <input
+              name="password"
+              type="password"
+              className="form-control bg-secondary text-light border-0"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+          <button type="submit" className="btn btn-info fw-semibold w-100">
+            Login
+          </button>
+        </form>
 
-        <label>Password</label>
-        <input
-          name="password"
-          type="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder="Enter your password"
-          required
-        />
-
-        {error && <p className="error">{error}</p>}
-
-        <button type="submit">Login</button>
-      </form>
+        <div className="text-center mt-4">
+          <p className="text-light mb-2">Are you an admin?</p>
+          <button className="btn btn-outline-light btn-sm" onClick={() => navigate('/login')}>
+            Go to Admin Login
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

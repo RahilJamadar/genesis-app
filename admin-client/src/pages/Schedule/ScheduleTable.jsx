@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../api/adminApi';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ScheduleTable = ({ data, onDelete, onEdit }) => {
   const [editingId, setEditingId] = useState(null);
@@ -7,15 +9,9 @@ const ScheduleTable = ({ data, onDelete, onEdit }) => {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const res = await API.get('/admin/events'); // ✅ corrected path
-        setEvents(res.data);
-      } catch (err) {
-        console.error('Failed to fetch events:', err);
-      }
-    }
-    fetchEvents();
+    API.get('/admin/events')
+      .then(res => setEvents(res.data))
+      .catch(() => toast.error('❌ Failed to fetch events'));
   }, []);
 
   const startEdit = (item) => {
@@ -35,45 +31,126 @@ const ScheduleTable = ({ data, onDelete, onEdit }) => {
   const handleSave = () => {
     onEdit(editingId, form);
     setEditingId(null);
+    toast.success('✏️ Schedule updated');
+  };
+
+  const getCategoryColor = (category) => {
+    switch (category) {
+      case 'Tech': return '#00bfff';
+      case 'Cultural': return '#e07c9c';
+      case 'Sports': return '#4cb050';
+      case 'Gaming': return '#ffa500';
+      case 'Pre-events': return '#9370db';
+      default: return '#6c757d';
+    }
   };
 
   return (
-    <ul className="schedule-table">
-      {data.map((item) => (
-        <li key={item._id} className="schedule-card">
-          {editingId === item._id ? (
-            <>
-              <select name="eventId" value={form.eventId} onChange={handleChange}>
-                <option value="">Select Event</option>
-                {events.map((event) => (
-                  <option key={event._id} value={event._id}>
-                    {event.name} ({event.category})
-                  </option>
-                ))}
-              </select>
-              <input type="date" name="date" value={form.date} onChange={handleChange} />
-              <input type="time" name="time" value={form.time} onChange={handleChange} />
-              <input name="room" value={form.room} onChange={handleChange} />
-              <button onClick={handleSave}>Save</button>
-            </>
-          ) : (
-            <>
-              <div className="event-info">
-                <strong>{item.eventId.name}</strong>
-                <span className={`category-badge category-${item.eventId.category}`}>
-                  {item.eventId.category}
-                </span>
-              </div>
-              <span>{item.date} — {item.time} | Room {item.room}</span>
-              <div className="actions">
-                <button onClick={() => startEdit(item)}>Edit</button>
-                <button onClick={() => onDelete(item._id)}>Delete</button>
-              </div>
-            </>
-          )}
-        </li>
-      ))}
-    </ul>
+    <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <div className="table-responsive">
+        <table className="table table-dark table-bordered align-middle" style={{ backgroundColor: '#0D0D15' }}>
+          <thead className="table-secondary text-dark">
+            <tr>
+              <th>Event</th>
+              <th>Category</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Room</th>
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item) => (
+              <tr key={item._id}>
+                {editingId === item._id ? (
+                  <>
+                    <td>
+                      <select
+                        name="eventId"
+                        value={form.eventId}
+                        onChange={handleChange}
+                        className="form-select form-select-sm bg-dark text-light border-secondary"
+                      >
+                        <option value="">Select Event</option>
+                        {events.map(event => (
+                          <option key={event._id} value={event._id}>
+                            {event.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <span className="badge" style={{ backgroundColor: getCategoryColor(item.eventId.category) }}>
+                        {item.eventId.category}
+                      </span>
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        name="date"
+                        value={form.date}
+                        onChange={handleChange}
+                        className="form-control form-control-sm bg-dark text-light border-secondary"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="time"
+                        name="time"
+                        value={form.time}
+                        onChange={handleChange}
+                        className="form-control form-control-sm bg-dark text-light border-secondary"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        name="room"
+                        value={form.room}
+                        onChange={handleChange}
+                        className="form-control form-control-sm bg-dark text-light border-secondary"
+                        placeholder="Room"
+                      />
+                    </td>
+                    <td className="text-center">
+                      <button className="btn btn-sm btn-info me-2" onClick={handleSave}>
+                        Save
+                      </button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="fw-semibold text-info">{item.eventId.name}</td>
+                    <td>
+                      <span className="badge fw-semibold" style={{ backgroundColor: getCategoryColor(item.eventId.category) }}>
+                        {item.eventId.category}
+                      </span>
+                    </td>
+                    <td>{item.date}</td>
+                    <td>{item.time}</td>
+                    <td>{item.room}</td>
+                    <td className="text-center">
+                      <button className="btn btn-sm btn-outline-info me-2" onClick={() => startEdit(item)}>
+                        Edit
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => {
+                          onDelete(item._id);
+                          toast.success('🗑️ Schedule deleted');
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 };
 

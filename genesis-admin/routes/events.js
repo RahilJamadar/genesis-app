@@ -8,7 +8,7 @@ const Faculty = require('../models/Faculty');
 // 📃 Get all events
 router.get('/', verifyAdmin, async (req, res) => {
   try {
-    const events = await Event.find().populate('faculties', 'name');
+    const events = await Event.find().populate('judges', 'name');
     res.json(events);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching events' });
@@ -84,7 +84,7 @@ router.get('/public-events', async (req, res) => {
 // 🔍 Get event by ID
 router.get('/:id', verifyAdmin, async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate('faculties', 'name');
+    const event = await Event.findById(req.params.id).populate('judges', 'name');
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json(event);
   } catch (err) {
@@ -92,26 +92,21 @@ router.get('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// ➕ Create event (convert faculty names to ObjectIds)
+// ➕ Create event
 router.post('/', verifyAdmin, async (req, res) => {
   try {
-    const { name, category, faculties = [], studentCoordinators = [], rules = '' } = req.body;
+    const { name, category, judges = [], studentCoordinators = [], rules = '', rounds = 1 } = req.body;
     if (!name || !category) {
       return res.status(400).json({ error: 'Name and category are required' });
-    }
-
-    const facultyIds = [];
-    for (const name of faculties) {
-      const faculty = await Faculty.findOne({ name });
-      if (faculty) facultyIds.push(faculty._id);
     }
 
     const event = new Event({
       name,
       category,
-      faculties: facultyIds,
+      judges,
       studentCoordinators,
-      rules
+      rules,
+      rounds
     });
 
     await event.save();
@@ -122,20 +117,14 @@ router.post('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ✏️ Update event (convert faculty names to ObjectIds)
+// ✏️ Update event
 router.put('/:id', verifyAdmin, async (req, res) => {
   try {
-    const { faculties = [], ...rest } = req.body;
-
-    const facultyIds = [];
-    for (const name of faculties) {
-      const faculty = await Faculty.findOne({ name });
-      if (faculty) facultyIds.push(faculty._id);
-    }
+    const { judges = [], ...rest } = req.body;
 
     const updated = await Event.findByIdAndUpdate(
       req.params.id,
-      { ...rest, faculties: facultyIds },
+      { ...rest, judges },
       { new: true }
     );
 

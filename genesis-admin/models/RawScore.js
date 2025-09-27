@@ -8,9 +8,10 @@ const RawScoreSchema = new mongoose.Schema({
   points: { type: Number, required: true },
   judge: { type: mongoose.Schema.Types.ObjectId, ref: 'Faculty' },
   round: { type: String, required: true },
+  participant: { type: String }, // ✅ NEW
   comment: String
 }, { timestamps: true });
 
-RawScoreSchema.index({ teamId: 1, eventId: 1, round: 1, judge: 1 }, { unique: true });
+RawScoreSchema.index({ teamId: 1, eventId: 1, round: 1 }, { unique: true });
 
 module.exports = mongoose.model('RawScore', RawScoreSchema);

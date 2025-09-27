@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import API from '../../api/adminApi';
 import Navbar from '../../components/Navbar';
-import './FacultyPage.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function FacultyPage() {
   const [facultyList, setFacultyList] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    number: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ name: '', number: '', password: '' });
   const [isEditing, setIsEditing] = useState(null);
 
   useEffect(() => {
@@ -20,8 +17,8 @@ function FacultyPage() {
     try {
       const res = await API.get('/admin/faculty');
       setFacultyList(res.data);
-    } catch (err) {
-      console.error('❌ Failed to load faculty:', err);
+    } catch {
+      toast.error('Failed to load faculty list');
     }
   };
 
@@ -33,10 +30,11 @@ function FacultyPage() {
     e.preventDefault();
     try {
       await API.post('/admin/faculty', formData);
+      toast.success('Faculty added');
       resetForm();
       loadFaculty();
-    } catch (err) {
-      console.error('❌ Failed to create faculty:', err);
+    } catch {
+      toast.error('Failed to add faculty');
     }
   };
 
@@ -45,27 +43,29 @@ function FacultyPage() {
     setFormData({
       name: faculty.name ?? '',
       number: faculty.number ?? '',
-      password: '' // optional during edit
+      password: ''
     });
   };
 
   const handleUpdate = async () => {
     try {
       await API.put(`/admin/faculty/${isEditing}`, formData);
+      toast.success('Faculty updated');
       setIsEditing(null);
       resetForm();
       loadFaculty();
-    } catch (err) {
-      console.error('❌ Failed to update faculty:', err);
+    } catch {
+      toast.error('Failed to update faculty');
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await API.delete(`/admin/faculty/${id}`);
+      toast.success('Faculty deleted');
       loadFaculty();
-    } catch (err) {
-      console.error('❌ Failed to delete faculty:', err);
+    } catch {
+      toast.error('Failed to delete faculty');
     }
   };
 
@@ -75,54 +75,116 @@ function FacultyPage() {
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <Navbar />
       <div className="faculty-page">
-        <h2>👨‍🏫 Faculty Management</h2>
+        <h2 className="text-center mt-5">👨‍🏫 Faculty Management</h2>
 
-        <form onSubmit={handleSubmit}>
-          <label>Name</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={e => handleChange('name', e.target.value)}
-            required
-          />
+        <form
+          onSubmit={handleSubmit}
+          className="d-flex flex-column align-items-center bg-dark text-light p-4 rounded shadow-sm"
+          style={{ backgroundColor: '#0D0D15', maxWidth: '480px', margin: '0 auto' }}
+        >
+          <div className="mb-3 w-100">
+            <label className="form-label text-light">Name</label>
+            <input
+              type="text"
+              className="form-control bg-secondary text-light border-0"
+              style={{ maxWidth: '300px', margin: '0 auto' }}
+              value={formData.name}
+              onChange={e => handleChange('name', e.target.value)}
+              required
+            />
+          </div>
 
-          <label>Number</label>
-          <input
-            type="text"
-            value={formData.number}
-            onChange={e => handleChange('number', e.target.value)}
-            required
-          />
+          <div className="mb-3 w-100">
+            <label className="form-label text-light">Number</label>
+            <input
+              type="text"
+              className="form-control bg-secondary text-light border-0"
+              style={{ maxWidth: '300px', margin: '0 auto' }}
+              value={formData.number}
+              onChange={e => handleChange('number', e.target.value)}
+              required
+            />
+          </div>
 
-          <label>{isEditing ? 'New Password (optional)' : 'Password'}</label>
-          <input
-            type="password"
-            value={formData.password}
-            onChange={e => handleChange('password', e.target.value)}
-            placeholder={isEditing ? 'Leave blank to keep existing' : ''}
-            required={!isEditing}
-          />
+          <div className="mb-4 w-100">
+            <label className="form-label text-light">
+              {isEditing ? 'New Password (optional)' : 'Password'}
+            </label>
+            <input
+              type="password"
+              className="form-control bg-secondary text-light border-0"
+              style={{ maxWidth: '300px', margin: '0 auto' }}
+              value={formData.password}
+              onChange={e => handleChange('password', e.target.value)}
+              placeholder={isEditing ? 'Leave blank to keep existing' : ''}
+              required={!isEditing}
+            />
+          </div>
 
           {isEditing ? (
-            <button type="button" onClick={handleUpdate}>💾 Update Faculty</button>
+            <button type="button" className="btn btn-outline-info w-100" onClick={handleUpdate}>
+              💾 Update Faculty
+            </button>
           ) : (
-            <button type="submit">➕ Add Faculty</button>
+            <button type="submit" className="btn btn-primary w-100">
+              ➕ Add Faculty
+            </button>
           )}
         </form>
 
-        <ul className="faculty-list">
-          {facultyList.map(faculty => (
-            <li key={faculty._id} className="faculty-card">
-              <strong>{faculty.name}</strong> — #{faculty.number}
-              <div className="actions">
-                <button onClick={() => startEdit(faculty)}>✏️ Edit</button>
-                <button onClick={() => handleDelete(faculty._id)}>🗑️ Delete</button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div
+          className="p-4 rounded shadow-sm mt-5"
+          style={{
+            backgroundColor: '#0D0D15',
+            color: '#e0e6f0',
+            border: '1px solid #2b2f3a',
+            maxWidth: '960px',
+            margin: '0 auto',
+          }}
+        >
+          <h4 className="mb-4 text-center text-info fw-semibold">Faculty List</h4>
+
+          <div className="table-responsive">
+            <table className="table align-middle text-light mb-0">
+              <thead style={{ backgroundColor: '#161b22' }}>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Number</th>
+                  <th className="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {facultyList.map((faculty, index) => (
+                  <tr key={faculty._id} style={{ borderBottom: '1px solid #2b2f3a' }}>
+                    <td>{index + 1}</td>
+                    <td className="fw-semibold text-info">{faculty.name}</td>
+                    <td className="text-muted">#{faculty.number}</td>
+                    <td className="text-center">
+                      <div className="d-flex justify-content-center gap-2">
+                        <button
+                          className="btn btn-sm btn-outline-info"
+                          onClick={() => startEdit(faculty)}
+                        >
+                          <i className="bi bi-pencil-square me-1"></i>Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(faculty._id)}
+                        >
+                          <i className="bi bi-trash me-1"></i>Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </>
   );

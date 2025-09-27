@@ -2,130 +2,241 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import facultyAPI from '../../api/facultyApi';
 import FacultyNavbar from '../../components/FacultyNavbar';
-import './FacultyEventScoring.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const FacultyEventScoring = () => {
   const { id: eventId } = useParams();
   const [teams, setTeams] = useState([]);
+  const [judges, setJudges] = useState([]);
+  const [allScores, setAllScores] = useState([]);
   const [round, setRound] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('');
-  const [score, setScore] = useState('');
+  const [scoringMode, setScoringMode] = useState('team');
+  const [teamScore, setTeamScore] = useState('');
   const [comment, setComment] = useState('');
-  const [existingScore, setExistingScore] = useState(null);
+  const [individualScores, setIndividualScores] = useState([]);
+  const [finalized, setFinalized] = useState(false);
 
-  // 🔹 Fetch teams for event
   useEffect(() => {
     facultyAPI.get(`/event/${eventId}/teams`)
       .then(res => setTeams(res.data))
-      .catch(err => {
-        console.error('Team fetch failed:', err);
-        setTeams([]);
-      });
+      .catch(() => toast.error('❌ Failed to fetch teams'));
+
+    facultyAPI.get(`/event/${eventId}/judges`)
+      .then(res => setJudges(res.data))
+      .catch(() => toast.error('❌ Failed to fetch judges'));
   }, [eventId]);
 
-  // 🔍 Fetch existing score
   useEffect(() => {
     if (selectedTeam && round) {
       facultyAPI.get(`/event/${eventId}/scores/${selectedTeam}?round=${round}`)
         .then(res => {
-          const byJudge = res.data[0]; // Your backend filters by judge already
-          setExistingScore(byJudge || null);
-          setScore(byJudge?.points || '');
-          setComment(byJudge?.comment || '');
+          setAllScores(res.data);
+          const myScores = res.data.filter(s => s.judge._id === localStorage.getItem('facultyId'));
+          const locked = myScores.some(s => s.finalized);
+          setFinalized(locked);
         })
-        .catch(err => {
-          console.error('Score fetch error:', err);
-          setExistingScore(null);
-        });
-    }
-  }, [selectedTeam, round, eventId]);
+        .catch(() => toast.error('❌ Failed to fetch score'));
 
-  // 💾 Submit score
+      const team = teams.find(t => t._id === selectedTeam);
+      setIndividualScores(team?.members.map(m => ({ name: m.name, score: '' })) || []);
+    }
+  }, [selectedTeam, round, teams, eventId]);
+
+  const handleIndividualScoreChange = (index, value) => {
+    const updated = [...individualScores];
+    updated[index].score = value;
+    setIndividualScores(updated);
+  };
+
   const handleSubmit = async () => {
-    try {
+    if (!selectedTeam || !round) {
+      toast.warn('⚠️ Please select team and round');
+      return;
+    }
+
+    if (finalized) {
+      toast.warn('⚠️ Score already finalized. No edits allowed.');
+      return;
+    }
+
+    const confirm = window.confirm('Do you want to finalize this score? You will not be able to edit it later.');
+    if (!confirm) return;
+
+    if (scoringMode === 'team') {
+      const numericScore = Number(teamScore);
+      if (isNaN(numericScore) || numericScore < 0 || numericScore > 100) {
+        toast.warn('⚠️ Score must be between 0 and 100');
+        return;
+      }
+
       const payload = {
         teamId: selectedTeam,
         round,
-        points: Number(score),
-        comment
+        points: numericScore,
+        comment,
+        finalized: true
       };
-      const res = await facultyAPI.post(`/event/${eventId}/score`, payload);
-      alert(res.data.message);
-      setExistingScore(res.data.score);
-      console.log({ teamId: selectedTeam, round, points: score, comment });
-    } catch (err) {
-      console.log({ teamId: selectedTeam, round, points: score, comment });
-      console.error('Score submit error:', err);
-      alert('Failed to submit score');
-    }
-  };
 
-  // 🗑️ Delete score
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this score?')) return;
-    try {
-      await facultyAPI.delete(`/event/${eventId}/score/${selectedTeam}?round=${round}`);
-      setScore('');
-      setComment('');
-      setExistingScore(null);
-      alert('Score deleted');
-    } catch (err) {
-      console.error('Delete failed:', err);
-      alert('Failed to delete score');
+      try {
+        await facultyAPI.post(`/event/${eventId}/score`, payload);
+        toast.success('✅ Team score finalized');
+        setFinalized(true);
+      } catch {
+        toast.error('❌ Failed to submit score');
+      }
+    } else {
+      const invalid = individualScores.some(s => isNaN(Number(s.score)) || Number(s.score) < 0 || Number(s.score) > 100);
+      if (invalid) {
+        toast.warn('⚠️ All scores must be between 0 and 100');
+        return;
+      }
+
+      try {
+        for (const s of individualScores) {
+          const payload = {
+            teamId: selectedTeam,
+            round,
+            points: Number(s.score),
+            participant: s.name,
+            comment,
+            finalized: true
+          };
+          await facultyAPI.post(`/event/${eventId}/score`, payload);
+        }
+        toast.success('✅ Individual scores finalized');
+        setFinalized(true);
+      } catch {
+        toast.error('❌ Failed to submit individual scores');
+      }
     }
   };
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <FacultyNavbar />
-      <div className="event-scoring">
-        <h2>Score Teams for Event</h2>
+      <div className="container py-5" style={{ backgroundColor: '#0D0D15', minHeight: '100vh' }}>
+        <div className="mx-auto p-4 rounded shadow-sm text-light" style={{ maxWidth: '800px', backgroundColor: '#161b22', border: '1px solid #2b2f3a' }}>
+          <h2 className="text-center text-info fw-bold mb-4 border-bottom pb-2">Score Teams for Event</h2>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label>Select Round</label>
-            <select value={round} onChange={e => setRound(e.target.value)}>
-              <option value="">-- Select --</option>
-              <option value="Round 1">Round 1</option>
-              <option value="Final">Final</option>
-            </select>
+          <div className="row g-3 mb-4">
+            <div className="col-md-4">
+              <label className="form-label text-light">Select Round</label>
+              <select className="form-select bg-dark text-light border-secondary" value={round} onChange={e => setRound(e.target.value)} disabled={finalized}>
+                <option value="">-- Select --</option>
+                <option value="Round 1">Round 1</option>
+                <option value="Round 2">Round 2</option>
+              </select>
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label text-light">Select Team</label>
+              <select className="form-select bg-dark text-light border-secondary" value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)} disabled={finalized}>
+                <option value="">-- Select --</option>
+                {teams.map(team => (
+                  <option key={team._id} value={team._id}>
+                    {team.college}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-md-4">
+              <label className="form-label text-light">Scoring Mode</label>
+              <select className="form-select bg-dark text-light border-secondary" value={scoringMode} onChange={e => setScoringMode(e.target.value)} disabled={finalized}>
+                <option value="team">Score Team</option>
+                <option value="individual">Score Individuals</option>
+              </select>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Select Team</label>
-            <select value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)}>
-              <option value="">-- Select --</option>
-              {teams.map(team => (
-                <option key={team._id} value={team._id}>
-                  {team.name} ({team.college})
-                </option>
-              ))}
-            </select>
-          </div>
+          {selectedTeam && round && (
+            <>
+              {scoringMode === 'team' ? (
+                <div className="mb-3">
+                  <label className="form-label text-light">Team Score (out of 100)</label>
+                  <input
+                    type="number"
+                    className="form-control bg-dark text-light border-secondary"
+                    value={teamScore}
+                    onChange={e => setTeamScore(e.target.value)}
+                    placeholder="Enter score"
+                    disabled={finalized}
+                  />
+                </div>
+              ) : (
+                <>
+                  <h5 className="text-info mb-3">Individual Scores</h5>
+                  {individualScores.map((m, index) => (
+                    <div key={index} className="mb-3">
+                      <label className="form-label text-light">{m.name}</label>
+                      <input
+                        type="number"
+                        className="form-control bg-dark text-light border-secondary"
+                        value={m.score}
+                        onChange={e => handleIndividualScoreChange(index, e.target.value)}
+                        placeholder="Enter score"
+                        disabled={finalized}
+                      />
+                    </div>
+                  ))}
+                </>
+              )}
+
+              <div className="mb-3">
+                <label className="form-label text-light">Comment (optional)</label>
+                <textarea
+                  className="form-control bg-dark text-light border-secondary"
+                  rows="4"
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  placeholder="Write comment here..."
+                  disabled={finalized}
+                ></textarea>
+              </div>
+
+              <div className="d-flex flex-wrap gap-3 mt-3">
+                <button className="btn btn-info fw-semibold" onClick={handleSubmit} disabled={finalized}>
+                  {finalized ? 'Score Finalized' : 'Submit & Finalize'}
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <h5 className="text-info mb-3">Judge Submission Status</h5>
+                <table className="table table-dark table-bordered table-sm">
+                  <thead>
+                    <tr>
+                      <th>Judge</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {judges.map(j => {
+                      const hasScored = allScores.some(s => s.judge._id === j._id);
+                      const isFinal = allScores.some(s => s.judge._id === j._id && s.finalized);
+                      return (
+                        <tr key={j._id}>
+                          <td>{j.name}</td>
+                          <td>
+                            {isFinal ? (
+                              <span className="text-success fw-bold">✅ Finalized</span>
+                            ) : hasScored ? (
+                              <span className="text-warning">⏳ Submitted</span>
+                            ) : (
+                              <span className="text-danger">❌ Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
-
-        {selectedTeam && round && (
-          <>
-            <label>Score (out of 100)</label>
-            <input
-              type="number"
-              value={score}
-              onChange={e => setScore(e.target.value)}
-              placeholder="Enter score"
-            />
-
-            <label>Comment (optional)</label>
-            <textarea
-              rows="4"
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              placeholder="Write comment here..."
-            ></textarea>
-
-            <button onClick={handleSubmit}>Submit / Update Score</button>
-            {existingScore && <button onClick={handleDelete}>Delete Score</button>}
-          </>
-        )}
       </div>
     </>
   );

@@ -64,5 +64,5 @@ app.get('/', (req, res) => {
 // ✅ Server Start
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log(`🚀 Admin server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

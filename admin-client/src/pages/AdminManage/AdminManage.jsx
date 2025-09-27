@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';           // Token-aware Axios
-import Navbar from '../../components/Navbar';   // Reused Navbar
-import './AdminManage.css';                 // Consistent styling
+import API from '../../api/adminApi';
+import Navbar from '../../components/Navbar';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function AdminManage() {
   const [adminList, setAdminList] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ name: '', password: '' });
   const [isEditing, setIsEditing] = useState(null);
 
   useEffect(() => {
@@ -19,8 +17,8 @@ function AdminManage() {
     try {
       const res = await API.get('/admin/manage');
       setAdminList(res.data);
-    } catch (err) {
-      console.error('Failed to fetch admins:', err);
+    } catch {
+      toast.error('❌ Failed to fetch admins');
     }
   };
 
@@ -32,48 +30,46 @@ function AdminManage() {
     e.preventDefault();
     try {
       await API.post('/admin/manage', formData);
+      toast.success('✅ Admin added');
       resetForm();
       loadAdmins();
-    } catch (err) {
-      console.error('Failed to create admin:', err);
-      alert('Failed to add admin');
+    } catch {
+      toast.error('❌ Failed to add admin');
     }
   };
 
-const handleDelete = async (id) => {
-  const loggedInId = localStorage.getItem('adminId');
-  if (id === loggedInId) {
-    alert("❌ You cannot delete your own admin account.");
-    return;
-  }
+  const handleDelete = async (id) => {
+    const loggedInId = localStorage.getItem('adminId');
+    if (id === loggedInId) {
+      toast.warn('⚠️ You cannot delete your own admin account');
+      return;
+    }
 
-  if (!window.confirm('Delete this admin?')) return;
-  try {
-    await API.delete(`/admin/manage/${id}`);
-    loadAdmins();
-  } catch (err) {
-    console.error('Failed to delete admin:', err);
-    alert('Failed to delete admin');
-  }
-};
+    if (!window.confirm('Delete this admin?')) return;
+
+    try {
+      await API.delete(`/admin/manage/${id}`);
+      toast.success('🗑 Admin deleted');
+      loadAdmins();
+    } catch {
+      toast.error('❌ Failed to delete admin');
+    }
+  };
 
   const startEdit = (admin) => {
     setIsEditing(admin._id);
-    setFormData({
-      name: admin.name ?? '',
-      password: ''
-    });
+    setFormData({ name: admin.name ?? '', password: '' });
   };
 
   const handleUpdate = async () => {
     try {
       await API.put(`/admin/manage/${isEditing}`, formData);
+      toast.success('💾 Admin updated');
       setIsEditing(null);
       resetForm();
       loadAdmins();
-    } catch (err) {
-      console.error('Failed to update admin:', err);
-      alert('Failed to update');
+    } catch {
+      toast.error('❌ Failed to update admin');
     }
   };
 
@@ -83,41 +79,70 @@ const handleDelete = async (id) => {
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
       <Navbar />
-      <div className="admin-manage-page">
-        <h2>👤 Admin Management</h2>
+      <div className="container mt-5 text-light">
+        <h2 className="text-center text-primary border-bottom pb-2 mb-4">👤 Admin Management</h2>
 
-        <form onSubmit={handleSubmit}>
-          <label>Username</label>
-          <input
-            type="text"
-            value={formData.name ?? ''}
-            onChange={e => handleChange('name', e.target.value)}
-            required
-          />
+        <form
+          onSubmit={handleSubmit}
+          className="bg-dark border border-secondary rounded shadow p-4 mb-5"
+        >
+          <div className="mb-3">
+            <label className="form-label text-primary">Username</label>
+            <input
+              type="text"
+              className="form-control bg-dark text-light border-secondary"
+              value={formData.name ?? ''}
+              onChange={e => handleChange('name', e.target.value)}
+              required
+            />
+          </div>
 
-          <label>{isEditing ? 'New Password (optional)' : 'Password'}</label>
-          <input
-            type="password"
-            value={formData.password ?? ''}
-            onChange={e => handleChange('password', e.target.value)}
-            placeholder={isEditing ? 'Leave blank to keep existing' : ''}
-          />
+          <div className="mb-3">
+            <label className="form-label text-primary">
+              {isEditing ? 'New Password (optional)' : 'Password'}
+            </label>
+            <input
+              type="password"
+              className="form-control bg-dark text-light border-secondary"
+              value={formData.password ?? ''}
+              onChange={e => handleChange('password', e.target.value)}
+              placeholder={isEditing ? 'Leave blank to keep existing' : ''}
+            />
+          </div>
 
           {isEditing ? (
-            <button type="button" onClick={handleUpdate}>💾 Update Admin</button>
+            <button type="button" className="btn btn-primary fw-semibold" onClick={handleUpdate}>
+              💾 Update Admin
+            </button>
           ) : (
-            <button type="submit">➕ Add Admin</button>
+            <button type="submit" className="btn btn-primary fw-semibold">
+              ➕ Add Admin
+            </button>
           )}
         </form>
 
-        <ul className="admin-list">
+        <ul className="list-unstyled">
           {adminList.map(admin => (
-            <li key={admin._id} className="admin-card">
-              <strong>{admin.name}</strong>
-              <div className="actions">
-                <button onClick={() => startEdit(admin)}>✏️ Edit</button>
-                <button onClick={() => handleDelete(admin._id)}>🗑 Delete</button>
+            <li
+              key={admin._id}
+              className="bg-dark border border-secondary rounded shadow p-3 mb-3 d-flex justify-content-between align-items-center"
+            >
+              <strong className="text-light">{admin.name}</strong>
+              <div className="d-flex gap-2 flex-wrap">
+                <button
+                  className="btn btn-success btn-sm fw-semibold"
+                  onClick={() => startEdit(admin)}
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  className="btn btn-danger btn-sm fw-semibold"
+                  onClick={() => handleDelete(admin._id)}
+                >
+                  🗑 Delete
+                </button>
               </div>
             </li>
           ))}
