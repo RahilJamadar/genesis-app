@@ -38,9 +38,7 @@ function Scoring() {
 
     setLoading(true);
     try {
-      const { data } = await API.get(
-        `/admin/scoring/admin/event/${selectedEventId}/scores/${selectedTeamId}?round=${selectedRound}`
-      );
+      const { data } = await API.get(`/admin/scoring/admin/event/${selectedEventId}/scores/${selectedTeamId}?round=${selectedRound}`)
 
       if (!data || data.length === 0) {
         toast.info('ℹ️ No scores found for this team and round');
@@ -103,7 +101,6 @@ function Scoring() {
               <option value="">Select Round</option>
               <option value="Round 1">Round 1</option>
               <option value="Round 2">Round 2</option>
-              <option value="Final">Final</option>
             </select>
           </div>
         </div>
@@ -151,11 +148,11 @@ function Scoring() {
           </div>
         )}
 
-        {scores.length === 0 && selectedTeamId && selectedEventId && selectedRound && !loading && (
+        {/* {scores.length === 0 && selectedTeamId && selectedEventId && selectedRound && !loading && (
           <div className="text-center text-muted mt-4">
             No scores submitted yet for this team in {selectedRound}.
           </div>
-        )}
+        )} */}
       </div>
     </>
   );

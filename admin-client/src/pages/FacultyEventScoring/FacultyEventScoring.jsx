@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import facultyAPI from '../../api/facultyApi';
 import FacultyNavbar from '../../components/FacultyNavbar';
@@ -28,21 +28,26 @@ const FacultyEventScoring = () => {
       .catch(() => toast.error('❌ Failed to fetch judges'));
   }, [eventId]);
 
+  const fetchScoresForTeamAndRound = useCallback(async () => {
+    try {
+      const res = await facultyAPI.get(`/event/${eventId}/scores/${selectedTeam}?round=${round}`);
+      setAllScores(res.data);
+      const myScores = res.data.filter(s => s.judge._id === localStorage.getItem('facultyId'));
+      const locked = myScores.some(s => s.finalized);
+      setFinalized(locked);
+    } catch {
+      toast.error('❌ Failed to fetch score');
+    }
+  }, [eventId, selectedTeam, round]);
+
   useEffect(() => {
     if (selectedTeam && round) {
-      facultyAPI.get(`/event/${eventId}/scores/${selectedTeam}?round=${round}`)
-        .then(res => {
-          setAllScores(res.data);
-          const myScores = res.data.filter(s => s.judge._id === localStorage.getItem('facultyId'));
-          const locked = myScores.some(s => s.finalized);
-          setFinalized(locked);
-        })
-        .catch(() => toast.error('❌ Failed to fetch score'));
+      fetchScoresForTeamAndRound();
 
       const team = teams.find(t => t._id === selectedTeam);
       setIndividualScores(team?.members.map(m => ({ name: m.name, score: '' })) || []);
     }
-  }, [selectedTeam, round, teams, eventId]);
+  }, [selectedTeam, round, teams, eventId, fetchScoresForTeamAndRound]);
 
   const handleIndividualScoreChange = (index, value) => {
     const updated = [...individualScores];
@@ -83,6 +88,7 @@ const FacultyEventScoring = () => {
         await facultyAPI.post(`/event/${eventId}/score`, payload);
         toast.success('✅ Team score finalized');
         setFinalized(true);
+        await fetchScoresForTeamAndRound();
       } catch {
         toast.error('❌ Failed to submit score');
       }
@@ -107,6 +113,7 @@ const FacultyEventScoring = () => {
         }
         toast.success('✅ Individual scores finalized');
         setFinalized(true);
+        await fetchScoresForTeamAndRound();
       } catch {
         toast.error('❌ Failed to submit individual scores');
       }

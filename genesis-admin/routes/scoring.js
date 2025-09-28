@@ -7,6 +7,46 @@ const Event = require('../models/Event');
 const Team = require('../models/Team');
 const Score = require('../models/Score');
 
+// 🧠 Normalize final scores after all scoring is complete
+async function normalizeFinalScores(eventId) {
+  const event = await Event.findById(eventId);
+  if (!event) return;
+
+  const teams = await Team.find();
+  const scores = await Score.find({ event: eventId });
+
+  const allFinalized = scores.every(s => s.finalized);
+  if (!allFinalized) return;
+
+  const teamTotals = {};
+  for (const score of scores) {
+    const teamId = score.team.toString();
+    teamTotals[teamId] = (teamTotals[teamId] || 0) + score.points;
+  }
+
+  const ranked = Object.entries(teamTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([teamId], index) => ({ teamId, rank: index + 1 }));
+
+  for (const team of teams) {
+    const teamId = team._id.toString();
+    const participated = scores.some(s => s.team.toString() === teamId);
+
+    let final = -10;
+    if (participated) {
+      const rank = ranked.find(r => r.teamId === teamId)?.rank;
+      if (rank === 1) final = 100;
+      else if (rank === 2) final = 50;
+      else final = 10;
+    }
+    team.finalPoints = team.finalPoints || {};
+    team.finalPoints[eventId] = final;
+    await team.save();
+  }
+
+  console.log(`✅ Final points normalized for event ${event.name}`);
+}
+
 // 🔍 Admin: View Scores for Team/Round
 router.get('/admin/event/:eventId/scores/:teamId', verifyAdmin, async (req, res) => {
   const { eventId, teamId } = req.params;
@@ -56,6 +96,8 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
       existing.comment = comment || '';
       if (finalized) existing.finalized = true;
       await existing.save();
+
+      if (finalized) await normalizeFinalScores(eventId);
       return res.json({ success: true, message: 'Score updated', score: existing });
     }
 
@@ -71,6 +113,8 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
     });
 
     await score.save();
+    if (finalized) await normalizeFinalScores(eventId);
+
     console.log('🔔 Incoming score payload:', req.body);
     console.log('👤 Logged-in faculty:', req.user);
     res.status(201).json({ success: true, message: 'Score submitted', score });
@@ -95,51 +139,34 @@ router.get('/event/:eventId/scores/:teamId', verifyFaculty, async (req, res) => 
   }
 });
 
-// 🏆 Admin: Leaderboard
+// 🏆 Admin: Leaderboard (uses finalPoints)
 router.get('/leaderboard', verifyAdmin, async (req, res) => {
   const { eventId } = req.query;
-  const matchStage = eventId ? { event: new mongoose.Types.ObjectId(eventId) } : {};
 
   try {
-    const scores = await Score.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: { team: '$team', event: '$event' },
-          totalPoints: { $sum: '$points' }
-        }
-      },
-      {
-        $lookup: {
-          from: 'teams',
-          localField: '_id.team',
-          foreignField: '_id',
-          as: 'teamInfo'
-        }
-      },
-      { $unwind: '$teamInfo' },
-      {
-        $lookup: {
-          from: 'events',
-          localField: '_id.event',
-          foreignField: '_id',
-          as: 'eventInfo'
-        }
-      },
-      { $unwind: '$eventInfo' },
-      {
-        $project: {
-          teamName: '$teamInfo.leader',
-          college: '$teamInfo.college',
-          event: '$eventInfo.name',
-          category: '$eventInfo.category',
-          totalPoints: 1
-        }
-      },
-      { $sort: { totalPoints: -1 } }
-    ]);
+    const teams = await Team.find().lean();
 
-    res.json(scores);
+    const leaderboard = teams.map(team => {
+      let finalPoints;
+
+      if (eventId) {
+        // 🎯 Specific event
+        finalPoints = team.finalPoints?.[eventId] ?? -10;
+      } else {
+        // 🌐 Overall: sum of all normalized scores
+        const allPoints = Object.values(team.finalPoints || {});
+        finalPoints = allPoints.length > 0 ? allPoints.reduce((a, b) => a + b, 0) : -10;
+      }
+
+      return {
+        teamName: team.leader,
+        college: team.college,
+        finalPoints
+      };
+    });
+
+    leaderboard.sort((a, b) => b.finalPoints - a.finalPoints);
+    res.json(leaderboard);
   } catch (err) {
     console.error('Leaderboard fetch failed:', err);
     res.status(500).json({ error: 'Failed to fetch leaderboard' });

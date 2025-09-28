@@ -10,7 +10,14 @@ const TeamSchema = new mongoose.Schema({
   faculty: { type: String, required: true },
   leader: { type: String, required: true },
   contact: { type: String, required: true },
-  members: [MemberSchema]
+  members: [MemberSchema],
+
+  // 🏆 Final normalized points per event
+  finalPoints: {
+    type: Map,
+    of: Number,
+    default: {}
+  }
 });
 
 // ✅ Prevent OverwriteModelError during hot reload
