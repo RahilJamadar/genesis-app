@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,19 +10,27 @@ function ViewTeam() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [team, setTeam] = useState(null);
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    API.get(`/admin/teams/${id}`)
+    axios.get(`${baseURL}/api/admin/teams/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+      },
+      withCredentials: true
+    })
       .then(res => setTeam(res.data))
       .catch(err => console.error('View fetch error:', err));
-  }, [id]);
+  }, [id, baseURL]);
 
-  if (!team) return (
-    <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
-      <p className="text-center text-light mt-5">Loading team data...</p>
-    </>
-  );
+  if (!team) {
+    return (
+      <>
+        <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+        <p className="text-center text-light mt-5">Loading team data...</p>
+      </>
+    );
+  }
 
   return (
     <>

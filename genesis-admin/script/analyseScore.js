@@ -23,7 +23,8 @@ async function analyzeScores() {
 
       if (!summary[teamId]) {
         summary[teamId] = {
-          team: `${score.team.leader} (${score.team.college})`,
+          team: `${score.team.leader.trim()} (${score.team.college})`,
+          finalPoints: {},
           events: {}
         };
       }
@@ -37,13 +38,17 @@ async function analyzeScores() {
       }
 
       summary[teamId].events[eventId].totalPoints += score.points;
-      summary[teamId].events[eventId].rounds[score.round] = (summary[teamId].events[eventId].rounds[score.round] || 0) + score.points;
+      summary[teamId].events[eventId].rounds[score.round] =
+        (summary[teamId].events[eventId].rounds[score.round] || 0) + score.points;
     }
 
     for (const team of teams) {
       const teamId = team._id.toString();
       if (summary[teamId]) {
-        summary[teamId].finalPoints = team.finalPoints || {};
+        const finalPoints = team.finalPoints || {};
+        for (const eventId in summary[teamId].events) {
+          summary[teamId].finalPoints[eventId] = finalPoints[eventId];
+        }
       }
     }
 
@@ -51,15 +56,21 @@ async function analyzeScores() {
     for (const teamId in summary) {
       const teamData = summary[teamId];
       console.log(`🧑‍🤝‍🧑 Team: ${teamData.team}`);
-      for (const eventId in teamData.events) {
-        const eventData = teamData.events[eventId];
+      const sortedEvents = Object.entries(teamData.events).sort((a, b) =>
+        a[1].event.localeCompare(b[1].event)
+      );
+      for (const [eventId, eventData] of sortedEvents) {
         console.log(`  🎯 Event: ${eventData.event}`);
         console.log(`    🔢 Total Raw Points: ${eventData.totalPoints}`);
         for (const round in eventData.rounds) {
           console.log(`    🌀 ${round}: ${eventData.rounds[round]} pts`);
         }
         const final = teamData.finalPoints?.[eventId];
-        console.log(`    🏁 Final Normalized: ${final !== undefined ? final : '—'} pts`);
+        console.log(
+          `    🏁 Final Normalized: ${
+            typeof final === 'number' ? `${final} pts` : '— pts'
+          }`
+        );
       }
       console.log('');
     }

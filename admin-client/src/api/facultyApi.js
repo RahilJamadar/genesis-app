@@ -1,8 +1,9 @@
-// src/api/facultyApi.js
 import axios from 'axios';
+import getApiBase from '../utils/getApiBase';
 
 const facultyAPI = axios.create({
-  baseURL: 'http://localhost:5001/api/faculty'
+  baseURL: `${getApiBase()}/api/faculty`,
+  withCredentials: true
 });
 
 facultyAPI.interceptors.request.use(config => {

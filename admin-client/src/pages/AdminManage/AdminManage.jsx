@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,18 +10,25 @@ function AdminManage() {
   const [formData, setFormData] = useState({ name: '', password: '' });
   const [isEditing, setIsEditing] = useState(null);
 
-  useEffect(() => {
-    loadAdmins();
-  }, []);
+  const baseURL = `${getApiBase()}/api/admin/manage`;
 
-  const loadAdmins = async () => {
-    try {
-      const res = await API.get('/admin/manage');
-      setAdminList(res.data);
-    } catch {
-      toast.error('❌ Failed to fetch admins');
-    }
-  };
+  useEffect(() => {
+    const loadAdmins = async () => {
+      try {
+        const res = await axios.get(baseURL, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
+        setAdminList(res.data);
+      } catch {
+        toast.error('❌ Failed to fetch admins');
+      }
+    };
+
+    loadAdmins();
+  }, [baseURL]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -29,10 +37,15 @@ function AdminManage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/admin/manage', formData);
+      await axios.post(baseURL, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('✅ Admin added');
       resetForm();
-      loadAdmins();
+      await refreshAdmins();
     } catch {
       toast.error('❌ Failed to add admin');
     }
@@ -48,9 +61,14 @@ function AdminManage() {
     if (!window.confirm('Delete this admin?')) return;
 
     try {
-      await API.delete(`/admin/manage/${id}`);
+      await axios.delete(`${baseURL}/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('🗑 Admin deleted');
-      loadAdmins();
+      await refreshAdmins();
     } catch {
       toast.error('❌ Failed to delete admin');
     }
@@ -63,11 +81,16 @@ function AdminManage() {
 
   const handleUpdate = async () => {
     try {
-      await API.put(`/admin/manage/${isEditing}`, formData);
+      await axios.put(`${baseURL}/${isEditing}`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('💾 Admin updated');
       setIsEditing(null);
       resetForm();
-      loadAdmins();
+      await refreshAdmins();
     } catch {
       toast.error('❌ Failed to update admin');
     }
@@ -75,6 +98,20 @@ function AdminManage() {
 
   const resetForm = () => {
     setFormData({ name: '', password: '' });
+  };
+
+  const refreshAdmins = async () => {
+    try {
+      const res = await axios.get(baseURL, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
+      setAdminList(res.data);
+    } catch {
+      toast.error('❌ Failed to refresh admins');
+    }
   };
 
   return (

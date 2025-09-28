@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,9 +11,18 @@ const EventDetails = () => {
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
 
+  const baseURL = getApiBase();
+
   useEffect(() => {
-    API.get(`/admin/events/${id}`)
-      .then(res => {
+    const fetchEvent = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/admin/events/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
+
         const raw = res.data;
         const facultyNames = raw.faculties?.map(f => f.name) || [];
         const coordinatorNames = raw.studentCoordinators || [];
@@ -22,9 +32,13 @@ const EventDetails = () => {
           faculties: facultyNames,
           studentCoordinators: coordinatorNames
         });
-      })
-      .catch(() => toast.error('❌ Failed to fetch event details'));
-  }, [id]);
+      } catch {
+        toast.error('❌ Failed to fetch event details');
+      }
+    };
+
+    fetchEvent();
+  }, [id, baseURL]);
 
   if (!event) {
     return (

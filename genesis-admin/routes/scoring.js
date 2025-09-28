@@ -7,16 +7,23 @@ const Event = require('../models/Event');
 const Team = require('../models/Team');
 const Score = require('../models/Score');
 
+// ✅ Auto-trigger normalization only when all scores are finalized
+async function tryNormalizeFinalScores(eventId) {
+  const scores = await Score.find({ event: eventId });
+  const allFinalized = scores.every(s => s.finalized);
+  if (allFinalized) {
+    await normalizeFinalScores(eventId);
+  }
+}
+
 // 🧠 Normalize final scores after all scoring is complete
 async function normalizeFinalScores(eventId) {
   const event = await Event.findById(eventId);
   if (!event) return;
 
+  const eventKey = String(eventId);
   const teams = await Team.find();
   const scores = await Score.find({ event: eventId });
-
-  const allFinalized = scores.every(s => s.finalized);
-  if (!allFinalized) return;
 
   const teamTotals = {};
   for (const score of scores) {
@@ -39,29 +46,21 @@ async function normalizeFinalScores(eventId) {
       else if (rank === 2) final = 50;
       else final = 10;
     }
-    team.finalPoints = team.finalPoints || {};
-    team.finalPoints[eventId] = final;
+
+    const raw = team.finalPoints instanceof Map
+      ? Object.fromEntries(team.finalPoints)
+      : { ...team.finalPoints };
+
+    raw[eventKey] = final;
+    team.finalPoints = raw;
+    team.markModified('finalPoints');
     await team.save();
+
+    console.log(`💾 Finalized ${team.leader?.trim()} → ${final} pts`);
   }
 
   console.log(`✅ Final points normalized for event ${event.name}`);
 }
-
-// 🔍 Admin: View Scores for Team/Round
-router.get('/admin/event/:eventId/scores/:teamId', verifyAdmin, async (req, res) => {
-  const { eventId, teamId } = req.params;
-  const { round } = req.query;
-
-  try {
-    const scores = await Score.find({ event: eventId, team: teamId, round })
-      .populate('judge', 'name')
-      .populate('event', 'name category');
-    res.json(scores);
-  } catch (err) {
-    console.error('Admin score fetch failed:', err);
-    res.status(500).json({ error: 'Failed to fetch scores for round' });
-  }
-});
 
 // 📝 Faculty: Submit Score
 router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
@@ -97,7 +96,7 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
       if (finalized) existing.finalized = true;
       await existing.save();
 
-      if (finalized) await normalizeFinalScores(eventId);
+      if (finalized) await tryNormalizeFinalScores(eventId);
       return res.json({ success: true, message: 'Score updated', score: existing });
     }
 
@@ -113,7 +112,7 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
     });
 
     await score.save();
-    if (finalized) await normalizeFinalScores(eventId);
+    if (finalized) await tryNormalizeFinalScores(eventId);
 
     console.log('🔔 Incoming score payload:', req.body);
     console.log('👤 Logged-in faculty:', req.user);
@@ -121,6 +120,22 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
   } catch (err) {
     console.error('Faculty score submit failed:', err);
     res.status(500).json({ error: 'Score submission failed' });
+  }
+});
+
+// 🔍 Admin: View Scores for Team/Round
+router.get('/admin/event/:eventId/scores/:teamId', verifyAdmin, async (req, res) => {
+  const { eventId, teamId } = req.params;
+  const { round } = req.query;
+
+  try {
+    const scores = await Score.find({ event: eventId, team: teamId, round })
+      .populate('judge', 'name')
+      .populate('event', 'name category');
+    res.json(scores);
+  } catch (err) {
+    console.error('Admin score fetch failed:', err);
+    res.status(500).json({ error: 'Failed to fetch scores for round' });
   }
 });
 
@@ -150,10 +165,8 @@ router.get('/leaderboard', verifyAdmin, async (req, res) => {
       let finalPoints;
 
       if (eventId) {
-        // 🎯 Specific event
         finalPoints = team.finalPoints?.[eventId] ?? -10;
       } else {
-        // 🌐 Overall: sum of all normalized scores
         const allPoints = Object.values(team.finalPoints || {});
         finalPoints = allPoints.length > 0 ? allPoints.reduce((a, b) => a + b, 0) : -10;
       }

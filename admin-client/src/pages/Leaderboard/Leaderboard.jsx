@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,12 +11,24 @@ function Leaderboard() {
   const [eventLeaderboard, setEventLeaderboard] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState('');
 
+  const baseURL = getApiBase();
+
   useEffect(() => {
     async function fetchInitialData() {
       try {
         const [eventRes, overallRes] = await Promise.all([
-          API.get('/admin/events'),
-          API.get('/admin/scoring/leaderboard')
+          axios.get(`${baseURL}/api/admin/events`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/scoring/leaderboard`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          })
         ]);
         setEvents(eventRes.data);
         setOverallLeaderboard(overallRes.data);
@@ -24,7 +37,7 @@ function Leaderboard() {
       }
     }
     fetchInitialData();
-  }, []);
+  }, [baseURL]);
 
   const handleEventChange = async (e) => {
     const eventId = e.target.value;
@@ -35,7 +48,12 @@ function Leaderboard() {
     }
 
     try {
-      const res = await API.get(`/admin/scoring/leaderboard?eventId=${eventId}`);
+      const res = await axios.get(`${baseURL}/api/admin/scoring/leaderboard?eventId=${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       setEventLeaderboard(res.data);
     } catch {
       toast.error('❌ Failed to fetch event leaderboard');

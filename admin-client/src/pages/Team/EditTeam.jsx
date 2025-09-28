@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,22 +11,34 @@ function EditTeam() {
   const navigate = useNavigate();
   const [team, setTeam] = useState(null);
   const [events, setEvents] = useState([]);
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    API.get(`/admin/teams/${id}`)
-      .then(res => {
-        console.log('Fetched Team:', res.data);
-        setTeam(res.data);
-      })
-      .catch(() => toast.error('❌ Failed to fetch team'));
+    const fetchTeamAndEvents = async () => {
+      try {
+        const [teamRes, eventRes] = await Promise.all([
+          axios.get(`${baseURL}/api/admin/teams/${id}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/events`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          })
+        ]);
+        setTeam(teamRes.data);
+        setEvents(eventRes.data);
+      } catch {
+        toast.error('❌ Failed to fetch team or events');
+      }
+    };
 
-    API.get('/admin/events')
-      .then(res => {
-        console.log('All Events:', res.data);
-        setEvents(res.data); // No filter applied
-      })
-      .catch(() => toast.error('❌ Failed to fetch events'));
-  }, [id]);
+    fetchTeamAndEvents();
+  }, [id, baseURL]);
 
   const handleChange = (field, value) => {
     setTeam(prev => ({ ...prev, [field]: value }));
@@ -52,7 +65,12 @@ function EditTeam() {
 
   const handleSave = async () => {
     try {
-      await API.put(`/admin/teams/${id}`, team);
+      await axios.put(`${baseURL}/api/admin/teams/${id}`, team, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('✅ Team updated');
       setTimeout(() => navigate('/teams'), 1500);
     } catch {
@@ -60,12 +78,14 @@ function EditTeam() {
     }
   };
 
-  if (!team) return (
-    <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
-      <p className="text-center text-light mt-5">Loading team...</p>
-    </>
-  );
+  if (!team) {
+    return (
+      <>
+        <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+        <p className="text-center text-light mt-5">Loading team...</p>
+      </>
+    );
+  }
 
   return (
     <>

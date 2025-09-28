@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,18 +10,25 @@ function FacultyPage() {
   const [formData, setFormData] = useState({ name: '', number: '', password: '' });
   const [isEditing, setIsEditing] = useState(null);
 
-  useEffect(() => {
-    loadFaculty();
-  }, []);
+  const baseURL = getApiBase();
 
-  const loadFaculty = async () => {
-    try {
-      const res = await API.get('/admin/faculty');
-      setFacultyList(res.data);
-    } catch {
-      toast.error('Failed to load faculty list');
-    }
-  };
+  useEffect(() => {
+    const loadFaculty = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/admin/faculty`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
+        setFacultyList(res.data);
+      } catch {
+        toast.error('Failed to load faculty list');
+      }
+    };
+
+    loadFaculty();
+  }, [baseURL]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -29,10 +37,15 @@ function FacultyPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/admin/faculty', formData);
+      await axios.post(`${baseURL}/api/admin/faculty`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('Faculty added');
       resetForm();
-      loadFaculty();
+      await refreshFaculty();
     } catch {
       toast.error('Failed to add faculty');
     }
@@ -49,11 +62,16 @@ function FacultyPage() {
 
   const handleUpdate = async () => {
     try {
-      await API.put(`/admin/faculty/${isEditing}`, formData);
+      await axios.put(`${baseURL}/api/admin/faculty/${isEditing}`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('Faculty updated');
       setIsEditing(null);
       resetForm();
-      loadFaculty();
+      await refreshFaculty();
     } catch {
       toast.error('Failed to update faculty');
     }
@@ -61,9 +79,14 @@ function FacultyPage() {
 
   const handleDelete = async (id) => {
     try {
-      await API.delete(`/admin/faculty/${id}`);
+      await axios.delete(`${baseURL}/api/admin/faculty/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('Faculty deleted');
-      loadFaculty();
+      await refreshFaculty();
     } catch {
       toast.error('Failed to delete faculty');
     }
@@ -73,6 +96,21 @@ function FacultyPage() {
     setFormData({ name: '', number: '', password: '' });
   };
 
+  const refreshFaculty = async () => {
+    try {
+      const res = await axios.get(`${baseURL}/api/admin/faculty`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
+      setFacultyList(res.data);
+    } catch {
+      toast.error('Failed to refresh faculty list');
+    }
+  };
+
+  // JSX remains unchanged — your layout and table structure are already clean and compact
   return (
     <>
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
@@ -148,8 +186,8 @@ function FacultyPage() {
           <h4 className="mb-4 text-center text-info fw-semibold">Faculty List</h4>
 
           <div className="table-responsive">
-            <table className="table align-middle text-light mb-0">
-              <thead style={{ backgroundColor: '#161b22' }}>
+            <table className="table table-dark table-bordered align-middle">
+              <thead className="table-secondary text-dark">>
                 <tr>
                   <th>#</th>
                   <th>Name</th>
@@ -162,7 +200,7 @@ function FacultyPage() {
                   <tr key={faculty._id} style={{ borderBottom: '1px solid #2b2f3a' }}>
                     <td>{index + 1}</td>
                     <td className="fw-semibold text-info">{faculty.name}</td>
-                    <td className="text-muted">#{faculty.number}</td>
+                    <td className="text-white">{faculty.number}</td>
                     <td className="text-center">
                       <div className="d-flex justify-content-center gap-2">
                         <button

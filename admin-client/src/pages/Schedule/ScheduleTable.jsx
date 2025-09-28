@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -7,14 +8,24 @@ const ScheduleTable = ({ data, onDelete, onEdit }) => {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({});
   const [events, setEvents] = useState([]);
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    API.get('/admin/events')
+    axios.get(`${baseURL}/api/admin/events`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+      },
+      withCredentials: true
+    })
       .then(res => setEvents(res.data))
       .catch(() => toast.error('❌ Failed to fetch events'));
-  }, []);
+  }, [baseURL]);
 
   const startEdit = (item) => {
+    if (!item.eventId) {
+      toast.warn('⚠️ Cannot edit schedule with missing event');
+      return;
+    }
     setEditingId(item._id);
     setForm({
       eventId: item.eventId._id,
@@ -81,8 +92,8 @@ const ScheduleTable = ({ data, onDelete, onEdit }) => {
                       </select>
                     </td>
                     <td>
-                      <span className="badge" style={{ backgroundColor: getCategoryColor(item.eventId.category) }}>
-                        {item.eventId.category}
+                      <span className="badge" style={{ backgroundColor: getCategoryColor(item.eventId?.category) }}>
+                        {item.eventId?.category || '—'}
                       </span>
                     </td>
                     <td>
@@ -120,10 +131,12 @@ const ScheduleTable = ({ data, onDelete, onEdit }) => {
                   </>
                 ) : (
                   <>
-                    <td className="fw-semibold text-info">{item.eventId.name}</td>
+                    <td className="fw-semibold text-info">
+                      {item.eventId?.name || <span className="text-muted">Unknown Event</span>}
+                    </td>
                     <td>
-                      <span className="badge fw-semibold" style={{ backgroundColor: getCategoryColor(item.eventId.category) }}>
-                        {item.eventId.category}
+                      <span className="badge fw-semibold" style={{ backgroundColor: getCategoryColor(item.eventId?.category) }}>
+                        {item.eventId?.category || '—'}
                       </span>
                     </td>
                     <td>{item.date}</td>

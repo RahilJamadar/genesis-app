@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,26 +17,47 @@ function EditEvent() {
   const [coordinatorList, setCoordinatorList] = useState([]);
   const [coordinatorInput, setCoordinatorInput] = useState('');
 
+  const baseURL = getApiBase();
+
   useEffect(() => {
-    API.get(`/admin/events/${id}`)
-      .then(res => {
-        const raw = res.data;
+    const fetchData = async () => {
+      try {
+        const [eventRes, facultyRes, coordinatorRes] = await Promise.all([
+          axios.get(`${baseURL}/api/admin/events/${id}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/faculty`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/student-coordinators`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          })
+        ]);
+
+        const raw = eventRes.data;
         setEvent({
           ...raw,
           judges: raw.judges || [],
           rounds: raw.rounds || 1
         });
-      })
-      .catch(() => toast.error('❌ Failed to fetch event details'));
+        setFacultyList(facultyRes.data);
+        setCoordinatorList(coordinatorRes.data.map(c => c.name));
+      } catch {
+        toast.error('❌ Failed to fetch event data');
+      }
+    };
 
-    API.get('/admin/faculty')
-      .then(res => setFacultyList(res.data)) // full objects
-      .catch(() => toast.error('❌ Failed to fetch faculty list'));
-
-    API.get('/admin/student-coordinators')
-      .then(res => setCoordinatorList(res.data.map(c => c.name)))
-      .catch(() => toast.error('❌ Failed to fetch coordinator list'));
-  }, [id]);
+    fetchData();
+  }, [id, baseURL]);
 
   const handleChange = (field, value) => {
     setEvent(prev => ({ ...prev, [field]: value }));
@@ -75,7 +97,12 @@ function EditEvent() {
 
   const handleSave = async () => {
     try {
-      await API.put(`/admin/events/${id}`, event);
+      await axios.put(`${baseURL}/api/admin/events/${id}`, event, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('✅ Event updated successfully');
       setTimeout(() => navigate('/events'), 1500);
     } catch {
@@ -203,7 +230,9 @@ function EditEvent() {
 
         <div className="d-flex gap-2 mt-4">
           <button className="btn btn-sm btn-primary w-100 fw-semibold" onClick={handleSave}>💾 Save</button>
-          <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => navigate('/events')}>← Back</button>
+          <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => navigate('/events')}>
+            ← Back
+          </button>
         </div>
       </div>
     </>

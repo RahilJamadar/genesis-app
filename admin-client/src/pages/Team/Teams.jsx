@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,18 +9,29 @@ import 'react-toastify/dist/ReactToastify.css';
 function Teams() {
   const [teams, setTeams] = useState([]);
   const navigate = useNavigate();
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    API.get('/admin/teams')
+    axios.get(`${baseURL}/api/admin/teams`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+      },
+      withCredentials: true
+    })
       .then(res => setTeams(res.data))
       .catch(() => toast.error('❌ Failed to fetch teams'));
-  }, []);
+  }, [baseURL]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this team?')) return;
     try {
-      await API.delete(`/admin/teams/${id}`);
-      setTeams(teams.filter(t => t._id !== id));
+      await axios.delete(`${baseURL}/api/admin/teams/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
+      setTeams(prev => prev.filter(t => t._id !== id));
       toast.success('🗑️ Team deleted');
     } catch {
       toast.error('❌ Failed to delete team');

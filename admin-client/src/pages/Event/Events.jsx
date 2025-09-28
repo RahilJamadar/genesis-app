@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -23,20 +24,42 @@ function Events() {
   });
 
   const navigate = useNavigate();
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    API.get('/admin/events')
-      .then(res => setEvents(res.data))
-      .catch(() => toast.error('Failed to fetch events'));
+    const fetchData = async () => {
+      try {
+        const [eventRes, facultyRes, coordinatorRes] = await Promise.all([
+          axios.get(`${baseURL}/api/admin/events`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/faculty`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/student-coordinators`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          })
+        ]);
 
-    API.get('/admin/faculty')
-      .then(res => setFacultyList(res.data)) // full objects with _id and name
-      .catch(() => toast.error('Failed to fetch faculty list'));
+        setEvents(eventRes.data);
+        setFacultyList(facultyRes.data);
+        setCoordinatorList(coordinatorRes.data.map(c => ({ id: c._id, name: c.name })));
+      } catch {
+        toast.error('Failed to fetch initial data');
+      }
+    };
 
-    API.get('/admin/student-coordinators')
-      .then(res => setCoordinatorList(res.data.map(c => ({ id: c._id, name: c.name }))))
-      .catch(() => toast.error('Failed to fetch coordinator list'));
-  }, []);
+    fetchData();
+  }, [baseURL]);
 
   const handleChange = (field, value) => {
     setNewEvent(prev => ({ ...prev, [field]: value }));
@@ -78,7 +101,12 @@ function Events() {
   const handleAdd = async e => {
     e.preventDefault();
     try {
-      const res = await API.post('/admin/events', newEvent);
+      const res = await axios.post(`${baseURL}/api/admin/events`, newEvent, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       setEvents([...events, res.data.event]);
       setNewEvent({
         name: '',
@@ -99,7 +127,12 @@ function Events() {
   const handleDelete = async id => {
     if (!window.confirm('Delete this event?')) return;
     try {
-      await API.delete(`/admin/events/${id}`);
+      await axios.delete(`${baseURL}/api/admin/events/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       setEvents(events.filter(e => e._id !== id));
       toast.success('Event deleted');
     } catch {
@@ -111,6 +144,8 @@ function Events() {
     navigate(`/events/edit/${id}`);
   };
 
+  // JSX remains unchanged — your layout and logic are already solid
+  // You can paste the JSX portion from your original file below this logic block
   return (
     <>
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />

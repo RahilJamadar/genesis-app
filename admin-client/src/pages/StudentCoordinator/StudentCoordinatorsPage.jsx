@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';
+import React, { useEffect, useState, useCallback } from 'react';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,18 +10,25 @@ function StudentCoordinatorsPage() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [isEditing, setIsEditing] = useState(null);
 
-  useEffect(() => {
-    fetchCoordinators();
-  }, []);
+  const baseURL = getApiBase();
 
-  const fetchCoordinators = async () => {
+  const fetchCoordinators = useCallback(async () => {
     try {
-      const res = await API.get('/admin/student-coordinators');
+      const res = await axios.get(`${baseURL}/api/admin/student-coordinators`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       setCoordinators(res.data);
     } catch {
       toast.error('❌ Failed to fetch coordinators');
     }
-  };
+  }, [baseURL]);
+
+  useEffect(() => {
+    fetchCoordinators();
+  }, [fetchCoordinators]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -51,7 +59,12 @@ function StudentCoordinatorsPage() {
       return;
     }
     try {
-      await API.post('/admin/student-coordinators', trimmed);
+      await axios.post(`${baseURL}/api/admin/student-coordinators`, trimmed, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('✅ Coordinator added');
       resetForm();
       fetchCoordinators();
@@ -68,7 +81,12 @@ function StudentCoordinatorsPage() {
       return;
     }
     try {
-      await API.put(`/admin/student-coordinators/${isEditing}`, trimmed);
+      await axios.put(`${baseURL}/api/admin/student-coordinators/${isEditing}`, trimmed, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('✏️ Coordinator updated');
       resetForm();
       fetchCoordinators();
@@ -86,7 +104,12 @@ function StudentCoordinatorsPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this coordinator?')) return;
     try {
-      await API.delete(`/admin/student-coordinators/${id}`);
+      await axios.delete(`${baseURL}/api/admin/student-coordinators/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('🗑️ Coordinator deleted');
       fetchCoordinators();
     } catch {

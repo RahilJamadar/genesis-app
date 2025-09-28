@@ -1,8 +1,12 @@
 import axios from 'axios';
+import getApiBase from '../utils/getApiBase';
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api',
+  baseURL: getApiBase(),
+  withCredentials: true
 });
+
+
 
 API.interceptors.request.use(config => {
   const token = localStorage.getItem('adminToken');

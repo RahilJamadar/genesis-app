@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import facultyAPI from '../../api/facultyApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import FacultyNavbar from '../../components/FacultyNavbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,12 +9,27 @@ import 'react-toastify/dist/ReactToastify.css';
 const FacultyDashboard = () => {
   const [events, setEvents] = useState([]);
   const navigate = useNavigate();
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    facultyAPI.get('/events')
-      .then(res => setEvents(res.data))
-      .catch(() => toast.error('❌ Failed to fetch assigned events'));
-  }, []);
+    const fetchEvents = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/faculty/events`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
+          },
+          withCredentials: true
+        });
+        setEvents(res.data);
+      } catch {
+        toast.error('❌ Failed to fetch assigned events');
+      }
+    };
+
+    fetchEvents();
+  }, [baseURL]);
+
+  // JSX remains unchanged — your layout and logic are already clean and compact
 
   return (
     <>

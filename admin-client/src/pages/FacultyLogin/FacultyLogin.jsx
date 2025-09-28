@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import facultyAPI from '../../api/facultyApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const FacultyLogin = () => {
   const [form, setForm] = useState({ name: '', password: '' });
   const navigate = useNavigate();
+  const baseURL = getApiBase();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -15,7 +17,9 @@ const FacultyLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await facultyAPI.post('/login', form);
+      const res = await axios.post(`${baseURL}/api/faculty/login`, form, {
+        withCredentials: true
+      });
       localStorage.setItem('facultyToken', res.data.token);
       toast.success('✅ Login successful');
       setTimeout(() => navigate('/faculty/dashboard'), 1500);

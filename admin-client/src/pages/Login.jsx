@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import getApiBase from '../utils/getApiBase';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function Login() {
-  const [name, setname] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const baseURL = getApiBase();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5001/api/admin/auth/login', {
-        name,
-        password
+      const res = await axios.post(`${baseURL}/api/admin/auth/login`, { name, password }, {
+        withCredentials: true
       });
 
       const token = res.data.token;
@@ -46,7 +47,7 @@ function Login() {
             className="form-control bg-secondary text-light border-0"
             placeholder="Username"
             value={name}
-            onChange={e => setname(e.target.value)}
+            onChange={e => setName(e.target.value)}
             required
           />
           <input

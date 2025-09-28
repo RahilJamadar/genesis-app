@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,13 +12,30 @@ function Dashboard() {
     topScores: []
   });
 
+  const baseURL = getApiBase();
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const [teamRes, eventRes, scoreRes] = await Promise.all([
-          API.get('/admin/teams'),
-          API.get('/admin/events'),
-          API.get('/admin/scoring/leaderboard')
+          axios.get(`${baseURL}/api/admin/teams`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/events`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/scoring/leaderboard`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          })
         ]);
 
         setStats({
@@ -31,7 +49,7 @@ function Dashboard() {
     };
 
     fetchStats();
-  }, []);
+  }, [baseURL]);
 
   return (
     <>

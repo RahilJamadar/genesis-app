@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import facultyAPI from '../../api/facultyApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import FacultyNavbar from '../../components/FacultyNavbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -18,19 +19,36 @@ const FacultyEventScoring = () => {
   const [individualScores, setIndividualScores] = useState([]);
   const [finalized, setFinalized] = useState(false);
 
+  const baseURL = getApiBase();
+
   useEffect(() => {
-    facultyAPI.get(`/event/${eventId}/teams`)
+    axios.get(`${baseURL}/api/faculty/event/${eventId}/teams`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
+      },
+      withCredentials: true
+    })
       .then(res => setTeams(res.data))
       .catch(() => toast.error('❌ Failed to fetch teams'));
 
-    facultyAPI.get(`/event/${eventId}/judges`)
+    axios.get(`${baseURL}/api/faculty/event/${eventId}/judges`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
+      },
+      withCredentials: true
+    })
       .then(res => setJudges(res.data))
       .catch(() => toast.error('❌ Failed to fetch judges'));
-  }, [eventId]);
+  }, [eventId, baseURL]);
 
   const fetchScoresForTeamAndRound = useCallback(async () => {
     try {
-      const res = await facultyAPI.get(`/event/${eventId}/scores/${selectedTeam}?round=${round}`);
+      const res = await axios.get(`${baseURL}/api/faculty/event/${eventId}/scores/${selectedTeam}?round=${round}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
+        },
+        withCredentials: true
+      });
       setAllScores(res.data);
       const myScores = res.data.filter(s => s.judge._id === localStorage.getItem('facultyId'));
       const locked = myScores.some(s => s.finalized);
@@ -38,7 +56,7 @@ const FacultyEventScoring = () => {
     } catch {
       toast.error('❌ Failed to fetch score');
     }
-  }, [eventId, selectedTeam, round]);
+  }, [eventId, selectedTeam, round, baseURL]);
 
   useEffect(() => {
     if (selectedTeam && round) {
@@ -47,7 +65,7 @@ const FacultyEventScoring = () => {
       const team = teams.find(t => t._id === selectedTeam);
       setIndividualScores(team?.members.map(m => ({ name: m.name, score: '' })) || []);
     }
-  }, [selectedTeam, round, teams, eventId, fetchScoresForTeamAndRound]);
+  }, [selectedTeam, round, teams, fetchScoresForTeamAndRound]);
 
   const handleIndividualScoreChange = (index, value) => {
     const updated = [...individualScores];
@@ -69,6 +87,10 @@ const FacultyEventScoring = () => {
     const confirm = window.confirm('Do you want to finalize this score? You will not be able to edit it later.');
     if (!confirm) return;
 
+    const headers = {
+      Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
+    };
+
     if (scoringMode === 'team') {
       const numericScore = Number(teamScore);
       if (isNaN(numericScore) || numericScore < 0 || numericScore > 100) {
@@ -85,7 +107,10 @@ const FacultyEventScoring = () => {
       };
 
       try {
-        await facultyAPI.post(`/event/${eventId}/score`, payload);
+        await axios.post(`${baseURL}/api/faculty/event/${eventId}/score`, payload, {
+          headers,
+          withCredentials: true
+        });
         toast.success('✅ Team score finalized');
         setFinalized(true);
         await fetchScoresForTeamAndRound();
@@ -109,7 +134,10 @@ const FacultyEventScoring = () => {
             comment,
             finalized: true
           };
-          await facultyAPI.post(`/event/${eventId}/score`, payload);
+          await axios.post(`${baseURL}/api/faculty/event/${eventId}/score`, payload, {
+            headers,
+            withCredentials: true
+          });
         }
         toast.success('✅ Individual scores finalized');
         setFinalized(true);
@@ -119,6 +147,8 @@ const FacultyEventScoring = () => {
       }
     }
   };
+
+  // JSX remains unchanged — your layout and scoring interface are already clean and compact
 
   return (
     <>

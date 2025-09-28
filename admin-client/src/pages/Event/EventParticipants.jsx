@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,34 +12,84 @@ function EventParticipants() {
   const [selectedCollege, setSelectedCollege] = useState('');
   const [participants, setParticipants] = useState([]);
 
-  useEffect(() => {
-    API.get('/admin/events')
-      .then(res => setEvents(res.data.map(ev => ev.name)))
-      .catch(() => toast.error('❌ Failed to load events'));
-  }, []);
+  const baseURL = getApiBase();
 
   useEffect(() => {
-    API.get('/admin/teams')
-      .then(res => {
+    const fetchEvents = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/admin/events`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
+        setEvents(res.data.map(ev => ev.name));
+      } catch {
+        toast.error('❌ Failed to load events');
+      }
+    };
+
+    fetchEvents();
+  }, [baseURL]);
+
+  useEffect(() => {
+    const fetchColleges = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/admin/teams`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
         const collegeSet = new Set(res.data.map(team => team.college));
         setColleges([...collegeSet]);
-      })
-      .catch(() => toast.error('❌ Failed to load colleges'));
-  }, []);
+      } catch {
+        toast.error('❌ Failed to load colleges');
+      }
+    };
+
+    fetchColleges();
+  }, [baseURL]);
 
   useEffect(() => {
     if (!selectedEvent) return;
-    API.get(`/admin/events/${selectedEvent}/participants`)
-      .then(res => setParticipants(res.data))
-      .catch(() => toast.error('❌ Failed to load participants for event'));
-  }, [selectedEvent]);
+
+    const fetchParticipantsByEvent = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/admin/events/${selectedEvent}/participants`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
+        setParticipants(res.data);
+      } catch {
+        toast.error('❌ Failed to load participants for event');
+      }
+    };
+
+    fetchParticipantsByEvent();
+  }, [selectedEvent, baseURL]);
 
   useEffect(() => {
     if (!selectedCollege) return;
-    API.get(`/admin/events/college/${encodeURIComponent(selectedCollege)}/participants`)
-      .then(res => setParticipants(res.data))
-      .catch(() => toast.error('❌ Failed to load participants for college'));
-  }, [selectedCollege]);
+
+    const fetchParticipantsByCollege = async () => {
+      try {
+        const res = await axios.get(`${baseURL}/api/admin/events/college/${encodeURIComponent(selectedCollege)}/participants`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          withCredentials: true
+        });
+        setParticipants(res.data);
+      } catch {
+        toast.error('❌ Failed to load participants for college');
+      }
+    };
+
+    fetchParticipantsByCollege();
+  }, [selectedCollege, baseURL]);
 
   return (
     <>

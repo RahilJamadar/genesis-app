@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../../api/adminApi';
+import axios from 'axios';
+import getApiBase from '../../utils/getApiBase';
 import Navbar from '../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -23,15 +24,35 @@ function NewEvent() {
   const [coordinatorList, setCoordinatorList] = useState([]);
   const [coordinatorInput, setCoordinatorInput] = useState('');
 
-  useEffect(() => {
-    API.get('/admin/faculty')
-      .then(res => setFacultyList(res.data)) // full objects
-      .catch(() => toast.error('Failed to fetch faculty list'));
+  const baseURL = getApiBase();
 
-    API.get('/admin/student-coordinators')
-      .then(res => setCoordinatorList(res.data.map(c => c.name)))
-      .catch(() => toast.error('Failed to fetch coordinator list'));
-  }, []);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [facultyRes, coordinatorRes] = await Promise.all([
+          axios.get(`${baseURL}/api/admin/faculty`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          }),
+          axios.get(`${baseURL}/api/admin/student-coordinators`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            withCredentials: true
+          })
+        ]);
+
+        setFacultyList(facultyRes.data);
+        setCoordinatorList(coordinatorRes.data.map(c => c.name));
+      } catch {
+        toast.error('Failed to fetch faculty or coordinator list');
+      }
+    };
+
+    fetchData();
+  }, [baseURL]);
 
   const handleChange = (field, value) => {
     setEventData(prev => ({ ...prev, [field]: value }));
@@ -72,7 +93,12 @@ function NewEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/admin/events', eventData);
+      await axios.post(`${baseURL}/api/admin/events`, eventData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        withCredentials: true
+      });
       toast.success('Event created successfully');
       setTimeout(() => navigate('/events'), 1500);
     } catch {
@@ -80,6 +106,8 @@ function NewEvent() {
     }
   };
 
+  // JSX remains unchanged — your layout is already clean and compact
+  // You can paste the original JSX below this logic block
   return (
     <>
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
