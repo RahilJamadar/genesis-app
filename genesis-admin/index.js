@@ -19,12 +19,11 @@ const app = express();
 const localIP = ip.address(); // Dynamically detect your LAN IP
 const PORT = process.env.PORT || 5001;
 
-// ✅ Middleware Setup
+// ✅ CORS Setup: Allow all origins dynamically (for dev/mobile access)
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    `http://${localIP}:3000`
-  ],
+  origin: (origin, callback) => {
+    callback(null, true); // Allow all origins
+  },
   credentials: true
 };
 
@@ -56,7 +55,7 @@ app.get('/', (req, res) => {
 });
 
 // ✅ Server Start
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running at:`);
   console.log(`🔹 Localhost: http://localhost:${PORT}`);
   console.log(`🔹 LAN Access: http://${localIP}:${PORT}`);

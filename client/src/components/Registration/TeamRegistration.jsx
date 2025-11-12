@@ -3,6 +3,11 @@ import axios from 'axios';
 import Select from 'react-select';
 import styles from './TeamRegistration.module.css';
 
+// 🌐 Dynamically resolve backend IP based on current host
+const hostIP = window.location.hostname;
+const API_BASE_URL = `http://${hostIP}:5000`;     // Public backend (server)
+const ADMIN_API_URL = `http://${hostIP}:5001`;     // Admin backend (genesis-admin)
+
 function TeamRegistration() {
   const [eventOptions, setEventOptions] = useState([]);
   const [college, setCollege] = useState('');
@@ -11,8 +16,9 @@ function TeamRegistration() {
   const [contact, setContact] = useState('');
   const [members, setMembers] = useState([{ name: '', events: [] }]);
 
+  // 🔄 Fetch public events from admin backend
   useEffect(() => {
-    axios.get('http://localhost:5001/api/admin/events/public-events')
+    axios.get(`${ADMIN_API_URL}/api/admin/events/public-events`)
       .then(res => {
         const options = res.data.map(ev => ({
           value: ev.name,
@@ -56,7 +62,7 @@ function TeamRegistration() {
     };
 
     try {
-      const res = await axios.post('http://localhost:5000/api/register', payload);
+      const res = await axios.post(`${API_BASE_URL}/api/register`, payload);
       console.log('✅ Registered:', res.data);
       alert('Team registered successfully!');
       setCollege('');
