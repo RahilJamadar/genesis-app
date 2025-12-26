@@ -98,26 +98,42 @@ router.get('/leaderboard/event/:eventId', async (req, res) => {
 
 /**
  * @route   GET /api/admin/teams/catering-report
+ * @desc    Safely calculate dietary analytics
  */
 router.get('/catering-report', async (req, res) => {
   try {
     const teams = await Team.find();
-    const collegeBreakdown = teams.map(t => ({
-      college: t.college,
-      veg: t.vegCount,
-      nonVeg: t.nonVegCount,
-      total: t.vegCount + t.nonVegCount
-    }));
+    
+    const collegeBreakdown = teams.map(t => {
+      // Use fallback to 0 if fields are missing
+      const veg = Number(t.vegCount) || 0;
+      const nonVeg = Number(t.nonVegCount) || 0;
+      
+      return {
+        college: t.college || 'Unknown Institution',
+        veg: veg,
+        nonVeg: nonVeg,
+        total: veg + nonVeg
+      };
+    });
 
     const totals = teams.reduce((acc, team) => {
-      acc.veg += team.vegCount || 0;
-      acc.nonVeg += team.nonVegCount || 0;
+      acc.veg += Number(team.vegCount) || 0;
+      acc.nonVeg += Number(team.nonVegCount) || 0;
       return acc;
     }, { veg: 0, nonVeg: 0 });
 
-    res.json({ success: true, summary: totals, breakdown: collegeBreakdown });
+    res.json({
+      success: true,
+      summary: totals,
+      breakdown: collegeBreakdown
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to generate catering report' });
+    console.error('Catering Report Crash:', err);
+    res.status(500).json({ 
+      error: 'Logistics calculation failed', 
+      details: err.message 
+    });
   }
 });
 
