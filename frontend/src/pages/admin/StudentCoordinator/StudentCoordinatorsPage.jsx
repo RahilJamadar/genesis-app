@@ -1,30 +1,22 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
-import getApiBase from '../../../utils/getApiBase';
+import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
-function StudentCoordinatorsPage() {
+const StudentCoordinatorsPage = () => {
   const [coordinators, setCoordinators] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [isEditing, setIsEditing] = useState(null);
-
-  const baseURL = getApiBase();
+  const [loading, setLoading] = useState(false);
 
   const fetchCoordinators = useCallback(async () => {
     try {
-      const res = await axios.get(`${baseURL}/api/admin/student-coordinators`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        withCredentials: true
-      });
+      const res = await adminApi.get('/student-coordinators');
       setCoordinators(res.data);
-    } catch {
+    } catch (err) {
       toast.error('❌ Failed to fetch coordinators');
     }
-  }, [baseURL]);
+  }, []);
 
   useEffect(() => {
     fetchCoordinators();
@@ -39,78 +31,37 @@ function StudentCoordinatorsPage() {
     setIsEditing(null);
   };
 
-  const validateFields = (data) => {
-    const trimmed = {
-      name: data.name.trim(),
-      email: data.email.trim(),
-      phone: data.phone.trim()
-    };
-    if (!trimmed.name || !trimmed.email || !trimmed.phone) {
-      return { valid: false, trimmed, message: 'All fields are required.' };
-    }
-    return { valid: true, trimmed };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { valid, trimmed, message } = validateFields(formData);
-    if (!valid) {
-      toast.warn(`⚠️ ${message}`);
-      return;
-    }
+    setLoading(true);
     try {
-      await axios.post(`${baseURL}/api/admin/student-coordinators`, trimmed, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        withCredentials: true
-      });
-      toast.success('✅ Coordinator added');
+      if (isEditing) {
+        await adminApi.put(`/student-coordinators/${isEditing}`, formData);
+        toast.success('✏️ Coordinator updated');
+      } else {
+        await adminApi.post('/student-coordinators', formData);
+        toast.success('✅ Coordinator added');
+      }
       resetForm();
       fetchCoordinators();
     } catch (err) {
-      const msg = err.response?.data?.message || 'Error creating coordinator';
-      toast.error(`❌ ${msg}`);
-    }
-  };
-
-  const handleUpdate = async () => {
-    const { valid, trimmed, message } = validateFields(formData);
-    if (!valid) {
-      toast.warn(`⚠️ ${message}`);
-      return;
-    }
-    try {
-      await axios.put(`${baseURL}/api/admin/student-coordinators/${isEditing}`, trimmed, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        withCredentials: true
-      });
-      toast.success('✏️ Coordinator updated');
-      resetForm();
-      fetchCoordinators();
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Error updating coordinator';
-      toast.error(`❌ ${msg}`);
+      toast.error(`❌ ${err.response?.data?.message || 'Action failed'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   const startEdit = (coord) => {
     setIsEditing(coord._id);
     setFormData({ name: coord.name, email: coord.email, phone: coord.phone });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this coordinator?')) return;
+    if (!window.confirm('🚨 Delete this student coordinator? This may affect assigned event listings.')) return;
     try {
-      await axios.delete(`${baseURL}/api/admin/student-coordinators/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        withCredentials: true
-      });
-      toast.success('🗑️ Coordinator deleted');
+      await adminApi.delete(`/student-coordinators/${id}`);
+      toast.success('🗑️ Coordinator removed');
       fetchCoordinators();
     } catch {
       toast.error('❌ Failed to delete coordinator');
@@ -118,92 +69,114 @@ function StudentCoordinatorsPage() {
   };
 
   return (
-    <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+    <div className="d-flex bg-dark min-vh-100">
       <Navbar />
-      <div className="container py-5" style={{ backgroundColor: '#0d0d15', minHeight: '100vh' }}>
-        <h2 className="text-center text-info fw-bold mb-4">Student Coordinators</h2>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto p-4 rounded shadow-sm mb-5"
-          style={{ backgroundColor: '#161b22', border: '1px solid #2b2f3a', maxWidth: '500px' }}
-        >
-          <div className="mb-3">
-            <label className="form-label text-light">Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={e => handleChange('name', e.target.value)}
-              required
-              className="form-control bg-dark text-light border-secondary"
-            />
-          </div>
-          <div className="mb-3">
-            <label className="form-label text-light">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={e => handleChange('email', e.target.value)}
-              required
-              className="form-control bg-dark text-light border-secondary"
-            />
-          </div>
-          <div className="mb-3">
-            <label className="form-label text-light">Phone</label>
-            <input
-              type="text"
-              value={formData.phone}
-              onChange={e => handleChange('phone', e.target.value)}
-              required
-              className="form-control bg-dark text-light border-secondary"
-            />
-          </div>
-          <div className="text-end">
-            {isEditing ? (
-              <button type="button" className="btn btn-warning fw-semibold px-4" onClick={handleUpdate}>
-                Update
-              </button>
-            ) : (
-              <button type="submit" className="btn btn-info fw-semibold px-4">
-                Add Coordinator
-              </button>
-            )}
-          </div>
-        </form>
+      <main className="dashboard-content flex-grow-1 p-4 p-lg-5">
+        <ToastContainer theme="dark" position="top-right" autoClose={2000} />
 
-        <div className="table-responsive">
-          <table className="table table-dark table-bordered align-middle">
-            <thead className="table-secondary text-dark">
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th className="text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coordinators.map(coord => (
-                <tr key={coord._id}>
-                  <td className="fw-semibold text-info">{coord.name}</td>
-                  <td>{coord.email}</td>
-                  <td>{coord.phone}</td>
-                  <td className="text-center">
-                    <button className="btn btn-sm btn-warning me-2" onClick={() => startEdit(coord)}>
-                      Edit
+        <header className="mb-5">
+          <h2 className="fw-bold text-white mb-1">Student Infrastructure</h2>
+          <p className="text-light opacity-75">Manage student coordinators for seamless event execution</p>
+        </header>
+
+        <div className="row g-4">
+          {/* Form Section */}
+          <div className="col-lg-4">
+            <div className="card bg-glass border-secondary shadow-lg sticky-lg-top" style={{ top: '2rem' }}>
+              <div className="card-body p-4">
+                <h5 className="text-white fw-bold mb-4 d-flex align-items-center gap-2">
+                  <i className={`bi ${isEditing ? 'bi-pencil-square text-warning' : 'bi-person-plus text-info'}`}></i>
+                  {isEditing ? 'Edit Profile' : 'New Coordinator'}
+                </h5>
+
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-3">
+                    <label className="text-info small fw-bold mb-2 d-block">FULL NAME</label>
+                    <input type="text" className="form-control bg-dark text-white border-secondary shadow-none"
+                      value={formData.name} onChange={e => handleChange('name', e.target.value)} required />
+                  </div>
+                  <div className="mb-3">
+                    <label className="text-info small fw-bold mb-2 d-block">EMAIL ADDRESS</label>
+                    <input type="email" className="form-control bg-dark text-white border-secondary shadow-none"
+                      value={formData.email} onChange={e => handleChange('email', e.target.value)} required />
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-info small fw-bold mb-2 d-block">WHATSAPP / PHONE</label>
+                    <input type="text" className="form-control bg-dark text-white border-secondary shadow-none"
+                      value={formData.phone} onChange={e => handleChange('phone', e.target.value)} required />
+                  </div>
+
+                  <div className="d-flex gap-2">
+                    <button type="submit" className={`btn ${isEditing ? 'btn-warning' : 'btn-info'} fw-bold flex-grow-1 py-2`} disabled={loading}>
+                      {loading ? <span className="spinner-border spinner-border-sm"></span> : (isEditing ? 'UPDATE' : 'REGISTER')}
                     </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(coord._id)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {isEditing && (
+                      <button type="button" className="btn btn-outline-secondary fw-bold" onClick={resetForm}>CANCEL</button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Table Section */}
+          <div className="col-lg-8">
+            <div className="card bg-glass border-secondary shadow-lg">
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-dark table-hover align-middle mb-0">
+                    <thead className="bg-white bg-opacity-5">
+                      <tr className="text-info small text-uppercase fw-bold border-secondary">
+                        <th className="ps-4 py-3">Coordinator</th>
+                        <th className="py-3">Contact Details</th>
+                        <th className="text-center pe-4 py-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {coordinators.length > 0 ? coordinators.map(coord => (
+                        <tr key={coord._id} className="border-secondary">
+                          <td className="ps-4 py-3">
+                            <div className="fw-bold text-white">{coord.name}</div>
+                            <div className="x-small text-info opacity-75">ID: {coord._id.slice(-6).toUpperCase()}</div>
+                          </td>
+                          <td className="py-3">
+                            <div className="text-white small mb-1"><i className="bi bi-envelope me-2"></i>{coord.email}</div>
+                            <div className="text-light opacity-75 small"><i className="bi bi-telephone me-2 text-warning"></i>{coord.phone}</div>
+                          </td>
+                          <td className="text-center pe-4 py-3">
+                            <div className="d-flex justify-content-center gap-2">
+                              <button className="btn btn-outline-warning btn-sm border-0" onClick={() => startEdit(coord)} title="Edit">
+                                <i className="bi bi-pencil-square fs-5"></i>
+                              </button>
+                              <button className="btn btn-outline-danger btn-sm border-0" onClick={() => handleDelete(coord._id)} title="Delete">
+                                <i className="bi bi-trash3 fs-5"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="3" className="text-center py-5 text-secondary opacity-50">No student coordinators found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </>
+      </main>
+
+      <style>{`
+        .dashboard-content { margin-left: 260px; }
+        .bg-glass { background: rgba(255, 255, 255, 0.05) !important; backdrop-filter: blur(12px); border-radius: 20px; }
+        .x-small { font-size: 0.7rem; }
+        @media (max-width: 991.98px) { .dashboard-content { margin-left: 0; padding-top: 80px; } }
+      `}</style>
+    </div>
   );
-}
+};
 
 export default StudentCoordinatorsPage;

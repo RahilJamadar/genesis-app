@@ -1,28 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
+// 🔥 Use the centralized middleware we perfected earlier
+const verifyAdmin = require('../middleware/verifyAdmin');
 
-// 🔐 JWT Middleware
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(403).json({ success: false, message: 'No token provided' });
+// Apply admin verification to all routes in this file
+router.use(verifyAdmin);
 
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.adminId = decoded.id;
-    next();
-  } catch (err) {
-    console.error('JWT verification failed:', err);
-    return res.status(401).json({ success: false, message: 'Invalid token' });
-  }
-};
-
-router.use(verifyToken);
-
-// 📃 Get all admins (password excluded)
+/**
+ * @route   GET /api/admin
+ * @desc    Get all admins (excluding passwords)
+ */
 router.get('/', async (req, res) => {
   try {
     const admins = await Admin.find({}, '-password');
@@ -33,17 +22,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ➕ Create new admin
+/**
+ * @route   POST /api/admin
+ * @desc    Create a new admin
+ */
 router.post('/', async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { name, password, role } = req.body;
+
+    // Check if admin already exists
     const exists = await Admin.findOne({ name });
-    if (exists) return res.status(409).json({ success: false, message: 'Admin already exists' });
+    if (exists) {
+      return res.status(409).json({ success: false, message: 'Admin with this name already exists' });
+    }
 
+    // Password hashing (using bcrypt as per your model logic)
     const hashed = await bcrypt.hash(password, 10);
-    const newAdmin = new Admin({ name, password: hashed });
-    await newAdmin.save();
+    const newAdmin = new Admin({ 
+      name, 
+      password: hashed,
+      role: role || 'admin' // Default to admin if role not specified
+    });
 
+    await newAdmin.save();
     res.status(201).json({ success: true, message: 'Admin created successfully' });
   } catch (err) {
     console.error('Admin creation failed:', err);
@@ -51,15 +52,31 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ✏️ Edit admin details
+/**
+ * @route   PUT /api/admin/:id
+ * @desc    Edit admin details
+ */
 router.put('/:id', async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { name, password, role } = req.body;
     const updateData = {};
+    
     if (name) updateData.name = name;
-    if (password) updateData.password = await bcrypt.hash(password, 10);
+    if (role) updateData.role = role;
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
 
-    await Admin.findByIdAndUpdate(req.params.id, updateData);
+    const updatedAdmin = await Admin.findByIdAndUpdate(
+      req.params.id, 
+      updateData, 
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedAdmin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+
     res.json({ success: true, message: 'Admin updated successfully' });
   } catch (err) {
     console.error('Admin update failed:', err);
@@ -67,14 +84,25 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 🗑️ Delete admin (prevent self-delete)
+/**
+ * @route   DELETE /api/admin/:id
+ * @desc    Delete admin (prevents self-deletion)
+ */
 router.delete('/:id', async (req, res) => {
   try {
-    if (req.params.id === req.adminId) {
-      return res.status(403).json({ success: false, message: 'You cannot delete your own account' });
+    // req.user.id comes from the verifyAdmin middleware we imported
+    if (req.params.id === req.user.id) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Security protocol: You cannot delete the account you are currently logged into.' 
+      });
     }
 
-    await Admin.findByIdAndDelete(req.params.id);
+    const deletedAdmin = await Admin.findByIdAndDelete(req.params.id);
+    if (!deletedAdmin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+
     res.json({ success: true, message: 'Admin deleted successfully' });
   } catch (err) {
     console.error('Admin deletion failed:', err);

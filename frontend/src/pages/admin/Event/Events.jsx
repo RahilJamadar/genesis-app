@@ -1,301 +1,348 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import getApiBase from '../../../utils/getApiBase';
+import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events'];
 
-function Events() {
+const Events = () => {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [facultyList, setFacultyList] = useState([]);
   const [coordinatorList, setCoordinatorList] = useState([]);
-  const [facultyInput, setFacultyInput] = useState('');
-  const [coordinatorInput, setCoordinatorInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  // State for the creation form
   const [newEvent, setNewEvent] = useState({
     name: '',
     category: '',
     judges: [],
     studentCoordinators: [],
     rules: '',
-    rounds: 1
+    rounds: 1,
+    minParticipants: 1,
+    maxParticipants: 1,
+    isTrophyEvent: true, 
+    isDirectWin: false, // 🚀 NEW: Direct Win Toggle state
+    judgingCriteria: ['', '', ''] 
   });
 
-  const navigate = useNavigate();
-  const baseURL = getApiBase();
+  const [facultyInput, setFacultyInput] = useState('');
+  const [coordinatorInput, setCoordinatorInput] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [eventRes, facultyRes, coordinatorRes] = await Promise.all([
-          axios.get(`${baseURL}/api/admin/events`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-            },
-            withCredentials: true
-          }),
-          axios.get(`${baseURL}/api/admin/faculty`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-            },
-            withCredentials: true
-          }),
-          axios.get(`${baseURL}/api/admin/student-coordinators`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-            },
-            withCredentials: true
-          })
-        ]);
-
-        setEvents(eventRes.data);
-        setFacultyList(facultyRes.data);
-        setCoordinatorList(coordinatorRes.data.map(c => ({ id: c._id, name: c.name })));
-      } catch {
-        toast.error('Failed to fetch initial data');
-      }
-    };
-
     fetchData();
-  }, [baseURL]);
+  }, []);
 
-  const handleChange = (field, value) => {
-    setNewEvent(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAddFaculty = () => {
-    const selected = facultyList.find(f => f._id === facultyInput);
-    if (selected && !newEvent.judges.includes(selected._id)) {
-      setNewEvent(prev => ({
-        ...prev,
-        judges: [...prev.judges, selected._id]
-      }));
-      setFacultyInput('');
+  const fetchData = async () => {
+    try {
+      const [eventRes, facultyRes, coordRes] = await Promise.all([
+        adminApi.get('/events'),
+        adminApi.get('/faculty'),
+        adminApi.get('/student-coordinators')
+      ]);
+      setEvents(eventRes.data);
+      setFacultyList(facultyRes.data);
+      setCoordinatorList(coordRes.data);
+    } catch (err) {
+      toast.error('❌ Failed to fetch event data');
     }
   };
 
-  const handleRemoveFaculty = index => {
-    const updated = [...newEvent.judges];
-    updated.splice(index, 1);
-    setNewEvent(prev => ({ ...prev, judges: updated }));
+  const handleNumberChange = (field, value) => {
+    if (value === '') {
+      setNewEvent(prev => ({ ...prev, [field]: '' }));
+    } else {
+      const num = parseInt(value, 10);
+      setNewEvent(prev => ({ ...prev, [field]: isNaN(num) ? '' : num }));
+    }
+  };
+
+  const handleCriteriaChange = (index, value) => {
+    const updatedCriteria = [...newEvent.judgingCriteria];
+    updatedCriteria[index] = value;
+    setNewEvent({ ...newEvent, judgingCriteria: updatedCriteria });
+  };
+
+  const handleAddFaculty = () => {
+    if (facultyInput && !newEvent.judges.includes(facultyInput)) {
+      setNewEvent({ ...newEvent, judges: [...newEvent.judges, facultyInput] });
+      setFacultyInput('');
+    }
   };
 
   const handleAddCoordinator = () => {
     if (coordinatorInput && !newEvent.studentCoordinators.includes(coordinatorInput)) {
-      setNewEvent(prev => ({
-        ...prev,
-        studentCoordinators: [...prev.studentCoordinators, coordinatorInput]
-      }));
+      setNewEvent({ ...newEvent, studentCoordinators: [...newEvent.studentCoordinators, coordinatorInput] });
       setCoordinatorInput('');
     }
   };
 
-  const handleRemoveCoordinator = index => {
-    const updated = [...newEvent.studentCoordinators];
+  const handleRemoveStaff = (type, index) => {
+    const updated = [...newEvent[type]];
     updated.splice(index, 1);
-    setNewEvent(prev => ({ ...prev, studentCoordinators: updated }));
+    setNewEvent({ ...newEvent, [type]: updated });
   };
 
-  const handleAdd = async e => {
+  const handleAddEvent = async (e) => {
     e.preventDefault();
+    
+    const finalMin = Number(newEvent.minParticipants) || 1;
+    const finalMax = Number(newEvent.maxParticipants) || 1;
+
+    // 🏆 LOGIC: If it's a Direct Win or NOT a Trophy event, judging criteria are not required.
+    const needsCriteria = newEvent.isTrophyEvent && !newEvent.isDirectWin;
+
+    if (needsCriteria && newEvent.judgingCriteria.some(c => c.trim() === '')) {
+      return toast.warn('⚠️ Please provide all 3 judging criteria');
+    }
+    if (finalMax < finalMin) {
+      return toast.error(`❌ Max (${finalMax}) cannot be less than Min (${finalMin})`);
+    }
+    
+    // Only require judges if it's a Trophy Event
+    if (newEvent.isTrophyEvent && newEvent.judges.length === 0) {
+      return toast.warn('⚠️ Assign at least one judge for trophy events');
+    }
+
+    setLoading(true);
     try {
-      const res = await axios.post(`${baseURL}/api/admin/events`, newEvent, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        withCredentials: true
-      });
-      setEvents([...events, res.data.event]);
+      const payload = {
+        ...newEvent,
+        minParticipants: finalMin,
+        maxParticipants: finalMax,
+        rounds: Number(newEvent.rounds),
+        // If criteria not needed, send empty array to satisfy backend but bypass 3-field requirement
+        judgingCriteria: needsCriteria ? newEvent.judgingCriteria : []
+      };
+
+      const res = await adminApi.post('/events', payload);
+      const addedEvent = res.data.event || res.data;
+      
+      setEvents([addedEvent, ...events]);
+      toast.success('🎉 Event created successfully!');
+      
+      // Reset Form
       setNewEvent({
-        name: '',
-        category: '',
-        judges: [],
-        studentCoordinators: [],
-        rules: '',
-        rounds: 1
+        name: '', category: '', judges: [], studentCoordinators: [],
+        rules: '', rounds: 1, minParticipants: 1, maxParticipants: 1, 
+        isTrophyEvent: true, isDirectWin: false, judgingCriteria: ['', '', '']
       });
-      setFacultyInput('');
-      setCoordinatorInput('');
-      toast.success('Event created');
-    } catch {
-      toast.error('Failed to create event');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create event');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async id => {
-    if (!window.confirm('Delete this event?')) return;
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure? This will remove all associated scores.')) return;
     try {
-      await axios.delete(`${baseURL}/api/admin/events/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        withCredentials: true
-      });
+      await adminApi.delete(`/events/${id}`);
       setEvents(events.filter(e => e._id !== id));
-      toast.success('Event deleted');
-    } catch {
+      toast.success('🗑️ Event deleted');
+    } catch (err) {
       toast.error('Failed to delete event');
     }
   };
 
-  const handleEdit = id => {
-    navigate(`/events/edit/${id}`);
-  };
-
-  // JSX remains unchanged — your layout and logic are already solid
-  // You can paste the JSX portion from your original file below this logic block
   return (
-    <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+    <div className="d-flex bg-dark min-vh-100">
       <Navbar />
-      <div className="container-fluid bg-dark text-light py-5 px-4 min-vh-100">
-        <h2 className="text-center fw-bold mb-4 border-bottom pb-2">Event Manager</h2>
+      
+      <main className="dashboard-content flex-grow-1 p-4 p-lg-5">
+        <ToastContainer theme="dark" position="top-right" />
 
-        <form onSubmit={handleAdd} className="bg-dark text-light rounded p-4 mb-5 shadow-sm">
-          <div className="row g-3">
-            <div className="col-md-6">
-              <label className="form-label">Event Name</label>
-              <input
-                type="text"
-                className="form-control bg-dark text-light border-secondary"
-                value={newEvent.name}
-                onChange={e => handleChange('name', e.target.value)}
-                required
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Category</label>
-              <select
-                className="form-select bg-dark text-light border-secondary"
-                value={newEvent.category}
-                onChange={e => handleChange('category', e.target.value)}
-                required
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat, i) => (
-                  <option key={i} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Rounds</label>
-              <input
-                type="number"
-                className="form-control bg-dark text-light border-secondary"
-                min="1"
-                value={newEvent.rounds}
-                onChange={e => handleChange('rounds', parseInt(e.target.value))}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Rules</label>
-              <textarea
-                className="form-control bg-dark text-light border-secondary"
-                rows="2"
-                value={newEvent.rules}
-                onChange={e => handleChange('rules', e.target.value)}
-              ></textarea>
-            </div>
-          </div>
-
-          <div className="row g-3 mt-3">
-            <div className="col-md-6">
-              <label className="form-label">Judges</label>
-              <div className="input-group">
-                <select
-                  className="form-select bg-dark text-light border-secondary"
-                  value={facultyInput}
-                  onChange={e => setFacultyInput(e.target.value)}
-                >
-                  <option value="">Select Faculty</option>
-                  {facultyList.map(f => (
-                    <option key={f._id} value={f._id}>{f.name}</option>
-                  ))}
-                </select>
-                <button className="btn btn-outline-light" type="button" onClick={handleAddFaculty}>Add</button>
-              </div>
-              <ul className="list-group mt-2">
-                {newEvent.judges.map((id, index) => {
-                  const faculty = facultyList.find(f => f._id === id);
-                  return (
-                    <li key={index} className="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-                      {faculty?.name || 'Unknown'}
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleRemoveFaculty(index)}>Remove</button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Student Coordinators</label>
-              <div className="input-group">
-                <select
-                  className="form-select bg-dark text-light border-secondary"
-                  value={coordinatorInput}
-                  onChange={e => setCoordinatorInput(e.target.value)}
-                >
-                  <option value="">Select Coordinator</option>
-                  {coordinatorList.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-                <button className="btn btn-outline-light" type="button" onClick={handleAddCoordinator}>Add</button>
-              </div>
-              <ul className="list-group mt-2">
-                {newEvent.studentCoordinators.map((coord, index) => (
-                  <li key={index} className="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-                    {coord}
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleRemoveCoordinator(index)}>Remove</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-primary mt-4 w-100 fw-semibold">Add Event</button>
-        </form>
+        <header className="mb-5">
+          <h2 className="fw-bold text-white mb-1">Event Management</h2>
+          <p className="text-light opacity-75">Configure categories, markers, and assignments</p>
+        </header>
 
         <div className="row g-4">
-          {events.map(event => (
-            <div key={event._id} className="col-md-4">
-              <div className="card bg-dark text-light border border-secondary shadow-sm h-100">
-                <div className="card-body d-flex flex-column justify-content-between">
-                  <div>
-                    <h5 className="card-title fw-bold">{event.name}</h5>
-                    <span className="badge bg-secondary">{event.category}</span>
-                    <p className="text-muted small mt-2">Rounds: {event.rounds || 1}</p>
+          {/* LEFT: CREATION FORM */}
+          <div className="col-xl-5">
+            <div className="card bg-glass border-secondary shadow-lg">
+              <div className="card-body p-4">
+                <h5 className="text-white fw-bold mb-4">Create New Event</h5>
+                <form onSubmit={handleAddEvent}>
+                  <div className="row g-3">
+                    <div className="col-12">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Event Name</label>
+                      <input type="text" className="form-control bg-dark text-white border-secondary shadow-none" 
+                        value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} required />
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Category</label>
+                      <select className="form-select bg-dark text-white border-secondary shadow-none"
+                        value={newEvent.category} onChange={e => setNewEvent({...newEvent, category: e.target.value})} required>
+                        <option value="">Select Category</option>
+                        {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Total Rounds</label>
+                      <select className="form-select bg-dark text-white border-secondary shadow-none"
+                        value={newEvent.rounds} onChange={e => setNewEvent({...newEvent, rounds: parseInt(e.target.value)})}>
+                        {[1, 2, 3].map(n => <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Min Members</label>
+                      <input type="number" className="form-control bg-dark text-white border-secondary shadow-none" 
+                        value={newEvent.minParticipants} onChange={e => handleNumberChange('minParticipants', e.target.value)} required />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Max Members</label>
+                      <input type="number" className="form-control bg-dark text-white border-secondary shadow-none" 
+                        value={newEvent.maxParticipants} onChange={e => handleNumberChange('maxParticipants', e.target.value)} required />
+                    </div>
+
+                    {/* ✅ MARKER TOGGLES */}
+                    <div className="col-12">
+                      <div className="bg-dark bg-opacity-50 p-3 rounded border border-secondary">
+                        <div className="form-check form-switch d-flex align-items-center justify-content-between mb-3">
+                          <label className="form-check-label text-white fw-bold small">🏆 INCLUDE IN TROPHY?</label>
+                          <input className="form-check-input ms-0" type="checkbox" role="switch" checked={newEvent.isTrophyEvent} 
+                            onChange={e => setNewEvent({...newEvent, isTrophyEvent: e.target.checked})} />
+                        </div>
+                        
+                        {newEvent.isTrophyEvent && (
+                          <div className="form-check form-switch d-flex align-items-center justify-content-between animate-fade-in">
+                            <label className="form-check-label text-warning fw-bold small">⚡ DIRECT WIN (NO CRITERIA)?</label>
+                            <input className="form-check-input ms-0" type="checkbox" role="switch" checked={newEvent.isDirectWin} 
+                              onChange={e => setNewEvent({...newEvent, isDirectWin: e.target.checked})} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ✅ CONDITIONAL JUDGING CRITERIA */}
+                    {newEvent.isTrophyEvent && !newEvent.isDirectWin && (
+                      <div className="col-12 bg-info bg-opacity-10 p-3 rounded border border-info border-opacity-25 animate-fade-in">
+                        <label className="text-info x-small fw-bold mb-3 d-block text-uppercase">Judging Criteria (Exactly 3)</label>
+                        {newEvent.judgingCriteria.map((val, i) => (
+                          <input key={i} type="text" className="form-control bg-dark text-white border-info border-opacity-25 mb-2 shadow-none"
+                            placeholder={`Criteria ${i + 1}`} value={val} 
+                            onChange={e => handleCriteriaChange(i, e.target.value)} required />
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="col-12">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Assign Judges</label>
+                      <div className="input-group mb-2">
+                        <select className="form-select bg-dark text-white border-secondary shadow-none" 
+                          value={facultyInput} onChange={e => setFacultyInput(e.target.value)}>
+                          <option value="">Select Faculty...</option>
+                          {facultyList.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
+                        </select>
+                        <button type="button" className="btn btn-info" onClick={handleAddFaculty}>Add</button>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {newEvent.judges.map((id, index) => (
+                          <span key={index} className="badge bg-secondary p-2 d-flex align-items-center gap-2">
+                            {facultyList.find(f => f._id === id)?.name}
+                            <i className="bi bi-x-circle cursor-pointer text-danger" onClick={() => handleRemoveStaff('judges', index)}></i>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Assign Coordinators</label>
+                      <div className="input-group mb-2">
+                        <select className="form-select bg-dark text-white border-secondary shadow-none" 
+                          value={coordinatorInput} onChange={e => setCoordinatorInput(e.target.value)}>
+                          <option value="">Select Coordinator...</option>
+                          {coordinatorList.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        </select>
+                        <button type="button" className="btn btn-info" onClick={handleAddCoordinator}>Add</button>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {newEvent.studentCoordinators.map((id, index) => (
+                          <span key={index} className="badge bg-secondary p-2 d-flex align-items-center gap-2">
+                            {coordinatorList.find(c => c._id === id)?.name}
+                            <i className="bi bi-x-circle cursor-pointer text-danger" onClick={() => handleRemoveStaff('studentCoordinators', index)}></i>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="text-info x-small fw-bold mb-2 text-uppercase">Rules & Description</label>
+                      <textarea className="form-control bg-dark text-white border-secondary shadow-none"
+                        rows="3" value={newEvent.rules} onChange={e => setNewEvent({...newEvent, rules: e.target.value})} required></textarea>
+                    </div>
+
+                    <div className="col-12 mt-4">
+                      <button type="submit" className="btn btn-info w-100 fw-bold py-3 shadow-lg" disabled={loading}>
+                        {loading ? <span className="spinner-border spinner-border-sm"></span> : 'CREATE EVENT'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="mt-3 d-flex gap-2 flex-wrap">
-                    <button
-                      className="btn btn-sm btn-outline-light"
-                      onClick={() => navigate(`/admin/events/view/${event._id}`)}
-                    >
-                      View
-                    </button>
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => handleEdit(event._id)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => handleDelete(event._id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+                </form>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* RIGHT: LIST OF EVENTS */}
+          <div className="col-xl-7">
+            <div className="row g-3">
+              {events.map(event => (
+                <div key={event._id} className="col-md-6">
+                  <div className="card bg-glass border-secondary h-100 event-card shadow-sm">
+                    <div className="card-body p-4 d-flex flex-column h-100 text-white">
+                      <div className="d-flex justify-content-between mb-3">
+                        <div>
+                          <h5 className="fw-bold mb-1">{event.name}</h5>
+                          <span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 x-small">{event.category}</span>
+                        </div>
+                        <div className="d-flex gap-2">
+                          {event.isDirectWin && <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 py-2 px-2"><i className="bi bi-lightning-fill"></i></span>}
+                          {event.isTrophyEvent && <i className="bi bi-trophy-fill text-warning fs-4"></i>}
+                        </div>
+                      </div>
+                      <div className="mb-4 flex-grow-1 opacity-50 small">
+                        <div className="mb-1"><i className="bi bi-layers me-2 text-info"></i> {event.rounds} Round{event.rounds > 1 ? 's' : ''}</div>
+                        <div>
+                          <i className="bi bi-people me-2 text-info"></i> 
+                          {event.minParticipants === event.maxParticipants 
+                            ? `Size: ${event.minParticipants}` 
+                            : `Size: ${event.minParticipants}-${event.maxParticipants}`}
+                        </div>
+                      </div>
+                      <div className="d-flex gap-2 border-top border-secondary pt-3">
+                        <button className="btn btn-outline-light btn-sm flex-grow-1 fw-bold" onClick={() => navigate(`/admin/events/view/${event._id}`)}>DETAILS</button>
+                        <button className="btn btn-outline-warning btn-sm" onClick={() => navigate(`/admin/events/edit/${event._id}`)}><i className="bi bi-pencil"></i></button>
+                        <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(event._id)}><i className="bi bi-trash"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </>
+      </main>
+
+      <style>{`
+        .dashboard-content { margin-left: 260px; }
+        .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px); border-radius: 18px; }
+        .event-card { transition: transform 0.2s ease; border: 1px solid rgba(255,255,255,0.1); }
+        .event-card:hover { transform: translateY(-5px); border-color: #0dcaf0 !important; }
+        .x-small { font-size: 0.65rem; letter-spacing: 0.5px; }
+        .cursor-pointer { cursor: pointer; }
+        .form-check-input:checked { background-color: #0dcaf0; border-color: #0dcaf0; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 991.98px) { .dashboard-content { margin-left: 0; padding-top: 80px; } }
+      `}</style>
+    </div>
   );
-}
+};
 
 export default Events;

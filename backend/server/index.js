@@ -3,10 +3,9 @@ import registerRoutes from './routes/register.js';
 
 const app = express();
 
-// ❌ Removed cors() — already handled in backend/index.js
 app.use(express.json());
 
-// Public Routes
-app.use('/api', registerRoutes);
+// This makes all routes inside register.js start with /api/register
+app.use('/api/register', registerRoutes);
 
 export default app;

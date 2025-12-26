@@ -1,19 +1,12 @@
 import React from 'react';
-import HeroSection from '../components/Home/HeroSection';
-import AboutGenesis from '../components/Home/AboutGenesis';
-import EventCategories from '../components/Home/EventCategories';
-import HighlightsSlider from '../components/Home/HighlightsSlider';
-import TimelinePreview from '../components/Home/TimelinePreview';
+import GenesisLanding from '../components/Landing/GenesisLanding'; // Adjust path
 
 function Home() {
   return (
-    <>
-      <HeroSection />
-      <AboutGenesis />
-      <EventCategories />
-      <HighlightsSlider />
-      <TimelinePreview />
-    </>
+    // This ID must match the 'important' selector in tailwind.config.js
+    <div id="genesis-root">
+       <GenesisLanding />
+    </div>
   );
 }
 

@@ -1,30 +1,61 @@
 const express = require('express');
 const router = express.Router();
-const Faculty = require('../models/Faculty');
+const Faculty = require('../models/faculty'); 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// POST /faculty/login
+/**
+ * @route   POST /api/faculty/auth/login  <-- (Modified to match index.js mounting)
+ * @desc    Login for Faculty/Judges using phone number
+ */
 router.post('/login', async (req, res) => {
-  const { name, password } = req.body;
+  const { number, password } = req.body;
 
   try {
-    const faculty = await Faculty.findOne({ name });
-    if (!faculty) return res.status(404).json({ error: 'Faculty not found' });
+    // 1. Find faculty by mobile number
+    // Explicitly select password because it might be hidden in the model schema
+    const faculty = await Faculty.findOne({ number }).select('+password'); 
+    
+    if (!faculty) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Judge account not found with this number.' 
+      });
+    }
 
+    // 2. Compare hashed password
     const isMatch = await bcrypt.compare(password, faculty.password);
-    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid password. Please try again.' 
+      });
+    }
 
+    // 3. Generate JWT with the 'faculty' role
     const token = jwt.sign(
-      { id: faculty._id, role: 'faculty' },
+      { 
+        id: faculty._id, 
+        role: 'faculty',
+        name: faculty.name 
+      },
       process.env.JWT_SECRET,
-      { expiresIn: '2h' }
+      { expiresIn: '12h' }
     );
 
-    res.json({ token });
+    // 4. Return user data
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: faculty._id,
+        name: faculty.name,
+        role: 'faculty'
+      }
+    });
   } catch (err) {
     console.error('Faculty login error:', err);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 });
 

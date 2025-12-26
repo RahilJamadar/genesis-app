@@ -1,29 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import getApiBase from '../../../utils/getApiBase';
+import adminApi from '../../../api/adminApi';
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const ScheduleTable = ({ data, onDelete, onEdit }) => {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({});
   const [events, setEvents] = useState([]);
-  const baseURL = getApiBase();
 
   useEffect(() => {
-    axios.get(`${baseURL}/api/admin/events`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-      },
-      withCredentials: true
-    })
-      .then(res => setEvents(res.data))
-      .catch(() => toast.error('❌ Failed to fetch events'));
-  }, [baseURL]);
+    const fetchEvents = async () => {
+      try {
+        const res = await adminApi.get('/events');
+        setEvents(res.data);
+      } catch (err) {
+        toast.error('❌ Failed to fetch event list');
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const startEdit = (item) => {
     if (!item.eventId) {
-      toast.warn('⚠️ Cannot edit schedule with missing event');
+      toast.warn('⚠️ Cannot edit schedule with missing event data');
       return;
     }
     setEditingId(item._id);
@@ -42,128 +40,107 @@ const ScheduleTable = ({ data, onDelete, onEdit }) => {
   const handleSave = () => {
     onEdit(editingId, form);
     setEditingId(null);
-    toast.success('✏️ Schedule updated');
   };
 
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'Tech': return '#00bfff';
-      case 'Cultural': return '#e07c9c';
-      case 'Sports': return '#4cb050';
-      case 'Gaming': return '#ffa500';
-      case 'Pre-events': return '#9370db';
-      default: return '#6c757d';
-    }
+  const getCategoryBadge = (category) => {
+    const colors = {
+      Tech: 'bg-info text-dark',
+      Cultural: 'bg-danger text-white',
+      Sports: 'bg-success text-white',
+      Gaming: 'bg-warning text-dark',
+      'Pre-events': 'bg-primary text-white'
+    };
+    return colors[category] || 'bg-secondary text-white';
   };
 
   return (
-    <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
-      <div className="table-responsive">
-        <table className="table table-dark table-bordered align-middle" style={{ backgroundColor: '#0D0D15' }}>
-          <thead className="table-secondary text-dark">
-            <tr>
-              <th>Event</th>
-              <th>Category</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Room</th>
-              <th className="text-center">Actions</th>
+    <div className="table-responsive rounded-3">
+      <ToastContainer theme="dark" position="top-right" autoClose={2000} hideProgressBar />
+      <table className="table table-dark table-hover align-middle mb-0">
+        <thead className="bg-glass-header border-bottom border-secondary">
+          <tr className="text-info small text-uppercase fw-bold">
+            <th className="ps-4 py-3">Event Name</th>
+            <th className="py-3">Category</th>
+            <th className="py-3">Date</th>
+            <th className="py-3">Time</th>
+            <th className="py-3">Venue</th>
+            <th className="text-center pe-4 py-3">Management</th>
+          </tr>
+        </thead>
+        <tbody className="border-top-0">
+          {data.map((item) => (
+            <tr key={item._id} className="border-bottom border-secondary border-opacity-25">
+              {editingId === item._id ? (
+                // --- INLINE EDIT MODE ---
+                <>
+                  <td className="ps-4">
+                    <select name="eventId" value={form.eventId} onChange={handleChange}
+                      className="form-select form-select-sm bg-dark text-white border-info">
+                      {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
+                    </select>
+                  </td>
+                  <td><span className="text-muted small">Update Above</span></td>
+                  <td>
+                    <input type="date" name="date" value={form.date} onChange={handleChange}
+                      className="form-control form-control-sm bg-dark text-white border-info" />
+                  </td>
+                  <td>
+                    <input type="time" name="time" value={form.time} onChange={handleChange}
+                      className="form-control form-control-sm bg-dark text-white border-info" />
+                  </td>
+                  <td>
+                    <input name="room" value={form.room} onChange={handleChange}
+                      className="form-control form-control-sm bg-dark text-white border-info" />
+                  </td>
+                  <td className="text-center pe-4">
+                    <div className="d-flex justify-content-center gap-2">
+                      <button className="btn btn-sm btn-info fw-bold" onClick={handleSave}>SAVE</button>
+                      <button className="btn btn-sm btn-outline-secondary text-white" onClick={() => setEditingId(null)}>CANCEL</button>
+                    </div>
+                  </td>
+                </>
+              ) : (
+                // --- DISPLAY MODE ---
+                <>
+                  <td className="ps-4 py-3">
+                    <div className="fw-bold text-white">{item.eventId?.name || 'Unknown Event'}</div>
+                  </td>
+                  <td>
+                    <span className={`badge px-2 py-1 ${getCategoryBadge(item.eventId?.category)}`}>
+                      {item.eventId?.category || 'General'}
+                    </span>
+                  </td>
+                  <td className="text-light">{item.date}</td>
+                  <td className="text-light">{item.time}</td>
+                  <td><span className="badge bg-dark border border-secondary text-info fw-normal">{item.room}</span></td>
+                  <td className="text-center pe-4">
+                    <div className="d-flex justify-content-center gap-2">
+                      <button className="btn btn-sm btn-outline-warning border-0" onClick={() => startEdit(item)} title="Edit Entry">
+                        <i className="bi bi-pencil-square fs-5"></i>
+                      </button>
+                      <button className="btn btn-sm btn-outline-danger border-0" onClick={() => onDelete(item._id)} title="Delete Entry">
+                        <i className="bi bi-trash3 fs-5"></i>
+                      </button>
+                    </div>
+                  </td>
+                </>
+              )}
             </tr>
-          </thead>
-          <tbody>
-            {data.map((item) => (
-              <tr key={item._id}>
-                {editingId === item._id ? (
-                  <>
-                    <td>
-                      <select
-                        name="eventId"
-                        value={form.eventId}
-                        onChange={handleChange}
-                        className="form-select form-select-sm bg-dark text-light border-secondary"
-                      >
-                        <option value="">Select Event</option>
-                        {events.map(event => (
-                          <option key={event._id} value={event._id}>
-                            {event.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <span className="badge" style={{ backgroundColor: getCategoryColor(item.eventId?.category) }}>
-                        {item.eventId?.category || '—'}
-                      </span>
-                    </td>
-                    <td>
-                      <input
-                        type="date"
-                        name="date"
-                        value={form.date}
-                        onChange={handleChange}
-                        className="form-control form-control-sm bg-dark text-light border-secondary"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="time"
-                        name="time"
-                        value={form.time}
-                        onChange={handleChange}
-                        className="form-control form-control-sm bg-dark text-light border-secondary"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        name="room"
-                        value={form.room}
-                        onChange={handleChange}
-                        className="form-control form-control-sm bg-dark text-light border-secondary"
-                        placeholder="Room"
-                      />
-                    </td>
-                    <td className="text-center">
-                      <button className="btn btn-sm btn-info me-2" onClick={handleSave}>
-                        Save
-                      </button>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="fw-semibold text-info">
-                      {item.eventId?.name || <span className="text-muted">Unknown Event</span>}
-                    </td>
-                    <td>
-                      <span className="badge fw-semibold" style={{ backgroundColor: getCategoryColor(item.eventId?.category) }}>
-                        {item.eventId?.category || '—'}
-                      </span>
-                    </td>
-                    <td>{item.date}</td>
-                    <td>{item.time}</td>
-                    <td>{item.room}</td>
-                    <td className="text-center">
-                      <button className="btn btn-sm btn-outline-info me-2" onClick={() => startEdit(item)}>
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => {
-                          onDelete(item._id);
-                          toast.success('🗑️ Schedule deleted');
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+          ))}
+        </tbody>
+      </table>
+
+      <style>{`
+        .bg-glass-header { background: rgba(255, 255, 255, 0.03); }
+        .table-dark { --bs-table-bg: transparent; }
+        .table-hover tbody tr:hover { background-color: rgba(255, 255, 255, 0.05) !important; transition: 0.2s; }
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          cursor: pointer;
+        }
+      `}</style>
+    </div>
   );
 };
 

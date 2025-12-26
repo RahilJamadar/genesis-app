@@ -1,222 +1,259 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const verifyAdmin = require('../middleware/verifyAdmin');
 const verifyFaculty = require('../middleware/verifyFaculty');
 const Event = require('../models/Event');
 const Team = require('../models/Team');
 const Score = require('../models/Score');
 
-// ✅ Auto-trigger normalization only when all scores are finalized
-async function tryNormalizeFinalScores(eventId) {
-  const scores = await Score.find({ event: eventId });
-  const allFinalized = scores.every(s => s.finalized);
-  if (allFinalized) {
-    await normalizeFinalScores(eventId);
-  }
-}
+// ==========================================
+// 🧠 INTERNAL HELPER LOGIC (Normalization)
+// ==========================================
 
-// 🧠 Normalize final scores after all scoring is complete
+const calculateStandings = (teamMetrics) => {
+    return Object.entries(teamMetrics).sort(([, a], [, b]) => {
+        if (b.total !== a.total) return b.total - a.total;
+        if (b.c1 !== a.c1) return b.c1 - a.c1;
+        if (b.c2 !== a.c2) return b.c2 - a.c2;
+        return b.c3 - a.c3;
+    });
+};
+
+const parseRound = (roundVal) => {
+    if (typeof roundVal === 'number') return roundVal;
+    if (typeof roundVal === 'string') {
+        const match = roundVal.match(/\d+/);
+        return match ? parseInt(match[0]) : null;
+    }
+    return null;
+};
+
 async function normalizeFinalScores(eventId) {
-  const event = await Event.findById(eventId);
-  if (!event) return;
+    try {
+        const eventIdStr = eventId.toString();
+        const event = await Event.findById(eventIdStr);
+        if (!event || !event.isTrophyEvent) return;
 
-  const eventKey = String(eventId);
-  const teams = await Team.find();
-  const scores = await Score.find({ event: eventId });
+        const participatingTeams = await Team.find({ registeredEvents: eventIdStr });
+        const finalizedScores = await Score.find({ event: eventIdStr, finalized: true });
 
-  const teamTotals = {};
-  for (const score of scores) {
-    const teamId = score.team.toString();
-    teamTotals[teamId] = (teamTotals[teamId] || 0) + score.points;
-  }
+        if (event.isDirectWin) {
+            const result = finalizedScores[0]; 
+            if (!result || !result.directWinners) return;
 
-  const ranked = Object.entries(teamTotals)
-    .sort((a, b) => b[1] - a[1])
-    .map(([teamId], index) => ({ teamId, rank: index + 1 }));
+            const firstPlaceId = result.directWinners.firstPlace?.toString();
+            const secondPlaceId = result.directWinners.secondPlace?.toString();
 
-  for (const team of teams) {
-    const teamId = team._id.toString();
-    const participated = scores.some(s => s.team.toString() === teamId);
+            for (const team of participatingTeams) {
+                const tId = team._id.toString();
+                let points = 10; 
+                if (tId === firstPlaceId) points = 100;
+                else if (tId === secondPlaceId) points = 50;
 
-    let final = -10;
-    if (participated) {
-      const rank = ranked.find(r => r.teamId === teamId)?.rank;
-      if (rank === 1) final = 100;
-      else if (rank === 2) final = 50;
-      else final = 10;
+                if (!team.finalPoints) team.finalPoints = new Map();
+                team.finalPoints.set(eventIdStr, points);
+                team.markModified('finalPoints');
+                await team.save();
+            }
+        } 
+        else {
+            if (finalizedScores.length === 0) return;
+
+            const teamMetrics = {};
+            finalizedScores.forEach(s => {
+                if (!s.team) return;
+                const tId = s.team.toString();
+                if (!teamMetrics[tId]) {
+                    teamMetrics[tId] = { total: 0, c1: 0, c2: 0, c3: 0 };
+                }
+                teamMetrics[tId].total += (s.totalPoints || 0);
+                if (s.criteriaScores && s.criteriaScores.length === 3) {
+                    teamMetrics[tId].c1 += (s.criteriaScores[0] || 0);
+                    teamMetrics[tId].c2 += (s.criteriaScores[1] || 0);
+                    teamMetrics[tId].c3 += (s.criteriaScores[2] || 0);
+                }
+            });
+
+            const ranked = calculateStandings(teamMetrics);
+
+            for (const team of participatingTeams) {
+                const tId = team._id.toString();
+                let pointsAwarded = 10; 
+
+                const rankIndex = ranked.findIndex(([id]) => id === tId);
+                if (rankIndex === 0) pointsAwarded = 100; 
+                else if (rankIndex === 1) pointsAwarded = 50;  
+
+                if (!team.finalPoints) team.finalPoints = new Map();
+                team.finalPoints.set(eventIdStr, pointsAwarded);
+                team.markModified('finalPoints');
+                await team.save();
+            }
+        }
+        console.log(`✅ Normalized standings for: ${event.name}`);
+    } catch (err) {
+        console.error("❌ Normalization Error:", err);
     }
-
-    const raw = team.finalPoints instanceof Map
-      ? Object.fromEntries(team.finalPoints)
-      : { ...team.finalPoints };
-
-    raw[eventKey] = final;
-    team.finalPoints = raw;
-    team.markModified('finalPoints');
-    await team.save();
-
-    console.log(`💾 Finalized ${team.leader?.trim()} → ${final} pts`);
-  }
-
-  console.log(`✅ Final points normalized for event ${event.name}`);
 }
 
-// 📝 Faculty: Submit Score
-router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
-  const { teamId, round, points, participant, comment, finalized } = req.body;
-  const { eventId } = req.params;
+// ==========================================
+// 🛡️ ADMIN ROUTES
+// ==========================================
 
-  try {
-    const event = await Event.findById(eventId);
-    if (!event || !event.judges.some(j => j.equals(req.user.id))) {
-      return res.status(403).json({ error: 'You are not assigned to this event' });
+router.get('/admin/event/:eventId/scores', verifyAdmin, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const roundNum = parseRound(req.query.round);
+        const query = { event: eventId };
+        if (roundNum !== null) query.round = roundNum;
+
+        const scores = await Score.find(query)
+            .populate('team', 'college leader')
+            .populate('judge', 'name')
+            .lean();
+            
+        res.json(scores || []);
+    } catch (err) {
+        res.status(500).json({ error: 'Audit fetch failed' });
     }
+});
 
-    const team = await Team.findById(teamId);
-    if (!team) {
-      return res.status(400).json({ error: 'Team not found' });
+router.patch('/finalize/:scoreId', verifyAdmin, async (req, res) => {
+    try {
+        const score = await Score.findByIdAndUpdate(req.params.scoreId, { finalized: true }, { new: true });
+        if (!score) return res.status(404).json({ error: 'Score not found' });
+        await normalizeFinalScores(score.event);
+        res.json({ success: true, message: 'Score finalized.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Finalization failed' });
     }
-
-    const existing = await Score.findOne({
-      team: teamId,
-      event: eventId,
-      round,
-      judge: req.user.id,
-      participant: participant || null
-    });
-
-    if (existing) {
-      if (existing.finalized) {
-        return res.status(403).json({ error: 'Score already finalized. No further edits allowed.' });
-      }
-
-      existing.points = points;
-      existing.comment = comment || '';
-      if (finalized) existing.finalized = true;
-      await existing.save();
-
-      if (finalized) await tryNormalizeFinalScores(eventId);
-      return res.json({ success: true, message: 'Score updated', score: existing });
-    }
-
-    const score = new Score({
-      team: teamId,
-      event: eventId,
-      round,
-      judge: req.user.id,
-      points,
-      participant: participant || undefined,
-      comment: comment || '',
-      finalized: !!finalized
-    });
-
-    await score.save();
-    if (finalized) await tryNormalizeFinalScores(eventId);
-
-    console.log('🔔 Incoming score payload:', req.body);
-    console.log('👤 Logged-in faculty:', req.user);
-    res.status(201).json({ success: true, message: 'Score submitted', score });
-  } catch (err) {
-    console.error('Faculty score submit failed:', err);
-    res.status(500).json({ error: 'Score submission failed' });
-  }
 });
 
-// 🔍 Admin: View Scores for Team/Round
-router.get('/admin/event/:eventId/scores/:teamId', verifyAdmin, async (req, res) => {
-  const { eventId, teamId } = req.params;
-  const { round } = req.query;
+// ==========================================
+// 🧑‍⚖️ FACULTY / JUDGE ROUTES
+// ==========================================
 
-  try {
-    const scores = await Score.find({ event: eventId, team: teamId, round })
-      .populate('judge', 'name')
-      .populate('event', 'name category');
-    res.json(scores);
-  } catch (err) {
-    console.error('Admin score fetch failed:', err);
-    res.status(500).json({ error: 'Failed to fetch scores for round' });
-  }
-});
-
-// 📄 Faculty: View Scores for Team/Round
-router.get('/event/:eventId/scores/:teamId', verifyFaculty, async (req, res) => {
-  const { eventId, teamId } = req.params;
-  const { round } = req.query;
-
-  try {
-    const scores = await Score.find({ event: eventId, team: teamId, round })
-      .populate('judge', 'name');
-    res.json(scores);
-  } catch (err) {
-    console.error('Faculty score fetch failed:', err);
-    res.status(500).json({ error: 'Failed to fetch scores for round' });
-  }
-});
-
-// 🏆 Admin: Leaderboard (uses finalPoints)
-router.get('/leaderboard', verifyAdmin, async (req, res) => {
-  const { eventId } = req.query;
-
-  try {
-    const teams = await Team.find().lean();
-
-    const leaderboard = teams.map(team => {
-      let finalPoints;
-
-      if (eventId) {
-        finalPoints = team.finalPoints?.[eventId] ?? -10;
-      } else {
-        const allPoints = Object.values(team.finalPoints || {});
-        finalPoints = allPoints.length > 0 ? allPoints.reduce((a, b) => a + b, 0) : -10;
-      }
-
-      return {
-        teamName: team.leader,
-        college: team.college,
-        finalPoints
-      };
-    });
-
-    leaderboard.sort((a, b) => b.finalPoints - a.finalPoints);
-    res.json(leaderboard);
-  } catch (err) {
-    console.error('Leaderboard fetch failed:', err);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
-  }
-});
-
-// 👥 Faculty: Fetch Teams for Assigned Event
+/**
+ * @route   GET /api/faculty/scoring/event/:id/teams
+ * @desc    🚀 ROUND-AWARE: Fetches teams based on previous round promotions
+ */
 router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event || !event.judges.some(j => j.equals(req.user.id))) {
-      return res.status(403).json({ error: 'You are not assigned to this event' });
-    }
+    try {
+        const eventId = req.params.id;
+        const roundNum = parseInt(req.query.round) || 1;
 
-    const teams = await Team.find({ 'members.events': event.name });
-    res.json(teams);
-  } catch (err) {
-    console.error('Team fetch failed:', err);
-    res.status(500).json({ error: 'Failed to fetch teams' });
-  }
+        if (roundNum === 1) {
+            // Round 1 always shows all registered teams
+            const teams = await Team.find({ registeredEvents: eventId })
+                .select('college leader')
+                .sort({ college: 1 });
+            return res.json(teams);
+        }
+
+        // Round 2/3: Only show teams promoted from the previous round
+        const promotedScores = await Score.find({
+            event: eventId,
+            round: roundNum - 1,
+            promotedNextRound: true
+        }).populate('team', 'college leader');
+
+        const promotedTeams = promotedScores.map(s => s.team).filter(t => t != null);
+        res.json(promotedTeams);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch participating teams' });
+    }
 });
 
-// 🧑‍⚖️ Faculty: Fetch Judges for Assigned Event
-router.get('/event/:eventId/judges', verifyFaculty, async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.eventId).populate('judges', 'name');
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+/**
+ * @route   POST /api/faculty/scoring/event/:eventId/promote
+ * @desc    🚀 NEW: Mark top X teams as promoted based on current round scores
+ */
+router.post('/event/:eventId/promote', verifyFaculty, async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { round, count } = req.body; 
 
-    if (!event.judges.some(j => j.equals(req.user.id))) {
-      return res.status(403).json({ error: 'You are not assigned to this event' });
+        // 1. Find all finalized scores for this event and round, sorted by totalPoints
+        const scores = await Score.find({ event: eventId, round, finalized: true })
+            .sort({ totalPoints: -1 });
+
+        if (scores.length === 0) {
+            return res.status(400).json({ error: "No finalized scores found. Finalize scores before promoting." });
+        }
+
+        // 2. Reset existing promotions for this specific round
+        await Score.updateMany({ event: eventId, round }, { promotedNextRound: false });
+
+        // 3. Mark the top X teams as promoted
+        const promotedTeams = scores.slice(0, count).map(s => s._id);
+        await Score.updateMany(
+            { _id: { $in: promotedTeams } },
+            { promotedNextRound: true }
+        );
+
+        res.json({ success: true, message: `${count} teams promoted to next round.` });
+    } catch (err) {
+        res.status(500).json({ error: 'Promotion logic failed' });
     }
+});
 
-    res.json(event.judges);
-  } catch (err) {
-    console.error('Judge fetch failed:', err);
-    res.status(500).json({ error: 'Failed to fetch judges' });
-  }
+router.get('/event/:eventId/scores/:teamId', verifyFaculty, async (req, res) => {
+    try {
+        const roundNum = parseRound(req.query.round);
+        const query = { event: req.params.eventId, round: roundNum };
+        
+        if (req.params.teamId !== 'null') {
+            query.team = req.params.teamId;
+        }
+
+        const scores = await Score.find(query).populate('judge', 'name');
+        res.json(scores);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch current scores' });
+    }
+});
+
+router.post('/event/:eventId/direct-win', verifyFaculty, async (req, res) => {
+    try {
+        const { firstPlaceTeamId, secondPlaceTeamId, finalized } = req.body;
+        const { eventId } = req.params;
+
+        const updatedScore = await Score.findOneAndUpdate(
+            { event: eventId, judge: req.user.id, round: 1 },
+            { 
+                directWinners: { firstPlace: firstPlaceTeamId, secondPlace: secondPlaceTeamId },
+                finalized: !!finalized,
+                totalPoints: 0,
+                criteriaScores: [0, 0, 0]
+            },
+            { upsert: true, new: true }
+        );
+
+        if (finalized) await normalizeFinalScores(eventId);
+        res.json({ success: true, score: updatedScore });
+    } catch (err) {
+        res.status(500).json({ error: 'Direct win submission failed' });
+    }
+});
+
+router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
+    try {
+        const { teamId, round, criteriaScores, comment, finalized } = req.body;
+        const { eventId } = req.params;
+        const roundNum = parseRound(round);
+        const totalPoints = criteriaScores.reduce((a, b) => a + b, 0);
+
+        const updatedScore = await Score.findOneAndUpdate(
+            { team: teamId, event: eventId, round: roundNum, judge: req.user.id },
+            { criteriaScores, totalPoints, comment, finalized: !!finalized },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        if (finalized) await normalizeFinalScores(eventId);
+        res.json({ success: true, score: updatedScore });
+    } catch (err) {
+        res.status(500).json({ error: 'Score submission failed' });
+    }
 });
 
 module.exports = router;

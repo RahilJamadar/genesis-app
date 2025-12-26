@@ -16,7 +16,11 @@ function NewEvent() {
     judges: [],
     studentCoordinators: [],
     rules: '',
-    rounds: 1
+    rounds: 1,
+    minParticipants: 1, // New field
+    maxParticipants: 1, // New field
+    isTrophyEvent: true, // New field
+    judgingCriteria: ['', '', ''] // Exactly 3 slots
   });
 
   const [facultyList, setFacultyList] = useState([]);
@@ -29,28 +33,17 @@ function NewEvent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const headers = { Authorization: `Bearer ${localStorage.getItem('adminToken')}` };
         const [facultyRes, coordinatorRes] = await Promise.all([
-          axios.get(`${baseURL}/api/admin/faculty`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-            },
-            withCredentials: true
-          }),
-          axios.get(`${baseURL}/api/admin/student-coordinators`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-            },
-            withCredentials: true
-          })
+          axios.get(`${baseURL}/api/admin/faculty`, { headers, withCredentials: true }),
+          axios.get(`${baseURL}/api/admin/student-coordinators`, { headers, withCredentials: true })
         ]);
-
         setFacultyList(facultyRes.data);
-        setCoordinatorList(coordinatorRes.data.map(c => c.name));
+        setCoordinatorList(coordinatorRes.data);
       } catch {
         toast.error('Failed to fetch faculty or coordinator list');
       }
     };
-
     fetchData();
   }, [baseURL]);
 
@@ -58,181 +51,173 @@ function NewEvent() {
     setEventData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleCriteriaChange = (index, value) => {
+    const updated = [...eventData.judgingCriteria];
+    updated[index] = value;
+    setEventData(prev => ({ ...prev, judgingCriteria: updated }));
+  };
+
   const handleAddFaculty = () => {
     if (facultyInput && !eventData.judges.includes(facultyInput)) {
-      setEventData(prev => ({
-        ...prev,
-        judges: [...prev.judges, facultyInput]
-      }));
+      setEventData(prev => ({ ...prev, judges: [...prev.judges, facultyInput] }));
       setFacultyInput('');
     }
   };
 
-  const handleRemoveFaculty = index => {
-    const updated = [...eventData.judges];
-    updated.splice(index, 1);
-    setEventData(prev => ({ ...prev, judges: updated }));
-  };
-
   const handleAddCoordinator = () => {
     if (coordinatorInput && !eventData.studentCoordinators.includes(coordinatorInput)) {
-      setEventData(prev => ({
-        ...prev,
-        studentCoordinators: [...prev.studentCoordinators, coordinatorInput]
-      }));
+      setEventData(prev => ({ ...prev, studentCoordinators: [...prev.studentCoordinators, coordinatorInput] }));
       setCoordinatorInput('');
     }
   };
 
-  const handleRemoveCoordinator = index => {
-    const updated = [...eventData.studentCoordinators];
-    updated.splice(index, 1);
-    setEventData(prev => ({ ...prev, studentCoordinators: updated }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (eventData.maxParticipants < eventData.minParticipants) {
+      return toast.error('Max participants cannot be less than Min participants');
+    }
+    if (eventData.judgingCriteria.some(c => c.trim() === '')) {
+      return toast.warn('Please provide all 3 judging criteria');
+    }
+
     try {
       await axios.post(`${baseURL}/api/admin/events`, eventData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
         withCredentials: true
       });
       toast.success('Event created successfully');
-      setTimeout(() => navigate('/events'), 1500);
-    } catch {
-      toast.error('Failed to create event');
+      setTimeout(() => navigate('/admin/events'), 1500);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create event');
     }
   };
 
-  // JSX remains unchanged — your layout is already clean and compact
-  // You can paste the original JSX below this logic block
   return (
     <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <ToastContainer theme="dark" position="top-right" autoClose={2000} />
       <Navbar />
       <div className="container py-5 text-light bg-dark min-vh-100">
-        <h2 className="text-center fw-bold mb-4 border-bottom pb-2">Create New Event</h2>
+        <h2 className="text-center fw-bold mb-4 border-bottom border-secondary pb-2">Create New Event</h2>
 
-        <form onSubmit={handleSubmit} className="bg-secondary rounded p-4 shadow-sm">
+        <form onSubmit={handleSubmit} className="bg-glass rounded p-4 shadow-lg border border-secondary">
           <div className="row g-3">
             <div className="col-md-6">
-              <label className="form-label">Event Name</label>
-              <input
-                type="text"
-                className="form-control bg-dark text-light border-secondary"
-                value={eventData.name}
-                onChange={e => handleChange('name', e.target.value)}
-                placeholder="Event name"
-                required
-              />
+              <label className="text-info small fw-bold mb-2 d-block">EVENT NAME</label>
+              <input type="text" className="form-control bg-dark text-light border-secondary shadow-none"
+                value={eventData.name} onChange={e => handleChange('name', e.target.value)} required />
             </div>
 
             <div className="col-md-6">
-              <label className="form-label">Category</label>
-              <select
-                className="form-select bg-dark text-light border-secondary"
-                value={eventData.category}
-                onChange={e => handleChange('category', e.target.value)}
-                required
-              >
+              <label className="text-info small fw-bold mb-2 d-block">CATEGORY</label>
+              <select className="form-select bg-dark text-light border-secondary shadow-none"
+                value={eventData.category} onChange={e => handleChange('category', e.target.value)} required>
                 <option value="">Select Category</option>
-                {categories.map((cat, i) => (
-                  <option key={i} value={cat}>{cat}</option>
-                ))}
+                {categories.map((cat, i) => <option key={i} value={cat}>{cat}</option>)}
               </select>
             </div>
 
-            <div className="col-md-6">
-              <label className="form-label">Number of Rounds</label>
-              <input
-                type="number"
-                className="form-control bg-dark text-light border-secondary"
-                min="1"
-                value={eventData.rounds}
-                onChange={e => handleChange('rounds', parseInt(e.target.value))}
-                placeholder="e.g. 3"
-                required
-              />
+            <div className="col-md-4">
+              <label className="text-info small fw-bold mb-2 d-block">ROUNDS</label>
+              <input type="number" className="form-control bg-dark text-light border-secondary shadow-none"
+                min="1" value={eventData.rounds} onChange={e => handleChange('rounds', parseInt(e.target.value))} required />
             </div>
 
-            <div className="col-md-6">
-              <label className="form-label">Event Rules</label>
-              <textarea
-                className="form-control bg-dark text-light border-secondary"
-                rows="2"
-                value={eventData.rules}
-                onChange={e => handleChange('rules', e.target.value)}
-                placeholder="Write rules..."
-              ></textarea>
+            {/* DYNAMIC LIMITS */}
+            <div className="col-md-4">
+              <label className="text-info small fw-bold mb-2 d-block">MIN MEMBERS</label>
+              <input type="number" className="form-control bg-dark text-light border-secondary shadow-none"
+                min="1" value={eventData.minParticipants} onChange={e => handleChange('minParticipants', parseInt(e.target.value))} required />
+            </div>
+            <div className="col-md-4">
+              <label className="text-info small fw-bold mb-2 d-block">MAX MEMBERS</label>
+              <input type="number" className="form-control bg-dark text-light border-secondary shadow-none"
+                min={eventData.minParticipants} value={eventData.maxParticipants} onChange={e => handleChange('maxParticipants', parseInt(e.target.value))} required />
+            </div>
+
+            <div className="col-12 mt-3">
+              <div className="form-check form-switch bg-dark bg-opacity-50 p-3 rounded border border-secondary">
+                <input className="form-check-input ms-0 me-3" type="checkbox" checked={eventData.isTrophyEvent} 
+                  onChange={e => handleChange('isTrophyEvent', e.target.checked)} />
+                <label className="form-check-label text-white fw-bold small">INCLUDE IN OVERALL TROPHY POINTS?</label>
+              </div>
+            </div>
+
+            <div className="col-12 mt-3 bg-info bg-opacity-10 p-4 rounded border border-info border-opacity-25">
+              <label className="text-info small fw-bold mb-3 d-block text-uppercase">Tie-Breaker Judging Criteria (Exactly 3)</label>
+              {eventData.judgingCriteria.map((val, i) => (
+                <div key={i} className="input-group mb-2 shadow-sm">
+                  <span className="input-group-text bg-dark border-secondary text-info fw-bold">C{i+1}</span>
+                  <input type="text" className="form-control bg-dark text-light border-secondary"
+                    placeholder={`e.g. Creativity, Technique...`} value={val} 
+                    onChange={e => handleCriteriaChange(i, e.target.value)} required />
+                </div>
+              ))}
+            </div>
+
+            <div className="col-12 mt-3">
+              <label className="text-info small fw-bold mb-2 d-block">EVENT RULES & GUIDELINES</label>
+              <textarea className="form-control bg-dark text-light border-secondary shadow-none"
+                rows="3" value={eventData.rules} onChange={e => handleChange('rules', e.target.value)} required></textarea>
             </div>
           </div>
 
-          <div className="row g-3 mt-3">
+          <div className="row g-4 mt-2 border-top border-secondary pt-4">
             <div className="col-md-6">
-              <label className="form-label">Judges</label>
+              <label className="text-info small fw-bold mb-2 d-block">ASSIGN JUDGES (FACULTY)</label>
               <div className="input-group">
-                <select
-                  className="form-select bg-dark text-light border-secondary"
-                  value={facultyInput}
-                  onChange={e => setFacultyInput(e.target.value)}
-                >
-                  <option value="">Select Faculty</option>
-                  {facultyList.map((f, i) => (
-                    <option key={f._id} value={f._id}>{f.name}</option>
-                  ))}
+                <select className="form-select bg-dark text-light border-secondary shadow-none"
+                  value={facultyInput} onChange={e => setFacultyInput(e.target.value)}>
+                  <option value="">Select Faculty...</option>
+                  {facultyList.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
                 </select>
-                <button className="btn btn-outline-light" type="button" onClick={handleAddFaculty}>Add</button>
+                <button className="btn btn-info px-4 fw-bold" type="button" onClick={handleAddFaculty}>ADD</button>
               </div>
-              <ul className="list-group mt-2">
-                {eventData.judges.map((id, index) => {
-                  const faculty = facultyList.find(f => f._id === id);
-                  return (
-                    <li key={index} className="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-                      {faculty?.name || 'Unknown'}
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleRemoveFaculty(index)}>Remove</button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Student Coordinators</label>
-              <div className="input-group">
-                <select
-                  className="form-select bg-dark text-light border-secondary"
-                  value={coordinatorInput}
-                  onChange={e => setCoordinatorInput(e.target.value)}
-                >
-                  <option value="">Select Coordinator</option>
-                  {coordinatorList.map((name, i) => (
-                    <option key={i} value={name}>{name}</option>
-                  ))}
-                </select>
-                <button className="btn btn-outline-light" type="button" onClick={handleAddCoordinator}>Add</button>
-              </div>
-              <ul className="list-group mt-2">
-                {eventData.studentCoordinators.map((coord, index) => (
-                  <li key={index} className="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-                    {coord}
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleRemoveCoordinator(index)}>Remove</button>
-                  </li>
+              <div className="mt-2 d-flex flex-wrap gap-2">
+                {eventData.judges.map((id, index) => (
+                  <span key={index} className="badge bg-secondary p-2 d-flex align-items-center gap-2">
+                    {facultyList.find(f => f._id === id)?.name}
+                    <i className="bi bi-x-circle cursor-pointer text-danger" onClick={() => {
+                       const updated = [...eventData.judges]; updated.splice(index, 1); handleChange('judges', updated);
+                    }}></i>
+                  </span>
                 ))}
-              </ul>
+              </div>
+            </div>
+
+            <div className="col-md-6">
+              <label className="text-info small fw-bold mb-2 d-block">ASSIGN STUDENT COORDINATORS</label>
+              <div className="input-group">
+                <select className="form-select bg-dark text-light border-secondary shadow-none"
+                  value={coordinatorInput} onChange={e => setCoordinatorInput(e.target.value)}>
+                  <option value="">Select Coordinator...</option>
+                  {coordinatorList.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+                <button className="btn btn-info px-4 fw-bold" type="button" onClick={handleAddCoordinator}>ADD</button>
+              </div>
+              <div className="mt-2 d-flex flex-wrap gap-2">
+                {eventData.studentCoordinators.map((id, index) => (
+                  <span key={index} className="badge bg-secondary p-2 d-flex align-items-center gap-2">
+                    {coordinatorList.find(c => c._id === id)?.name}
+                    <i className="bi bi-x-circle cursor-pointer text-danger" onClick={() => {
+                       const updated = [...eventData.studentCoordinators]; updated.splice(index, 1); handleChange('studentCoordinators', updated);
+                    }}></i>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary mt-4 w-100 fw-semibold">Create Event</button>
+          <button type="submit" className="btn btn-info mt-5 w-100 fw-black py-3 shadow-lg">CREATE EVENT</button>
         </form>
-
-        <div className="text-center mt-4">
-          <button className="btn btn-outline-light" onClick={() => navigate('/events')}>
-            ← Back to Events
-          </button>
-        </div>
       </div>
+
+      <style>{`
+        .bg-glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); }
+        .fw-black { font-weight: 900; letter-spacing: 1px; }
+        .cursor-pointer { cursor: pointer; }
+      `}</style>
     </>
   );
 }

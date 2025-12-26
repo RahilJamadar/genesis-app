@@ -1,281 +1,385 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import getApiBase from '../../../utils/getApiBase';
 import FacultyNavbar from '../../../components/FacultyNavbar';
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const FacultyEventScoring = () => {
   const { id: eventId } = useParams();
+  const [eventData, setEventData] = useState(null);
   const [teams, setTeams] = useState([]);
   const [judges, setJudges] = useState([]);
   const [allScores, setAllScores] = useState([]);
-  const [round, setRound] = useState('');
+  
+  // Selection States
+  const [round, setRound] = useState(1);
   const [selectedTeam, setSelectedTeam] = useState('');
-  const [scoringMode, setScoringMode] = useState('team');
-  const [teamScore, setTeamScore] = useState('');
+  
+  // 🥇 Direct Win States
+  const [firstPlace, setFirstPlace] = useState('');
+  const [secondPlace, setSecondPlace] = useState('');
+
+  // 📊 Standard Evaluation States
+  const [criteria, setCriteria] = useState([]);
   const [comment, setComment] = useState('');
-  const [individualScores, setIndividualScores] = useState([]);
   const [finalized, setFinalized] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // 🚀 Promotion States
+  const [promotionCount, setPromotionCount] = useState(2);
+  const [isPromoting, setIsPromoting] = useState(false);
 
   const baseURL = getApiBase();
+  const facultyId = localStorage.getItem('facultyId');
+  
+  const headers = useMemo(() => ({
+    Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
+  }), []);
 
-  useEffect(() => {
-    axios.get(`${baseURL}/api/faculty/event/${eventId}/teams`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
-      },
-      withCredentials: true
-    })
-      .then(res => setTeams(res.data))
-      .catch(() => toast.error('❌ Failed to fetch teams'));
-
-    axios.get(`${baseURL}/api/faculty/event/${eventId}/judges`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
-      },
-      withCredentials: true
-    })
-      .then(res => setJudges(res.data))
-      .catch(() => toast.error('❌ Failed to fetch judges'));
-  }, [eventId, baseURL]);
-
-  const fetchScoresForTeamAndRound = useCallback(async () => {
+  // 1. Fetch Event Meta & Judges (Initial Load)
+  const fetchInitialMeta = useCallback(async () => {
     try {
-      const res = await axios.get(`${baseURL}/api/faculty/event/${eventId}/scores/${selectedTeam}?round=${round}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
-        },
-        withCredentials: true
+      const [eventRes, judgeRes] = await Promise.all([
+        axios.get(`${baseURL}/api/faculty/dashboard/event/${eventId}/details`, { headers, withCredentials: true }),
+        axios.get(`${baseURL}/api/faculty/dashboard/event/${eventId}/judges`, { headers, withCredentials: true })
+      ]);
+      
+      setEventData(eventRes.data);
+      setJudges(judgeRes.data);
+
+      if (eventRes.data?.judgingCriteria && !eventRes.data.isDirectWin) {
+        setCriteria(new Array(eventRes.data.judgingCriteria.length).fill(0));
+      }
+    } catch (err) {
+      toast.error('❌ Failed to sync event metadata');
+    }
+  }, [eventId, baseURL, headers]);
+
+  // 2. Fetch Teams specifically for the current Round (Round-Aware)
+  const fetchTeamsForRound = useCallback(async () => {
+    try {
+      // Send round as query param so backend can filter by promotion
+      const res = await axios.get(`${baseURL}/api/faculty/scoring/event/${eventId}/teams?round=${round}`, { 
+        headers, 
+        withCredentials: true 
       });
+      setTeams(res.data);
+      setSelectedTeam(''); // Reset selection when round changes
+    } catch (err) {
+      toast.error('❌ Failed to fetch teams for this round');
+    }
+  }, [eventId, round, baseURL, headers]);
+
+  useEffect(() => { fetchInitialMeta(); }, [fetchInitialMeta]);
+  useEffect(() => { fetchTeamsForRound(); }, [fetchTeamsForRound]);
+
+  // 3. Fetch existing scores
+  const fetchCurrentScores = useCallback(async () => {
+    const isDirect = eventData?.isDirectWin;
+    const url = isDirect 
+      ? `${baseURL}/api/faculty/scoring/event/${eventId}/scores/null?round=1`
+      : `${baseURL}/api/faculty/scoring/event/${eventId}/scores/${selectedTeam}?round=${round}`;
+
+    if (!isDirect && (!selectedTeam || !round)) return;
+
+    try {
+      const res = await axios.get(url, { headers, withCredentials: true });
       setAllScores(res.data);
-      const myScores = res.data.filter(s => s.judge._id === localStorage.getItem('facultyId'));
-      const locked = myScores.some(s => s.finalized);
-      setFinalized(locked);
-    } catch {
-      toast.error('❌ Failed to fetch score');
+      
+      const myScore = res.data.find(s => s.judge._id === facultyId);
+      if (myScore) {
+        setFinalized(myScore.finalized);
+        if (isDirect) {
+          setFirstPlace(myScore.directWinners?.firstPlace || '');
+          setSecondPlace(myScore.directWinners?.secondPlace || '');
+        } else {
+          setCriteria(myScore.criteriaScores || []);
+          setComment(myScore.comment || '');
+        }
+      } else {
+        setFinalized(false);
+        if (!isDirect) {
+          setCriteria(new Array(eventData?.judgingCriteria?.length || 3).fill(0));
+          setComment('');
+        }
+      }
+    } catch (err) {
+      console.error("Score fetch error");
     }
-  }, [eventId, selectedTeam, round, baseURL]);
+  }, [eventId, selectedTeam, round, baseURL, facultyId, headers, eventData]);
 
-  useEffect(() => {
-    if (selectedTeam && round) {
-      fetchScoresForTeamAndRound();
+  useEffect(() => { fetchCurrentScores(); }, [fetchCurrentScores]);
 
-      const team = teams.find(t => t._id === selectedTeam);
-      setIndividualScores(team?.members.map(m => ({ name: m.name, score: '' })) || []);
-    }
-  }, [selectedTeam, round, teams, fetchScoresForTeamAndRound]);
-
-  const handleIndividualScoreChange = (index, value) => {
-    const updated = [...individualScores];
-    updated[index].score = value;
-    setIndividualScores(updated);
+  const handleSliderChange = (index, value) => {
+    const updated = [...criteria];
+    updated[index] = parseInt(value);
+    setCriteria(updated);
   };
 
-  const handleSubmit = async () => {
-    if (!selectedTeam || !round) {
-      toast.warn('⚠️ Please select team and round');
-      return;
+  // 🚀 Handle Leaderboard Promotion
+  const handlePromotion = async () => {
+    if (!window.confirm(`Are you sure you want to promote the top ${promotionCount} teams to Round ${round + 1}?`)) return;
+    
+    setIsPromoting(true);
+    try {
+      await axios.post(`${baseURL}/api/faculty/scoring/event/${eventId}/promote`, {
+        round: round,
+        count: parseInt(promotionCount)
+      }, { headers, withCredentials: true });
+
+      toast.success(`🚀 Top ${promotionCount} teams promoted successfully!`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Promotion failed. Ensure all teams are finalized.');
+    } finally {
+      setIsPromoting(false);
     }
+  };
 
-    if (finalized) {
-      toast.warn('⚠️ Score already finalized. No edits allowed.');
-      return;
+  const submitDirectWin = async (isFinal) => {
+    if (!firstPlace || !secondPlace) return toast.warn('Please select both winners');
+    if (firstPlace === secondPlace) return toast.error('1st and 2nd place cannot be the same team');
+    
+    setLoading(true);
+    try {
+      await axios.post(`${baseURL}/api/faculty/scoring/event/${eventId}/direct-win`, {
+        firstPlaceTeamId: firstPlace,
+        secondPlaceTeamId: secondPlace,
+        finalized: isFinal
+      }, { headers, withCredentials: true });
+
+      toast.success(isFinal ? '🏆 Winners Locked!' : '💾 Draft Saved');
+      fetchCurrentScores();
+    } catch (err) {
+      toast.error('Submission failed');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const confirm = window.confirm('Do you want to finalize this score? You will not be able to edit it later.');
-    if (!confirm) return;
-
-    const headers = {
-      Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
-    };
-
-    if (scoringMode === 'team') {
-      const numericScore = Number(teamScore);
-      if (isNaN(numericScore) || numericScore < 0 || numericScore > 100) {
-        toast.warn('⚠️ Score must be between 0 and 100');
-        return;
-      }
-
-      const payload = {
+  const submitScore = async (isFinal) => {
+    if (!selectedTeam) return toast.warn('Please select a team');
+    
+    setLoading(true);
+    try {
+      await axios.post(`${baseURL}/api/faculty/scoring/event/${eventId}/score`, {
         teamId: selectedTeam,
         round,
-        points: numericScore,
+        criteriaScores: criteria,
         comment,
-        finalized: true
-      };
+        finalized: isFinal
+      }, { headers, withCredentials: true });
 
-      try {
-        await axios.post(`${baseURL}/api/faculty/event/${eventId}/score`, payload, {
-          headers,
-          withCredentials: true
-        });
-        toast.success('✅ Team score finalized');
-        setFinalized(true);
-        await fetchScoresForTeamAndRound();
-      } catch {
-        toast.error('❌ Failed to submit score');
-      }
-    } else {
-      const invalid = individualScores.some(s => isNaN(Number(s.score)) || Number(s.score) < 0 || Number(s.score) > 100);
-      if (invalid) {
-        toast.warn('⚠️ All scores must be between 0 and 100');
-        return;
-      }
-
-      try {
-        for (const s of individualScores) {
-          const payload = {
-            teamId: selectedTeam,
-            round,
-            points: Number(s.score),
-            participant: s.name,
-            comment,
-            finalized: true
-          };
-          await axios.post(`${baseURL}/api/faculty/event/${eventId}/score`, payload, {
-            headers,
-            withCredentials: true
-          });
-        }
-        toast.success('✅ Individual scores finalized');
-        setFinalized(true);
-        await fetchScoresForTeamAndRound();
-      } catch {
-        toast.error('❌ Failed to submit individual scores');
-      }
+      toast.success(isFinal ? '🏆 Scores Finalized!' : '💾 Draft Saved');
+      fetchCurrentScores();
+    } catch (err) {
+      toast.error('Submission failed');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // JSX remains unchanged — your layout and scoring interface are already clean and compact
+  const totalPoints = criteria.reduce((a, b) => a + b, 0);
 
   return (
-    <>
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+    <div className="bg-dark min-vh-100 pb-5">
+      <ToastContainer theme="dark" position="top-right" autoClose={2000} />
       <FacultyNavbar />
-      <div className="container py-5" style={{ backgroundColor: '#0D0D15', minHeight: '100vh' }}>
-        <div className="mx-auto p-4 rounded shadow-sm text-light" style={{ maxWidth: '800px', backgroundColor: '#161b22', border: '1px solid #2b2f3a' }}>
-          <h2 className="text-center text-info fw-bold mb-4 border-bottom pb-2">Score Teams for Event</h2>
 
-          <div className="row g-3 mb-4">
-            <div className="col-md-4">
-              <label className="form-label text-light">Select Round</label>
-              <select className="form-select bg-dark text-light border-secondary" value={round} onChange={e => setRound(e.target.value)} disabled={finalized}>
-                <option value="">-- Select --</option>
-                <option value="Round 1">Round 1</option>
-                <option value="Round 2">Round 2</option>
-              </select>
+      <div className="container mt-5">
+        <header className="mb-4 d-flex justify-content-between align-items-center">
+            <div>
+              <h4 className="text-info fw-bold mb-0">{eventData?.name || 'Loading...'}</h4>
+              <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 mt-1 text-uppercase">
+                {eventData?.isDirectWin ? 'Direct Win' : 'Criteria Evaluation'}
+              </span>
             </div>
-
-            <div className="col-md-4">
-              <label className="form-label text-light">Select Team</label>
-              <select className="form-select bg-dark text-light border-secondary" value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)} disabled={finalized}>
-                <option value="">-- Select --</option>
-                {teams.map(team => (
-                  <option key={team._id} value={team._id}>
-                    {team.college}
-                  </option>
-                ))}
-              </select>
+            <div className="text-end text-secondary small">
+               {eventData?.isDirectWin ? 'Single Round' : `Active Round: ${round}`}
             </div>
+        </header>
 
-            <div className="col-md-4">
-              <label className="form-label text-light">Scoring Mode</label>
-              <select className="form-select bg-dark text-light border-secondary" value={scoringMode} onChange={e => setScoringMode(e.target.value)} disabled={finalized}>
-                <option value="team">Score Team</option>
-                <option value="individual">Score Individuals</option>
-              </select>
+        <div className="row g-4">
+          <div className="col-lg-7">
+            <div className="card bg-glass border-secondary shadow-lg">
+              <div className="card-body p-4 p-md-5">
+                
+                {eventData?.isDirectWin ? (
+                  /* 🥇 DIRECT WIN UI */
+                  <div className="animate-fade-in">
+                    <h5 className="text-white mb-4 border-bottom border-secondary pb-3">Winner Selection</h5>
+                    <div className="mb-4">
+                      <label className="text-warning small fw-bold mb-2 d-block ls-1">FIRST PLACE (100 PTS)</label>
+                      <select className="form-select bg-dark text-white border-secondary shadow-none py-3" 
+                        value={firstPlace} onChange={e => setFirstPlace(e.target.value)} disabled={finalized}>
+                        <option value="">-- Choose Winner --</option>
+                        {teams.map(t => <option key={t._id} value={t._id}>{t.college.toUpperCase()}</option>)}
+                      </select>
+                    </div>
+                    <div className="mb-5">
+                      <label className="text-light small fw-bold mb-2 d-block ls-1">SECOND PLACE (50 PTS)</label>
+                      <select className="form-select bg-dark text-white border-secondary shadow-none py-3" 
+                        value={secondPlace} onChange={e => setSecondPlace(e.target.value)} disabled={finalized}>
+                        <option value="">-- Choose Runner-up --</option>
+                        {teams.map(t => <option key={t._id} value={t._id}>{t.college.toUpperCase()}</option>)}
+                      </select>
+                    </div>
+                    {!finalized ? (
+                      <div className="d-grid gap-2">
+                        <button className="btn btn-info fw-bold py-3" onClick={() => submitDirectWin(true)} disabled={loading}>
+                          FINALIZE & PUBLISH RESULTS
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-center">
+                        <i className="bi bi-check-circle-fill me-2"></i> Results Published.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* 📊 STANDARD SLIDER UI */
+                  <>
+                    <div className="row g-3 mb-4 border-bottom border-secondary pb-4">
+                      <div className="col-md-6">
+                        <label className="text-info small fw-bold mb-2 d-block">TARGET TEAM</label>
+                        <select className="form-select bg-dark text-white border-secondary shadow-none" 
+                          value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)} disabled={loading}>
+                          <option value="">-- Choose Team --</option>
+                          {teams.map(t => <option key={t._id} value={t._id}>{t.college} ({t.leader})</option>)}
+                        </select>
+                        <small className="text-secondary mt-1 d-block" style={{fontSize: '0.7rem'}}>
+                          {round > 1 ? 'Showing promoted teams only' : 'Showing all registered teams'}
+                        </small>
+                      </div>
+                      <div className="col-md-6">
+                        <label className="text-info small fw-bold mb-2 d-block">ROUND</label>
+                        <select className="form-select bg-dark text-white border-secondary shadow-none" 
+                          value={round} onChange={e => setRound(parseInt(e.target.value))} disabled={loading}>
+                          {[...Array(eventData?.rounds || 1)].map((_, i) => (
+                            <option key={i} value={i + 1}>Round {i + 1}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {selectedTeam ? (
+                      <div className="scoring-sliders animate-fade-in">
+                        {eventData?.judgingCriteria?.map((label, i) => (
+                          <div key={i} className="mb-4">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <span className="text-white fw-bold">{label}</span>
+                              <span className="badge bg-info text-dark fs-6">{criteria[i] || 0}</span>
+                            </div>
+                            <input type="range" className="form-range custom-slider" min="0" max="100" 
+                              value={criteria[i] || 0} onChange={e => handleSliderChange(i, e.target.value)} disabled={finalized} />
+                          </div>
+                        ))}
+                        <div className="bg-info bg-opacity-10 rounded p-3 mb-4 text-center border border-info border-opacity-25">
+                          <h2 className="text-white fw-black mb-0">{totalPoints}</h2>
+                        </div>
+                        {!finalized ? (
+                          <div className="d-grid gap-2">
+                            <button className="btn btn-info fw-bold py-3 shadow-sm" onClick={() => submitScore(true)} disabled={loading}>
+                              FINALIZE SCORE
+                            </button>
+                            <button className="btn btn-outline-secondary text-white border-secondary" onClick={() => submitScore(false)} disabled={loading}>
+                              SAVE AS DRAFT
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-center">
+                            Evaluation Locked.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-5 opacity-50 text-white">Select a team to begin round evaluation</div>
+                    )}
+
+                    {/* 🚀 PROMOTION CONTROL UI */}
+                    {round < eventData?.rounds && (
+                      <div className="mt-5 pt-4 border-top border-secondary border-opacity-50">
+                        <div className="bg-warning bg-opacity-5 rounded p-4 border border-warning border-opacity-20 shadow-sm">
+                           <h6 className="text-warning fw-bold mb-3 d-flex align-items-center gap-2">
+                             <i className="bi bi-lightning-charge-fill"></i> ROUND PROMOTION CONTROL
+                           </h6>
+                           <p className="text-secondary small mb-3">
+                             Promote top teams from this round's leaderboard to Round {round + 1}. 
+                             Teams will be selected automatically based on the finalized scores below.
+                           </p>
+                           <div className="d-flex gap-2">
+                              <div className="flex-grow-1">
+                                <input 
+                                  type="number" 
+                                  className="form-control bg-dark text-white border-secondary shadow-none" 
+                                  placeholder="Count"
+                                  value={promotionCount}
+                                  onChange={(e) => setPromotionCount(e.target.value)}
+                                  disabled={isPromoting}
+                                />
+                                <small className="text-secondary" style={{fontSize: '0.6rem'}}>NUMBER OF TEAMS TO PROMOTE</small>
+                              </div>
+                              <button 
+                                className="btn btn-warning fw-bold px-4 h-100" 
+                                style={{height: '38px'}}
+                                onClick={handlePromotion}
+                                disabled={isPromoting}
+                              >
+                                {isPromoting ? 'PROMOTING...' : 'PROMOTE TOP TEAMS'}
+                              </button>
+                           </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {selectedTeam && round && (
-            <>
-              {scoringMode === 'team' ? (
-                <div className="mb-3">
-                  <label className="form-label text-light">Team Score (out of 100)</label>
-                  <input
-                    type="number"
-                    className="form-control bg-dark text-light border-secondary"
-                    value={teamScore}
-                    onChange={e => setTeamScore(e.target.value)}
-                    placeholder="Enter score"
-                    disabled={finalized}
-                  />
+          <div className="col-lg-5">
+            <div className="card bg-glass border-secondary shadow-lg">
+              <div className="card-body p-4">
+                <h5 className="text-white fw-bold mb-4">Round <span className="text-info">Registry</span></h5>
+                <div className="table-responsive">
+                  <table className="table table-dark table-hover align-middle mb-0">
+                    <tbody>
+                      {judges.map(j => {
+                        const scoreEntry = allScores.find(s => s.judge._id === j._id);
+                        return (
+                          <tr key={j._id} className="border-secondary">
+                            <td className="py-3 text-white fw-bold">
+                                {j.name} {j._id === facultyId && <span className="text-info ms-1 small">(YOU)</span>}
+                            </td>
+                            <td className="text-end">
+                              {scoreEntry?.finalized ? (
+                                <span className="badge bg-success bg-opacity-10 text-success border border-success px-2 x-small ls-1">LOCKED</span>
+                              ) : (
+                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 x-small ls-1">PENDING</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              ) : (
-                <>
-                  <h5 className="text-info mb-3">Individual Scores</h5>
-                  {individualScores.map((m, index) => (
-                    <div key={index} className="mb-3">
-                      <label className="form-label text-light">{m.name}</label>
-                      <input
-                        type="number"
-                        className="form-control bg-dark text-light border-secondary"
-                        value={m.score}
-                        onChange={e => handleIndividualScoreChange(index, e.target.value)}
-                        placeholder="Enter score"
-                        disabled={finalized}
-                      />
-                    </div>
-                  ))}
-                </>
-              )}
-
-              <div className="mb-3">
-                <label className="form-label text-light">Comment (optional)</label>
-                <textarea
-                  className="form-control bg-dark text-light border-secondary"
-                  rows="4"
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  placeholder="Write comment here..."
-                  disabled={finalized}
-                ></textarea>
               </div>
-
-              <div className="d-flex flex-wrap gap-3 mt-3">
-                <button className="btn btn-info fw-semibold" onClick={handleSubmit} disabled={finalized}>
-                  {finalized ? 'Score Finalized' : 'Submit & Finalize'}
-                </button>
-              </div>
-
-              <div className="mt-4">
-                <h5 className="text-info mb-3">Judge Submission Status</h5>
-                <table className="table table-dark table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Judge</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {judges.map(j => {
-                      const hasScored = allScores.some(s => s.judge._id === j._id);
-                      const isFinal = allScores.some(s => s.judge._id === j._id && s.finalized);
-                      return (
-                        <tr key={j._id}>
-                          <td>{j.name}</td>
-                          <td>
-                            {isFinal ? (
-                              <span className="text-success fw-bold">✅ Finalized</span>
-                            ) : hasScored ? (
-                              <span className="text-warning">⏳ Submitted</span>
-                            ) : (
-                              <span className="text-danger">❌ Pending</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
-    </>
+
+      <style>{`
+        .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px); border-radius: 24px; }
+        .x-small { font-size: 0.65rem; }
+        .ls-1 { letter-spacing: 1px; }
+        .custom-slider { height: 6px; border-radius: 5px; background: #2b2f3a; -webkit-appearance: none; }
+        .custom-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #0dcaf0; cursor: pointer; border: 3px solid #0D0D15; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+    </div>
   );
 };
 
