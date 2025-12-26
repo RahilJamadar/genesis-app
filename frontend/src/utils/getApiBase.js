@@ -2,11 +2,11 @@ const getApiBase = () => {
   const hostname = window.location.hostname;
 
   if (hostname === 'localhost') {
-    return 'http://localhost:5000';
+    return 'https://genesis-app-spga.onrender.com';
   }
 
   // Assume LAN IP or phone access
-  return `http://${hostname}:5000`;
+  return `https://genesis-app-spga.onrender.com`;
 };
 
 export default getApiBase;

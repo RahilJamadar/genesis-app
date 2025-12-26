@@ -27,7 +27,7 @@ function getLocalIP() {
 
 // ✅ CORS Configuration (wildcard removed to support credentials)
 const allowedOrigins = [
-  'http://localhost:3000',
+  'https://extraordinary-sunburst-5110ea.netlify.app',
   `http://${getLocalIP()}:3000`
 ];
 
