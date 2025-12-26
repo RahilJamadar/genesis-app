@@ -114,7 +114,6 @@ const Payment = () => {
 
                     {/* Action Buttons */}
                     <div className="d-grid gap-3 position-relative" style={{ zIndex: 1 }}>
-                        {/* REPLACE WITH YOUR ACTUAL GOOGLE FORM LINK */}
                         <a 
                             href="https://forms.gle/your-google-form-link" 
                             target="_blank" 
@@ -129,9 +128,9 @@ const Payment = () => {
                     </div>
                 </motion.div>
 
-                {/* Footer Note */}
+                {/* Footer Note - FIXED ESLINT ERROR HERE */}
                 <p className="text-center text-white text-opacity-20 x-small mt-5 tracking-[0.3em] font-mono">
-                    UPLINK_ID: {teamId?.substring(0, 8).toUpperCase()} // STATUS: WAITING_FOR_PAYMENT_LOG
+                    UPLINK_ID: {teamId?.substring(0, 8).toUpperCase()} {' // '} STATUS: WAITING_FOR_PAYMENT_LOG
                 </p>
             </div>
 
