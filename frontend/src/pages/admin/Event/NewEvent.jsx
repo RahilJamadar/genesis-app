@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import getApiBase from '../../../utils/getApiBase';
 import Navbar from '../../../components/Navbar';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events'];
@@ -96,7 +96,6 @@ function NewEvent() {
 
   return (
     <>
-      <ToastContainer theme="dark" position="top-right" autoClose={2000} />
       <Navbar />
       <div className="container py-5 text-light bg-dark min-vh-100">
         <h2 className="text-center fw-bold mb-4 border-bottom border-secondary pb-2">Create New Event</h2>

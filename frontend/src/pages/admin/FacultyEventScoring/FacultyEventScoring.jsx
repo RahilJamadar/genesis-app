@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import getApiBase from '../../../utils/getApiBase';
 import FacultyNavbar from '../../../components/FacultyNavbar';
-import { ToastContainer, toast } from 'react-toastify';
-
+import { toast } from 'react-toastify';
 const FacultyEventScoring = () => {
   const { id: eventId } = useParams();
   const [eventData, setEventData] = useState(null);
@@ -183,7 +182,6 @@ const FacultyEventScoring = () => {
 
   return (
     <div className="bg-dark min-vh-100 pb-5">
-      <ToastContainer theme="dark" position="top-right" autoClose={2000} />
       <FacultyNavbar />
 
       <div className="container mt-5">

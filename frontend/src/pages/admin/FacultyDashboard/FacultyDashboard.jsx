@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import getApiBase from '../../../utils/getApiBase';
 import FacultyNavbar from '../../../components/FacultyNavbar';
-import { ToastContainer, toast } from 'react-toastify';
-
+import { toast } from 'react-toastify';
 const FacultyDashboard = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +45,6 @@ const FacultyDashboard = () => {
 
   return (
     <div className="bg-dark min-vh-100">
-      <ToastContainer theme="dark" position="top-right" autoClose={2000} />
       <FacultyNavbar />
       
       <main className="container py-5">

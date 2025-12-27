@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 
 function AdminManage() {
   const [adminList, setAdminList] = useState([]);
@@ -42,7 +42,6 @@ function AdminManage() {
   };
 
   const handleDelete = async (id) => {
-    // Get current user ID from the stored user object
     const user = JSON.parse(localStorage.getItem('adminUser'));
     if (id === user?.id) {
       toast.warn('⚠️ You cannot delete your own admin account');
@@ -87,30 +86,29 @@ function AdminManage() {
   };
 
   return (
-    <div className="d-flex bg-dark min-vh-100">
+    <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row">
       <Navbar />
       
-      <main className="dashboard-content flex-grow-1 p-4 p-lg-5">
-        <ToastContainer theme="dark" position="top-right" autoClose={2000} />
+      <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
 
-        <header className="mb-5">
-          <h2 className="fw-bold text-white mb-1">Admin Management</h2>
-          <p className="text-light opacity-75">Control system access and permissions</p>
+        <header className="mb-4 mb-lg-5 text-center text-lg-start">
+          <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">Admin Management</h2>
+          <p className="text-light opacity-75 small uppercase tracking-widest">Control system access and permissions</p>
         </header>
 
         <div className="row g-4">
           {/* Form Column */}
-          <div className="col-lg-5">
-            <div className="card bg-glass border-secondary shadow-lg sticky-lg-top" style={{ top: '2rem' }}>
-              <div className="card-body p-4">
-                <h5 className="text-white fw-bold mb-4 d-flex align-items-center gap-2">
+          <div className="col-12 col-lg-5">
+            <div className="card bg-glass border-secondary shadow-lg sticky-custom border-opacity-10">
+              <div className="card-body p-3 p-md-4">
+                <h5 className="text-white fw-bold mb-4 d-flex align-items-center gap-2 fs-6 fs-md-5">
                   <i className={`bi ${isEditing ? 'bi-pencil-square text-warning' : 'bi-plus-circle text-info'}`}></i>
                   {isEditing ? 'Edit Administrator' : 'Add New Administrator'}
                 </h5>
                 
-                <form onSubmit={isEditing ? (e) => { e.preventDefault(); handleUpdate(); } : handleSubmit}>
-                  <div className="mb-3">
-                    <label className="text-white small fw-bold mb-2 opacity-75">Username</label>
+                <form onSubmit={isEditing ? (e) => { e.preventDefault(); handleUpdate(); } : handleSubmit} className="d-flex flex-column gap-3">
+                  <div>
+                    <label className="text-info x-small fw-bold mb-2 d-block text-uppercase ls-1">Username</label>
                     <input
                       type="text"
                       className="form-control bg-dark text-white border-secondary shadow-none py-2"
@@ -121,8 +119,8 @@ function AdminManage() {
                     />
                   </div>
 
-                  <div className="mb-4">
-                    <label className="text-white small fw-bold mb-2 opacity-75">
+                  <div>
+                    <label className="text-info x-small fw-bold mb-2 d-block text-uppercase ls-1">
                       {isEditing ? 'New Password (Optional)' : 'Security Password'}
                     </label>
                     <input
@@ -135,18 +133,18 @@ function AdminManage() {
                     />
                   </div>
 
-                  <div className="d-flex gap-2">
+                  <div className="d-flex flex-column gap-2 mt-2">
                     <button 
                       type="submit" 
-                      className={`btn ${isEditing ? 'btn-warning' : 'btn-info'} fw-bold flex-grow-1 py-2`}
+                      className={`btn ${isEditing ? 'btn-warning' : 'btn-info'} fw-bold py-2 text-dark shadow-sm`}
                       disabled={loading}
                     >
                       {loading ? <span className="spinner-border spinner-border-sm"></span> : 
-                        (isEditing ? 'Update Credentials' : 'Create Admin')}
+                        (isEditing ? 'UPDATE CREDENTIALS' : 'CREATE ADMIN')}
                     </button>
                     {isEditing && (
-                      <button type="button" className="btn btn-outline-secondary fw-bold" onClick={resetForm}>
-                        Cancel
+                      <button type="button" className="btn btn-outline-secondary fw-bold text-white border-opacity-50 py-2" onClick={resetForm}>
+                        CANCEL
                       </button>
                     )}
                   </div>
@@ -156,10 +154,10 @@ function AdminManage() {
           </div>
 
           {/* List Column */}
-          <div className="col-lg-7">
-            <div className="card bg-glass border-secondary shadow-lg">
-              <div className="card-body p-4">
-                <h5 className="text-white fw-bold mb-4 d-flex align-items-center gap-2">
+          <div className="col-12 col-lg-7">
+            <div className="card bg-glass border-secondary shadow-lg border-opacity-10">
+              <div className="card-body p-3 p-md-4">
+                <h5 className="text-white fw-bold mb-4 d-flex align-items-center gap-2 fs-6 fs-md-5">
                   <i className="bi bi-shield-lock text-info"></i>
                   Active Administrators
                 </h5>
@@ -168,37 +166,37 @@ function AdminManage() {
                   {adminList.length > 0 ? adminList.map(admin => (
                     <div
                       key={admin._id}
-                      className="admin-list-item d-flex justify-content-between align-items-center p-3 rounded-3 border border-secondary"
+                      className="admin-list-item d-flex justify-content-between align-items-center p-3 rounded-3 border border-secondary border-opacity-20 shadow-sm"
                     >
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="admin-avatar bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center">
+                      <div className="d-flex align-items-center gap-2 gap-md-3 overflow-hidden">
+                        <div className="admin-avatar bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center flex-shrink-0">
                           <i className="bi bi-person-fill fs-5"></i>
                         </div>
-                        <div>
-                          <h6 className="text-white fw-bold mb-0">{admin.name}</h6>
-                          <span className="badge bg-dark border border-secondary text-info x-small">System Admin</span>
+                        <div className="overflow-hidden">
+                          <h6 className="text-white fw-bold mb-0 text-truncate small">{admin.name}</h6>
+                          <span className="badge bg-black bg-opacity-40 border border-white border-opacity-10 text-info x-small-text">System Admin</span>
                         </div>
                       </div>
                       
-                      <div className="d-flex gap-2">
+                      <div className="d-flex gap-1 gap-md-2 flex-shrink-0">
                         <button
-                          className="btn btn-outline-warning btn-sm border-0"
+                          className="btn btn-outline-warning btn-sm border-0 p-2"
                           onClick={() => startEdit(admin)}
-                          title="Edit Admin"
+                          title="Edit"
                         >
                           <i className="bi bi-pencil-square fs-5"></i>
                         </button>
                         <button
-                          className="btn btn-outline-danger btn-sm border-0"
+                          className="btn btn-outline-danger btn-sm border-0 p-2"
                           onClick={() => handleDelete(admin._id)}
-                          title="Delete Admin"
+                          title="Delete"
                         >
                           <i className="bi bi-trash3 fs-5"></i>
                         </button>
                       </div>
                     </div>
                   )) : (
-                    <div className="text-center py-5 opacity-50 text-white">
+                    <div className="text-center py-5 opacity-50 text-white small">
                       No additional administrators found.
                     </div>
                   )}
@@ -210,37 +208,45 @@ function AdminManage() {
       </main>
 
       <style>{`
-        .dashboard-content {
-          margin-left: 260px;
-          transition: margin 0.3s ease;
+        /* Desktop: Sidebar Offset and Sticky Form */
+        @media (min-width: 992px) {
+          .dashboard-content { margin-left: 280px; }
+          .sticky-custom { position: sticky; top: 2rem; z-index: 10; }
+        }
+
+        /* Mobile View: No Offset */
+        @media (max-width: 991.98px) {
+          .dashboard-content { margin-left: 0; padding-top: 10px; }
         }
 
         .bg-glass {
-          background: rgba(255, 255, 255, 0.05) !important;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.03) !important;
+          backdrop-filter: blur(20px);
+          border-radius: 24px;
         }
 
         .admin-list-item {
           background: rgba(255, 255, 255, 0.02);
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
         }
 
         .admin-list-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-          border-color: #0dcaf0 !important;
+          background: rgba(13, 202, 240, 0.05);
+          border-color: rgba(13, 202, 240, 0.3) !important;
         }
 
         .admin-avatar {
-          width: 45px;
-          height: 45px;
+          width: 40px;
+          height: 40px;
         }
 
         .x-small { font-size: 0.7rem; }
+        .x-small-text { font-size: 0.6rem; letter-spacing: 0.5px; }
+        .ls-1 { letter-spacing: 1px; }
 
-        @media (max-width: 991.98px) {
-          .dashboard-content { margin-left: 0; padding-top: 80px; }
+        @media (max-width: 576px) {
+          .admin-avatar { width: 32px; height: 32px; }
+          .admin-avatar i { font-size: 1rem !important; }
         }
       `}</style>
     </div>

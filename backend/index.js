@@ -12,7 +12,7 @@ const adminApp = require('./genesis-admin/index.js');
 dotenv.config();
 const app = express();
 
-// ✅ LAN IP detection
+// ✅ LAN IP detection (Keep this for logging, but also add to whitelist)
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -25,27 +25,39 @@ function getLocalIP() {
   return 'localhost';
 }
 
-// ✅ CORS Configuration (wildcard removed to support credentials)
+const localIP = getLocalIP();
+
+// ✅ UPDATED WHITESPACE & ORIGIN LIST
 const allowedOrigins = [
-  'https://extraordinary-sunburst-5110ea.netlify.app',
-  `http://${getLocalIP()}:3000`
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  `http://${localIP}:3000`, // Whitelist your actual LAN IP
+  'https://extraordinary-sunburst-5110ea.netlify.app'
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`⚠️ CORS blocked an attempt from origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200 // Essential for older browsers or specific preflight cases
 };
 
+// ✅ INITIALIZE CORS BEFORE ROUTES
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// ✅ MongoDB Connection (shared across both apps)
+// ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
@@ -64,6 +76,6 @@ const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
-  const ip = getLocalIP();
-  console.log(`🚀 Unified Backend running at http://${ip}:${PORT}`);
+  console.log(`🚀 Unified Backend running at http://${localIP}:${PORT}`);
+  console.log(`📡 CORS Whitelist:`, allowedOrigins);
 });

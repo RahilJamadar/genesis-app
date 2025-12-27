@@ -17,14 +17,7 @@ const scoringRoutes = require('./routes/scoring');
 
 const app = express();
 
-// 🛠️ Global Middleware
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'https://extraordinary-sunburst-5110ea.netlify.app' || 'http://localhost:3000' , 
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // 🔌 Database Connection

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import getApiBase from '../../utils/getApiBase';
 import { useNavigate } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-
+import { toast } from 'react-toastify';
 const Login = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -35,7 +34,6 @@ const Login = () => {
 
   return (
     <div className="login-wrapper">
-      <ToastContainer theme="dark" position="top-right" autoClose={2000} hideProgressBar />
       
       <div className="login-container animate-fade-in">
         <div className="login-card shadow-lg">

@@ -1,12 +1,10 @@
 const getApiBase = () => {
-  const hostname = window.location.hostname;
-
-  if (hostname === 'localhost') {
-    return 'https://genesis-app-spga.onrender.com';
+  // If the frontend is running on localhost, use the local backend
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:5000';
   }
-
-  // Assume LAN IP or phone access
-  return `https://genesis-app-spga.onrender.com`;
+  // Otherwise, use the deployed Render backend
+  return 'https://genesis-app-spga.onrender.com';
 };
 
 export default getApiBase;

@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
-import { ToastContainer, toast } from 'react-toastify';
-
+import { toast } from 'react-toastify';
 const Teams = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +35,6 @@ const Teams = () => {
     }
   };
 
-  // Helper to render payment status badges
   const renderPaymentBadge = (status) => {
     switch (status) {
       case 'verified':
@@ -49,19 +47,18 @@ const Teams = () => {
   };
 
   return (
-    <div className="d-flex bg-dark min-vh-100">
+    <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row">
       <Navbar />
 
-      <main className="dashboard-content flex-grow-1 p-4 p-lg-5">
-        <ToastContainer theme="dark" position="top-right" autoClose={2000} />
+      <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
 
-        <header className="mb-5 d-flex justify-content-between align-items-center">
-          <div>
+        <header className="mb-4 mb-lg-5 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+          <div className="text-center text-sm-start">
             <h2 className="fw-bold text-white mb-1">Team Management</h2>
-            <p className="text-light opacity-75">Audit participating colleges, payments, and catering choices</p>
+            <p className="text-light opacity-75 small mb-0">Audit participating colleges, payments, and catering choices</p>
           </div>
-          <div className="bg-glass px-4 py-2 rounded border border-secondary text-center">
-            <div className="text-info fw-bold fs-4 leading-none">{teams.length}</div>
+          <div className="bg-glass px-4 py-2 rounded border border-secondary text-center shadow-glow w-100 w-sm-auto">
+            <div className="text-info fw-bold fs-3 fs-md-4 leading-none">{teams.length}</div>
             <div className="text-white x-small text-uppercase ls-1">Colleges</div>
           </div>
         </header>
@@ -71,73 +68,79 @@ const Teams = () => {
             <div className="spinner-border text-info" role="status"></div>
           </div>
         ) : (
-          <div className="row g-4">
+          <div className="row g-3 g-lg-4">
             {teams.map(team => (
-              <div key={team._id} className="col-xl-6">
-                <div className="card bg-glass border-secondary h-100 team-card shadow-lg">
-                  <div className="card-body p-4">
+              <div key={team._id} className="col-12 col-xl-6">
+                <div className="card bg-glass border-secondary team-card shadow-lg border-opacity-10">
+                  <div className="card-body p-3 p-md-4">
                     {/* Header Section */}
-                    <div className="d-flex justify-content-between align-items-start mb-3">
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2 mb-3">
                       <div className="flex-grow-1">
-                        <h4 className="text-info fw-bold mb-1">{team.college}</h4>
-                        <div className="d-flex flex-wrap align-items-center gap-2 text-white opacity-75 small">
-                          <i className="bi bi-person-badge text-warning"></i>
-                          <span>Leader: <strong>{team.leader}</strong></span>
-                          <span className="opacity-25">|</span>
-                          <i className="bi bi-telephone text-warning"></i>
-                          <span>{team.contact}</span>
+                        <h4 className="text-info fw-bold mb-1 fs-5 fs-md-4">{team.college}</h4>
+                        <div className="d-flex flex-wrap align-items-center gap-2 text-white opacity-75 x-small">
+                          <span className="d-flex align-items-center gap-1">
+                            <i className="bi bi-person-badge text-warning"></i>
+                            <strong>{team.leader}</strong>
+                          </span>
+                          <span className="opacity-25 d-none d-sm-inline">|</span>
+                          <span className="d-flex align-items-center gap-1">
+                            <i className="bi bi-telephone text-warning"></i>
+                            {team.contact}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-end">
+                      <div className="d-flex flex-row flex-md-column align-items-center align-items-md-end gap-2 w-100 w-md-auto justify-content-between mt-2 mt-md-0">
                         {renderPaymentBadge(team.paymentStatus)}
-                        <div className="mt-2 text-white opacity-50 x-small fw-bold">
+                        <div className="text-white opacity-50 x-small fw-bold">
                           {team.isOutstation ? '🏠 OUTSTATION' : '📍 LOCAL'}
                         </div>
                       </div>
                     </div>
 
-                    {/* Transaction Info (If any) */}
+                    {/* Transaction Info */}
                     {team.transactionId && (
-                      <div className="mb-3 px-2 py-1 bg-dark bg-opacity-50 rounded border border-secondary border-opacity-25">
-                         <span className="text-secondary x-small fw-bold text-uppercase me-2">TXN ID:</span>
-                         <span className="text-info x-small font-monospace">{team.transactionId}</span>
+                      <div className="mb-3 px-3 py-2 bg-black bg-opacity-40 rounded border border-secondary border-opacity-25 overflow-hidden">
+                         <div className="text-secondary x-small fw-bold text-uppercase mb-1">TXN ID:</div>
+                         <div className="text-info x-small font-monospace text-truncate">{team.transactionId}</div>
                       </div>
                     )}
 
                     {/* Stats Grid */}
-                    <div className="bg-dark bg-opacity-50 rounded p-3 mb-4 border border-secondary border-opacity-50">
-                      <div className="row text-center text-white">
-                        <div className="col-4 border-end border-secondary border-opacity-50">
-                          <div className="text-secondary x-small fw-bold text-uppercase mb-1">Members</div>
+                    <div className="bg-black bg-opacity-40 rounded p-3 mb-4 border border-secondary border-opacity-50 shadow-inner">
+                      <div className="row text-center text-white g-0">
+                        <div className="col-4 border-end border-secondary border-opacity-30">
+                          <div className="text-secondary x-small fw-bold text-uppercase mb-1">Units</div>
                           <div className="fw-bold fs-5">{team.members?.length || 0}</div>
                         </div>
-                        <div className="col-4 border-end border-secondary border-opacity-50">
+                        <div className="col-4 border-end border-secondary border-opacity-30">
                           <div className="text-success x-small fw-bold text-uppercase mb-1">Veg</div>
                           <div className="fw-bold fs-5">{team.vegCount || 0}</div>
                         </div>
                         <div className="col-4">
-                          <div className="text-danger x-small fw-bold text-uppercase mb-1">Non-Veg</div>
+                          <div className="text-danger x-small fw-bold text-uppercase mb-1">Non</div>
                           <div className="fw-bold fs-5">{team.nonVegCount || 0}</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="d-flex gap-2 pt-2">
-                      <button className="btn btn-outline-info btn-sm flex-grow-1 fw-bold text-uppercase py-2" 
+                    <div className="d-flex flex-wrap gap-2 pt-2">
+                      <button className="btn btn-info btn-sm flex-grow-1 fw-bold text-uppercase py-2 shadow-sm text-black" 
                         onClick={() => navigate(`/admin/teams/view/${team._id}`)}>
                         <i className="bi bi-eye me-2"></i>Profile
                       </button>
-                      <button className="btn btn-outline-warning btn-sm px-3 py-2"
-                        onClick={() => navigate(`/admin/teams/edit/${team._id}`)}
-                        title="Edit Team">
-                        <i className="bi bi-pencil-square"></i>
-                      </button>
-                      <button className="btn btn-outline-danger btn-sm px-3 py-2"
-                        onClick={() => handleDelete(team._id)}
-                        title="Purge Record">
-                        <i className="bi bi-trash3"></i>
-                      </button>
+                      <div className="d-flex gap-2 w-100 w-sm-auto">
+                        <button className="btn btn-outline-warning btn-sm px-3 py-2 flex-grow-1"
+                          onClick={() => navigate(`/admin/teams/edit/${team._id}`)}
+                          title="Edit Team">
+                          <i className="bi bi-pencil-square"></i>
+                        </button>
+                        <button className="btn btn-outline-danger btn-sm px-3 py-2 flex-grow-1"
+                          onClick={() => handleDelete(team._id)}
+                          title="Purge Record">
+                          <i className="bi bi-trash3"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -146,7 +149,7 @@ const Teams = () => {
 
             {teams.length === 0 && (
               <div className="col-12 text-center py-5">
-                <div className="card bg-glass border-secondary p-5">
+                <div className="card bg-glass border-secondary p-5 border-opacity-10">
                   <i className="bi bi-people text-secondary fs-1 mb-3"></i>
                   <h5 className="text-white opacity-50">No colleges registered yet.</h5>
                 </div>
@@ -157,14 +160,40 @@ const Teams = () => {
       </main>
 
       <style>{`
-        .dashboard-content { margin-left: 260px; }
-        .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px); border-radius: 18px; }
-        .team-card { transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1); }
-        .team-card:hover { transform: translateY(-5px); border-color: #0dcaf0 !important; box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important; }
-        .x-small { font-size: 0.65rem; }
+        /* Desktop: Standard Sidebar Offset */
+        @media (min-width: 992px) {
+          .dashboard-content { margin-left: 280px; }
+          .team-card:hover { 
+            transform: translateY(-5px); 
+            border-color: #0dcaf0 !important; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important; 
+          }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 991.98px) {
+          .dashboard-content { 
+            margin-left: 0; 
+            padding-top: 20px; 
+          }
+          .team-card { margin-bottom: 5px; }
+        }
+
+        .bg-glass { 
+          background: rgba(255, 255, 255, 0.03) !important; 
+          backdrop-filter: blur(20px); 
+          border-radius: 20px; 
+        }
+
+        .team-card { 
+          transition: all 0.3s ease; 
+          border: 1px solid rgba(255,255,255,0.08); 
+        }
+
+        .shadow-glow { box-shadow: 0 0 15px rgba(13, 202, 240, 0.15); }
+        .x-small { font-size: 0.7rem; }
         .ls-1 { letter-spacing: 1px; }
         .leading-none { line-height: 1; }
-        @media (max-width: 991.98px) { .dashboard-content { margin-left: 0; padding-top: 80px; } }
       `}</style>
     </div>
   );
