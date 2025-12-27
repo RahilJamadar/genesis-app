@@ -66,3 +66,24 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: #0dcaf0; /* Genesis Cyan */
 }
+
+/* Kill any ghost backdrops that freeze the UI */
+.modal-backdrop, 
+.offcanvas-backdrop {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Prevent GPU deadlock during route transitions */
+.admin-portal-root {
+  isolation: isolate; /* Creates a new stacking context */
+  position: relative;
+  z-index: 1;
+}
+
+/* Soften the blur on Admin pages to prevent GPU freezing */
+.admin-portal-root .bg-glass {
+  backdrop-filter: blur(8px) !important; 
+  background: rgba(10, 10, 10, 0.95) !important;
+}

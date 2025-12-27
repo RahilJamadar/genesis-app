@@ -1,95 +1,143 @@
-import React, { useRef, useMemo, Suspense } from 'react';
+import React, { useRef, useMemo, Suspense, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, OrbitControls, Environment, Float, MeshDistortMaterial } from '@react-three/drei';
+import { useGLTF, OrbitControls, Environment, useProgress, Html } from '@react-three/drei';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as THREE from 'three';
 
-// Corrected Draco URL
 const DRACO_URL = 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/';
 
-function LoadingPlaceholder() {
-    const mesh = useRef();
-    useFrame(() => {
-        if (mesh.current) mesh.current.rotation.x = mesh.current.rotation.y += 0.01;
-    });
-    return (
-        <Float speed={5} rotationIntensity={2} floatIntensity={2}>
-            <mesh ref={mesh} scale={2}>
-                <octahedronGeometry args={[1, 0]} />
-                <MeshDistortMaterial color="#0dcaf0" speed={2} distort={0.4} radius={1} wireframe />
-            </mesh>
-        </Float>
-    );
+// ----------------------------------------------------
+// 🚀 Phoenix Loader with Smooth Fade
+// ----------------------------------------------------
+function PhoenixLoader({ minTimeReached }) {
+  const { progress } = useProgress();
+  const visualProgress = minTimeReached ? progress : Math.min(progress, 90);
+
+  return (
+    <Html center>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
+        className="flex flex-col items-center justify-center w-64 md:w-96 font-mono select-none"
+      >
+        <div className="flex justify-between w-full mb-2 text-[10px] md:text-xs tracking-[0.3em] text-cyan-400 uppercase opacity-80">
+          <span>Initializing Phoenix</span>
+          <span>{Math.round(visualProgress)}%</span>
+        </div>
+        
+        <div className="w-full h-1 bg-gray-900 rounded-full overflow-hidden border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+          <div 
+            className="h-full bg-cyan-500 transition-all duration-500 ease-out shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+            style={{ width: `${visualProgress}%` }}
+          />
+        </div>
+
+        <div className="mt-4 text-white text-sm md:text-lg font-black tracking-tighter uppercase animate-pulse">
+          Phoenix Coming<span className="text-cyan-400">...</span>
+        </div>
+      </motion.div>
+    </Html>
+  );
 }
 
-function RotatingModel({ glbPath }) {
+// ----------------------------------------------------
+// Model Component with Fade-In
+// ----------------------------------------------------
+function RotatingModel({ glbPath, onLoaded, isVisible }) {
     const modelRef = useRef();
     const { scene } = useGLTF(glbPath, DRACO_URL);
 
+    useEffect(() => {
+        if (scene) onLoaded();
+    }, [scene, onLoaded]);
+
     const originalScene = useMemo(() => {
         const clonedScene = scene.clone(true);
-        // Safety: ensure cloned scene has no background property
         clonedScene.background = null;
+        
         const box = new THREE.Box3().setFromObject(clonedScene);
-        box.getCenter(clonedScene.position).multiplyScalar(-1);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        clonedScene.position.sub(center);
+        
+        // Initialize with 0 opacity if model supports it, 
+        // but we'll use a group fade-in for better reliability.
         return clonedScene;
     }, [scene]);
 
     useFrame((state, delta) => {
-        // 🚀 BRUTE FORCE FIX: Force scene background to null every frame
-        // This stops the "turn to white" bug even if it tries to trigger
         state.scene.background = null;
-
         if (modelRef.current) {
             modelRef.current.rotation.y += delta * 0.15;
             modelRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+            
+            // Smoothly ramp up scale as a secondary fade effect
+            const targetScale = isVisible ? 5.0 : 0;
+            modelRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.05);
         }
     });
 
-    return <primitive object={originalScene} ref={modelRef} scale={5.0} position={[0, 0, 0]} />;
+    return (
+        <group ref={modelRef}>
+            <primitive object={originalScene} />
+        </group>
+    );
 }
 
-const MatrixModel = ({ color = "green", size = 280, glbPath = "/genesis_logo.glb" }) => {
+// ----------------------------------------------------
+// Main Scene Controller
+// ----------------------------------------------------
+const MatrixModel = ({ size = 280, glbPath = "/genesis_logo.glb" }) => {
+    const [modelReady, setModelReady] = useState(false);
+    const [minTimeReached, setMinTimeReached] = useState(false);
 
+    useEffect(() => {
+        const timer = setTimeout(() => setMinTimeReached(true), 2000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const isFullyReady = modelReady && minTimeReached;
 
     return (
-        <div
+        <div 
             className="relative flex items-center justify-center overflow-hidden"
-            style={{
-                width: size,
-                height: size,
-                borderRadius: '8px',
-                background: 'transparent' // CSS Level Force
-            }}
+            style={{ width: size, height: size, background: 'transparent' }}
         >
             <Canvas
                 camera={{ position: [0, 0, 10], fov: 75 }}
-                // 🚀 Keep style transparent so the HTML background shows through
-                style={{ background: 'transparent' }}
-                performance={{ min: 0.5 }}
+                style={{ background: 'transparent' }} 
                 gl={{
-                    powerPreference: "high-performance",
-                    failIfMajorPerformanceCaveat: false,
-                    // 🚀 CRITICAL FOR TRANSPARENCY
                     alpha: true,
-                    premultipliedAlpha: false
+                    powerPreference: "high-performance",
+                    antialias: false,
+                    premultipliedAlpha: false 
                 }}
                 onCreated={({ gl, scene }) => {
-                    // 🚀 Do NOT set a solid background color here
-                    gl.setClearColor(0x000000, 0); // The '0' is the opacity (fully transparent)
-                    scene.background = null; // Ensure the scene doesn't have a background color
+                    scene.background = null;
+                    gl.setClearColor(0x000000, 0); 
                 }}
-                dpr={1}
+                dpr={window.devicePixelRatio > 1 ? 2 : 1}
             >
                 <ambientLight intensity={1.5} />
-                <directionalLight position={[0, 5, 5]} intensity={2.5} color="#ffffff" />
-                <spotLight position={[5, 15, 10]} angle={0.3} penumbra={1} intensity={1} castShadow color="#ffffff" />
-
-                {/* Fixed Environment: background={false} is critical */}
+                <directionalLight position={[2, 5, 5]} intensity={2.5} />
                 <Environment preset="night" background={false} />
 
-                <Suspense fallback={<LoadingPlaceholder />}>
-                    <RotatingModel glbPath={glbPath} />
+                <Suspense fallback={null}>
+                    <RotatingModel 
+                        glbPath={glbPath} 
+                        onLoaded={() => setModelReady(true)} 
+                        isVisible={isFullyReady}
+                    />
                 </Suspense>
+
+                {/* 🚀 AnimatePresence handles the exit animation of the loader */}
+                <AnimatePresence>
+                    {!isFullyReady && (
+                        <PhoenixLoader key="loader" minTimeReached={minTimeReached} />
+                    )}
+                </AnimatePresence>
 
                 <OrbitControls enableZoom={false} enablePan={false} autoRotate={true} autoRotateSpeed={2} />
             </Canvas>

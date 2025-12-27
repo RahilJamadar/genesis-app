@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useRef, useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -56,11 +56,17 @@ const CATEGORY_MAP = {
 };
 
 const SPONSORS = [
-    { name: "CyberCore Dynamics", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
-    { name: "Nebula Systems", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Nebula+Tech" },
-    { name: "Quantum Forge", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Quantum+Forge" },
-    { name: "Vertex Media", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Vertex+Media" },
-    { name: "Titan Industries", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Afreen Shaikh", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Nafisa Shaikh", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Nebula+Tech" },
+    { name: "AR Computer Services", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Quantum+Forge" },
+    { name: "Digital Computers", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Vertex+Media" },
+    { name: "VCare", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Raymond Hardware", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Daji Salkar", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Anthony Vaz", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+
+
+
 ];
 
 // =================================================================
@@ -705,6 +711,29 @@ export default function GenesisLanding() {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleRegister = () => navigate('/register');
 
+
+    const eventsRef = useRef(null); // 🚀 Create a Ref for the events section
+
+    useEffect(() => {
+        // If we just switched to home and the intent to scroll is true
+        if (view.type === 'home' && view.scrollToEvents) {
+            const executeScroll = () => {
+                const element = document.getElementById('events');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                    // 🚀 Reset state so it doesn't loop
+                    setView(prev => ({ ...prev, scrollToEvents: false }));
+                } else {
+                    // If element isn't found, try again in next tick
+                    requestAnimationFrame(executeScroll);
+                }
+            };
+
+            // requestAnimationFrame is more precise than setTimeout for UI tasks
+            requestAnimationFrame(executeScroll);
+        }
+    }, [view.type, view.scrollToEvents]);
+
     useEffect(() => {
         const fetchEvents = async () => {
             try {
@@ -729,13 +758,9 @@ export default function GenesisLanding() {
         setView({ type: 'eventDetail', data: event });
         scrollToTop();
     };
-    useEffect(() => {
-        if (view.type === 'home' && view.scrollToEvents) {
-            document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' });
-            // Reset the flag so it doesn't scroll every time you visit home
-            setView(prev => ({ ...prev, scrollToEvents: false }));
-        }
-    }, [view]);
+
+    
+
 
 
     return (
@@ -749,7 +774,9 @@ export default function GenesisLanding() {
                         <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <Hero />
                             <AboutSection />
-                            <EventsGrid onEventSelect={handleCategorySelect} />
+                            <div ref={eventsRef}>
+                                <EventsGrid onEventSelect={handleCategorySelect} />
+                            </div>
                             <SponsorsSection />
                             <Coordinators />
                             <ContactSection />

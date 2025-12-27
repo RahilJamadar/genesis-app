@@ -43,13 +43,11 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row">
-      {/* The Sidebar is handled by the Navbar component. 
-        It will automatically be hidden on mobile based on the CSS in the Navbar.
-      */}
+    // 🚀 Added 'position-relative' and z-index to ensure it stays above ghost layers
+    <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row position-relative" style={{ zIndex: 1 }}>
       <Navbar />
 
-      <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
+      <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5" style={{ pointerEvents: 'auto' }}>
 
         <header className="mb-4 mb-lg-5 mt-2 mt-lg-0 text-center text-lg-start">
           <h2 className="fw-bold text-white mb-1">Genesis Overview</h2>
@@ -65,7 +63,6 @@ const Dashboard = () => {
         </div>
 
         <div className="row g-4">
-          {/* Standings Table */}
           <div className="col-lg-8">
             <div className="card bg-glass border-secondary h-100 shadow-lg border-opacity-10">
               <div className="card-body p-3 p-md-4">
@@ -120,7 +117,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Sidebar Widgets */}
           <div className="col-lg-4">
             <div className="card bg-glass border-secondary shadow-lg mb-4 border-opacity-10">
               <div className="card-body p-4 text-center">
@@ -155,23 +151,26 @@ const Dashboard = () => {
       </main>
 
       <style>{`
-        /* Desktop: Standard Sidebar Offset */
+        /* 🚀 THE FREEZE FIX: Optimize rendering layers */
         @media (min-width: 992px) {
           .dashboard-content { margin-left: 280px; }
         }
 
-        /* Mobile: No Offset, accommodate Top Bar */
         @media (max-width: 991.98px) {
-          .dashboard-content { 
-            margin-left: 0; 
-            padding-top: 10px; /* Slight padding below the hamburger bar */
-          }
+          .dashboard-content { margin-left: 0; padding-top: 10px; }
         }
 
         .bg-glass { 
-          background: rgba(255, 255, 255, 0.03) !important; 
-          backdrop-filter: blur(20px); 
+          background: rgba(15, 15, 15, 0.9) !important; 
+          backdrop-filter: blur(10px) !important; /* Reduced from 20px to prevent GPU lock */
           border-radius: 20px; 
+          isolation: isolate; /* Creates a new stacking context */
+        }
+
+        /* Kill stuck Bootstrap backdrops from login transition */
+        .modal-backdrop, .offcanvas-backdrop {
+            display: none !important;
+            pointer-events: none !important;
         }
 
         .stat-card { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }

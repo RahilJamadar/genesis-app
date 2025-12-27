@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify'; 
 
-// Admin Client Components
+// Admin Components
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard/Dashboard';
 import Teams from './pages/admin/Team/Teams';
@@ -27,8 +27,9 @@ import Leaderboard from './pages/admin/Leaderboard/Leaderboard';
 
 // Client Components
 import Home from './pages/Home';
+import RegisterHub from './pages/RegisterHub'; 
 import Register from './pages/Register';
-import Payment from './pages/Payment'; // ✅ Added for Payment logic
+import Payment from './pages/Payment'; 
 
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -37,60 +38,52 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 function App() {
   return (
     <Router>
-      {/* ✅ Global Notifications */}
       <ToastContainer 
         position="top-right"
         autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
         theme="dark" 
+        // 🚀 Higher z-index to stay above the 'glass' layers
+        style={{ zIndex: 99999 }} 
       />
 
       <Routes>
-        {/* 🌐 Public/Registration Routes */}
+        {/* 🌐 Public/Client Routes */}
         <Route path="/" element={<Home />} />
-        <Route path="/register" element={<Register />} />
-        {/* 💳 Payment & Verification Route */}
+        <Route path="/register" element={<RegisterHub />} />
+        <Route path="/register-form/:mode" element={<Register />} /> 
         <Route path="/payment/:teamId" element={<Payment />} /> 
 
-        {/* 🔐 Authentication Entry Points */}
-        <Route path="/admin/login" element={<Login />} />
-        <Route path="/faculty/login" element={<FacultyLogin />} />
-
         {/* 🧑‍⚖️ Faculty Portal Routes */}
+        <Route path="/faculty/login" element={<FacultyLogin />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
         <Route path="/faculty/event/:id/details" element={<FacultyEventDetails />} />
         <Route path="/faculty/event/:id/score" element={<FacultyEventScoring />} />
 
-        {/* 🛡️ Admin Management Routes (Protected) */}
-        <Route path="/admin/admin-manage" element={<ProtectedRoute><AdminManage /></ProtectedRoute>} />
-        <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        
-        {/* Team Management */}
-        <Route path="/admin/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
-        <Route path="/admin/teams/view/:id" element={<ProtectedRoute><ViewTeam /></ProtectedRoute>} />
-        <Route path="/admin/teams/edit/:id" element={<ProtectedRoute><EditTeam /></ProtectedRoute>} />
-
-        {/* Event Management */}
-        <Route path="/admin/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
-        <Route path="/admin/events/edit/:id" element={<ProtectedRoute><EditEvent /></ProtectedRoute>} />
-        <Route path="/admin/events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
-        <Route path="/admin/events/view/:id" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
-        <Route path="/admin/events/participants" element={<ProtectedRoute><EventParticipants /></ProtectedRoute>} />
-
-        {/* Infrastructure & Scoring */}
-        <Route path="/admin/faculty" element={<ProtectedRoute><FacultyPage /></ProtectedRoute>} />
-        <Route path="/admin/student-coordinators" element={<ProtectedRoute><StudentCoordinatorsPage /></ProtectedRoute>} />
-        <Route path="/admin/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
-        <Route path="/admin/scoring" element={<ProtectedRoute><Scoring /></ProtectedRoute>} />
-
-        {/* Analytics & Standings */}
-        <Route path="/admin/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+        {/* 🛡️ Admin Portal (Isolated Container to prevent Style Leak) */}
+        <Route path="/admin/*" element={
+          <div className="admin-portal-root">
+            <Routes>
+              <Route path="login" element={<Login />} />
+              
+              {/* Protected Sub-routes */}
+              <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="admin-manage" element={<ProtectedRoute><AdminManage /></ProtectedRoute>} />
+              <Route path="teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
+              <Route path="teams/view/:id" element={<ProtectedRoute><ViewTeam /></ProtectedRoute>} />
+              <Route path="teams/edit/:id" element={<ProtectedRoute><EditTeam /></ProtectedRoute>} />
+              <Route path="events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+              <Route path="events/edit/:id" element={<ProtectedRoute><EditEvent /></ProtectedRoute>} />
+              <Route path="events/new" element={<ProtectedRoute><NewEvent /></ProtectedRoute>} />
+              <Route path="events/view/:id" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
+              <Route path="events/participants" element={<ProtectedRoute><EventParticipants /></ProtectedRoute>} />
+              <Route path="faculty" element={<ProtectedRoute><FacultyPage /></ProtectedRoute>} />
+              <Route path="student-coordinators" element={<ProtectedRoute><StudentCoordinatorsPage /></ProtectedRoute>} />
+              <Route path="schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
+              <Route path="scoring" element={<ProtectedRoute><Scoring /></ProtectedRoute>} />
+              <Route path="leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+            </Routes>
+          </div>
+        } />
       </Routes>
     </Router>
   );
