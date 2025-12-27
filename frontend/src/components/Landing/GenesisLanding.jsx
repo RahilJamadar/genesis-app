@@ -1,9 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useGLTF } from '@react-three/drei'; // Required for global preloading
 import MatrixModel from '../../ThreeModel/RotatingModel';
 import getApiBase from '../../utils/getApiBase';
+
+// =================================================================
+// 🚀 GLOBAL PERFORMANCE OPTIMIZATION
+// =================================================================
+// This triggers the 7.3MB download immediately when the JS starts parsing, 
+// rather than waiting for the Hero component to mount.
+const DRACO_URL = 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/';
+const GLB_PATH = "/genesis_logo.glb";
+useGLTF.preload(GLB_PATH, DRACO_URL);
 
 // =================================================================
 // 0. DATA: EVENT DETAILS & SPONSORS
@@ -150,7 +160,7 @@ const MatrixCube = ({ color = "green", size = 280 }) => {
         <MatrixModel
             color={color}
             size={size}
-            glbPath="/genesis_logo.glb"
+            glbPath={GLB_PATH}
         />
     );
 }
@@ -221,7 +231,8 @@ const Hero = () => {
     const y1 = useTransform(scrollY, [0, 500], [0, 200])
     const opacity = useTransform(scrollY, [0, 300], [1, 0])
 
-    const [heroSize, setHeroSize] = useState(280);
+    // ✅ Initialize with a high default to prevent layout-shift flash
+    const [heroSize, setHeroSize] = useState(1000);
 
     useEffect(() => {
         const calculateSize = () => {
@@ -235,25 +246,57 @@ const Hero = () => {
 
     return (
         <section className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
-            <WhiteDynamicLines />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30 pointer-events-none" />
-            <div className="absolute inset-0 flex items-center justify-center z-0 -mt-[60px] md:mt-0" style={{ width: '100vw', height: '100vh' }}>
-                <MatrixCube color="green" size={heroSize} />
+            {/* 1. Background Layers (Lowest Z-Index) */}
+            <div className="z-0">
+                <WhiteDynamicLines />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30 pointer-events-none" />
             </div>
 
-            <motion.div style={{ y: y1, opacity }} className="z-10 flex flex-col items-center justify-between h-full w-full max-w-7xl px-4 py-8 pointer-events-none">
+            {/* 2. 3D Model - Added pointer-events-none to prevent interaction issues */}
+            <div
+                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+                style={{ width: '100vw', height: '100vh', marginTop: '-30px' }}
+            >
+                <Suspense fallback={null}>
+                    <MatrixCube color="green" size={heroSize} />
+                </Suspense>
+            </div>
+
+            {/* 3. UI Content (Highest Z-Index) */}
+            <motion.div
+                style={{ y: y1, opacity }}
+                className="z-20 flex flex-col items-center justify-between h-full w-full max-w-7xl px-4 py-8 pointer-events-none"
+            >
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="mt-10 flex items-center space-x-2 pointer-events-auto">
                     <span className="px-2 py-1 border border-green-500/30 rounded text-xs font-mono text-green-400 bg-green-900/10 backdrop-blur-sm">SYSTEM READY</span>
                     <span className="px-2 py-1 border border-cyan-500/30 rounded text-xs font-mono text-cyan-400 bg-cyan-900/10 backdrop-blur-sm">V 8.0</span>
                 </motion.div>
 
                 <motion.div className="flex flex-col items-center justify-center text-center">
-                    <p className="mt-80 text-xl md:text-2xl font-light tracking-[0.2em] text-gray-400 uppercase bg-black/40 backdrop-blur-sm p-2 rounded pointer-events-auto">The Rise of Next Generation</p>
+                    <p className="
+        mt-[40vh]            /* 📱 Mobile: 10rem (Default) */
+        md:mt-60         /* 💻 Tablet: 15rem */
+        lg:mt-80         /* 🖥️ Desktop: 20rem */
+        text-xl md:text-2xl font-light tracking-[0.2em] 
+        text-gray-400 uppercase bg-black/40 backdrop-blur-sm 
+        p-2 rounded pointer-events-auto"
+                    >
+                        The Rise of Next Generation
+                    </p>
                 </motion.div>
 
-                <div className="flex flex-col items-center pointer-events-auto mb-10 mt-4">
-                    <Countdown />
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1, duration: 1 }} className="mt-4 animate-bounce">
+                <div className="flex flex-col items-center pointer-events-auto mt-[20vh] mb-10 mt-4">
+                    {/* 🚀 Move up by 10 units on mobile, reset to 0 on desktop */}
+                    <div className="-mt-10 md:mt-0 flex flex-col items-center">
+                        <Countdown />
+                    </div>
+
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 1, duration: 1 }}
+                        className="mt-4 animate-bounce"
+                    >
                         <ChevronDown className="w-8 h-8 text-gray-500" />
                     </motion.div>
                 </div>
@@ -371,7 +414,7 @@ const SponsorsSection = () => {
             <div className="absolute inset-0 bg-cyan-900/5 pointer-events-none" />
 
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="text-center mb-14 relative z-10">
-                <h2 className="text-3xl md:text-4xl font-black text-white tracking-[0.3em] uppercase opacity-40">Strategic Alliances</h2>
+                <h2 className="text-3xl md:text-4xl font-black text-white tracking-[0.3em] uppercase opacity-40">Our Sponsors</h2>
                 <div className="h-[2px] w-24 bg-cyan-500/50 mx-auto mt-4" />
             </motion.div>
 
@@ -390,23 +433,6 @@ const SponsorsSection = () => {
                                 />
                             </div>
                             <span className="text-sm font-mono tracking-[0.2em] text-gray-500 uppercase group-hover:text-cyan-400 transition-colors">{sponsor.name}</span>
-                        </div>
-                    ))}
-                </div>
-                <div className="flex animate-infinite-scroll space-x-12 items-center py-6" aria-hidden="true">
-                    {scrollingSponsors.map((sponsor, index) => (
-                        <div
-                            key={`dup-${index}`}
-                            className="flex-shrink-0 w-80 h-48 bg-gradient-to-b from-gray-900/60 to-black border border-gray-800 rounded-2xl flex flex-col items-center justify-center p-6 transition-all duration-300"
-                        >
-                            <div className="h-28 w-full flex items-center justify-center mb-4">
-                                <img
-                                    src={sponsor.img}
-                                    alt={sponsor.name}
-                                    className="max-h-full max-w-full object-contain grayscale opacity-60"
-                                />
-                            </div>
-                            <span className="text-sm font-mono tracking-[0.2em] text-gray-500 uppercase">{sponsor.name}</span>
                         </div>
                     ))}
                 </div>
@@ -464,16 +490,14 @@ const ContactSection = () => (
                         Zuarinagar, Goa - 403726
                     </p>
                 </div>
-                <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="group w-full h-80 bg-gray-900 rounded-2xl border border-gray-800 relative overflow-hidden flex items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.1)] hover:border-cyan-500/50 transition-all duration-300 cursor-pointer">
+                <a href="http://maps.google.com/?q=MES+College+Zuarinagar" target="_blank" rel="noopener noreferrer" className="group w-full h-80 bg-gray-900 rounded-2xl border border-gray-800 relative overflow-hidden flex items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.1)] hover:border-cyan-500/50 transition-all duration-300 cursor-pointer no-underline">
                     <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
                         <div className="absolute top-1/2 left-0 w-full h-[1px] bg-cyan-500 animate-pulse" />
                         <div className="absolute top-0 left-1/2 h-full w-[1px] bg-purple-500 animate-pulse" />
                         <div className="w-32 h-32 border border-white/20 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-ping opacity-20" />
-                        <div className="w-64 h-64 border border-cyan-500/10 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-[spin_10s_linear_infinite]" />
                     </div>
                     <div className="relative z-10 flex flex-col items-center">
                         <MapPin className="w-12 h-12 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-bounce" />
-                        <div className="w-4 h-2 bg-red-500/50 rounded-full blur-sm mt-1 animate-pulse" />
                         <span className="mt-4 text-xs font-mono text-cyan-400 bg-black/80 px-4 py-2 border border-cyan-500/30 rounded backdrop-blur group-hover:text-white group-hover:border-cyan-400 transition-colors">
                             TARGET_LOCKED // CLICK_TO_NAVIGATE
                         </span>
@@ -538,10 +562,6 @@ const Navbar = ({ onHomeClick, onRegisterClick }) => {
     );
 }
 
-// =================================================================
-// 4. NEW DYNAMIC LAYER COMPONENTS
-// =================================================================
-
 const CategoryListPage = ({ categoryLabel, events, onEventSelect, onBack }) => {
     const data = EVENTS_DATA[categoryLabel];
     return (
@@ -585,11 +605,9 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
         exit={{ opacity: 0, y: -10 }}
         className="min-h-screen bg-black pt-20 md:pt-28 px-4 pb-12 relative overflow-hidden"
     >
-        {/* Subtle background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-cyan-500/5 blur-[120px] pointer-events-none" />
 
         <div className="max-w-4xl mx-auto relative z-10">
-            {/* Minimalist Back Button */}
             <button
                 onClick={onBack}
                 className="flex items-center text-gray-400 hover:text-cyan-400 transition-all mb-8 font-mono text-xs uppercase tracking-widest bg-transparent border-none cursor-pointer group"
@@ -599,7 +617,6 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
             </button>
 
             <div className="bg-gray-900/40 border border-white/5 rounded-[2rem] p-6 md:p-12 backdrop-blur-xl shadow-2xl overflow-hidden">
-                {/* Header Section */}
                 <div className="mb-10">
                     <div className="flex items-center gap-2 mb-4">
                         <span className="h-px w-8 bg-cyan-500/50"></span>
@@ -610,7 +627,6 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
                     </h1>
                 </div>
 
-                {/* Info Grid: Responsive 1col mobile / 3col desktop */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-12">
                     <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
                         <User className="text-cyan-400 w-5 h-5" />
@@ -635,7 +651,6 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
                     </div>
                 </div>
 
-                {/* Mission Protocol (Rules) */}
                 <div className="mb-12">
                     <h3 className="text-xs font-bold text-gray-500 mb-4 font-mono uppercase tracking-[0.2em] flex items-center gap-2">
                         {"// Mission_Brief"}
@@ -645,7 +660,6 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
                     </div>
                 </div>
 
-                {/* Coordinators Section */}
                 <div className="mb-12">
                     <h3 className="text-xs font-bold text-gray-500 mb-4 font-mono uppercase tracking-[0.2em] flex items-center gap-2">
                         {"// Command_Staff"}
@@ -667,7 +681,6 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
                     </div>
                 </div>
 
-                {/* CTA Button */}
                 <motion.button
                     whileHover={{ scale: 1.01, backgroundColor: '#06b6d4' }}
                     whileTap={{ scale: 0.98 }}
@@ -680,6 +693,7 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
         </div>
     </motion.div>
 );
+
 // =================================================================
 // 6. MAIN CONTROLLER
 // =================================================================
@@ -694,8 +708,7 @@ export default function GenesisLanding() {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const baseURL = getApiBase(); // Ensure this is imported
-                // Points to the new separate public route
+                const baseURL = getApiBase();
                 const res = await axios.get(`${baseURL}/api/admin/events/public`);
                 setAllEvents(res.data || []);
             } catch (err) {
@@ -716,6 +729,14 @@ export default function GenesisLanding() {
         setView({ type: 'eventDetail', data: event });
         scrollToTop();
     };
+    useEffect(() => {
+        if (view.type === 'home' && view.scrollToEvents) {
+            document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' });
+            // Reset the flag so it doesn't scroll every time you visit home
+            setView(prev => ({ ...prev, scrollToEvents: false }));
+        }
+    }, [view]);
+
 
     return (
         <div className="bg-black min-h-screen text-white w-full overflow-hidden font-sans">
@@ -741,7 +762,8 @@ export default function GenesisLanding() {
                             categoryLabel={view.label}
                             events={view.data}
                             onEventSelect={handleEventSelect}
-                            onBack={() => { setView({ type: 'home' }); scrollToTop(); }}
+                            onBack={() => setView({ type: 'home', scrollToEvents: true })
+                            }
                         />
                     )}
 
@@ -750,19 +772,13 @@ export default function GenesisLanding() {
                             key="info"
                             event={view.data}
                             onBack={() => {
-                                // 1. Get the category from the event itself
                                 const rawCat = view.data.category;
-
-                                // 2. Map it back to the keys used in CATEGORY_MAP / EVENTS_DATA
-                                let targetLabel = "TECHNICAL"; // Default fallback
-
+                                let targetLabel = "TECHNICAL";
                                 if (rawCat === "Pre-events") targetLabel = "PRE-EVENTS";
                                 else if (rawCat === "Tech") targetLabel = "TECHNICAL";
                                 else if (rawCat === "Cultural") targetLabel = "CULTURAL";
                                 else if (rawCat === "Gaming") targetLabel = "GAMING";
                                 else if (rawCat === "Sports") targetLabel = "SPORTS";
-
-                                // 3. Call the select function with the correct label
                                 handleCategorySelect(targetLabel);
                             }}
                             onRegister={handleRegister}

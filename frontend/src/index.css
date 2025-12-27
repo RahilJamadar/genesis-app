@@ -3,20 +3,66 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Your other global styles */
+/* 🚀 ADD THIS TO OVERRIDE BOOTSTRAP */
+
+
+/* Force the canvas container to stay black */
+.relative.flex.items-center.justify-center {
+    background-color: transparent !important;
+}
+
+/* 🚀 CRITICAL FIX: Force the absolute base layer to Black */
+html, 
+body, 
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent !important; /* Prevents white leak */
+  color: white;
+}
+
 html {
   scroll-behavior: smooth;
 }
+
 body {
-  margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevents horizontal scroll issues on mobile */
+  overflow-x: hidden; 
+}
+
+/* 🚀 3D CANVAS FIX: Ensures the canvas doesn't default to white background */
+canvas {
+  display: block;
+  background-color: transparent !important;
+  outline: none;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Custom Scrollbar to match your Genesis theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0dcaf0; /* Genesis Cyan */
 }

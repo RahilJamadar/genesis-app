@@ -1,10 +1,10 @@
 import React from 'react';
-import GenesisLanding from '../components/Landing/GenesisLanding'; // Adjust path
+import GenesisLanding from '../components/Landing/GenesisLanding';
 
 function Home() {
   return (
-    // This ID must match the 'important' selector in tailwind.config.js
-    <div id="genesis-root">
+    // Added bg-black and min-h-screen to ensure no white peaks through
+    <div id="genesis-root" className="bg-black min-h-screen w-full">
        <GenesisLanding />
     </div>
   );
