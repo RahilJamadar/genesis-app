@@ -5,14 +5,13 @@ import { toast } from 'react-toastify';
 
 const EventParticipants = () => {
   const [events, setEvents] = useState([]);
-  const [allTeams, setAllTeams] = useState([]); // Store master list
-  const [filteredData, setFilteredData] = useState([]); // Store what we show
+  const [allTeams, setAllTeams] = useState([]); 
+  const [filteredData, setFilteredData] = useState([]); 
   const [colleges, setColleges] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedCollege, setSelectedCollege] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Load initial data
   useEffect(() => {
     const fetchInitialData = async () => {
       setLoading(true);
@@ -25,7 +24,6 @@ const EventParticipants = () => {
         setEvents(eventRes.data || []);
         setAllTeams(teamRes.data || []);
         
-        // Extract unique colleges
         const collegeSet = new Set(teamRes.data?.map(team => team.college) || []);
         setColleges([...collegeSet].sort());
       } catch (err) {
@@ -37,7 +35,6 @@ const EventParticipants = () => {
     fetchInitialData();
   }, []);
 
-  // Filter Logic - This replaces the broken /filter API call
   useEffect(() => {
     if (!selectedEvent && !selectedCollege) {
       setFilteredData([]);
@@ -46,16 +43,12 @@ const EventParticipants = () => {
 
     let results = [...allTeams];
 
-    // 1. Filter by College if selected
     if (selectedCollege) {
       results = results.filter(team => team.college === selectedCollege);
     }
 
-    // 2. Filter by Event if selected
     if (selectedEvent) {
       results = results.filter(team => {
-        // Check if event is in team's registeredEvents names or IDs
-        // and also check members list for specific event names
         const hasEventInTeam = team.registeredEvents?.some(ev => 
           ev.name?.toLowerCase() === selectedEvent.toLowerCase()
         );
@@ -66,13 +59,14 @@ const EventParticipants = () => {
       });
     }
 
-    // 3. Transform data for display (only show members belonging to selected event)
     const transformed = results.map(team => ({
       college: team.college,
+      // 🚀 NEW: Include teamName for the Admin view
+      teamName: team.teamName, 
       leader: team.leader,
       contact: team.contact,
       participants: team.members?.filter(m => {
-        if (!selectedEvent) return true; // Show all if no event filter
+        if (!selectedEvent) return true;
         return m.events?.some(e => e.toLowerCase() === selectedEvent.toLowerCase());
       }) || []
     })).filter(item => item.participants.length > 0);
@@ -154,13 +148,19 @@ const EventParticipants = () => {
                     <div className="card bg-glass border-info border-opacity-20 h-100 shadow-sm overflow-hidden">
                       <div className="card-header bg-info bg-opacity-10 border-bottom border-info border-opacity-10 p-3">
                         <div className="d-flex justify-content-between align-items-center">
-                          <h6 className="text-info fw-bold mb-0 text-truncate">{block.college}</h6>
-                          <span className=" text-black badge bg-info bg-opacity-20 text-info border border-info border-opacity-25">
+                          <div className="overflow-hidden">
+                            {/* 🚀 SHOW BOTH: Team Name and College Name */}
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                                <span className="badge bg-info text-black fw-black x-small-badge ls-1">TEAM: {block.teamName || "PENDING"}</span>
+                            </div>
+                            <h6 className="text-white fw-bold mb-0 text-truncate">{block.college}</h6>
+                          </div>
+                          <span className="badge bg-info bg-opacity-20 text-black border border-info border-opacity-25 py-2 px-3">
                             {block.participants.length} Units
                           </span>
                         </div>
-                        <div className="x-small text-white opacity-50 mt-1">
-                          Leader: {block.leader} | 📞 {block.contact}
+                        <div className="x-small text-white opacity-50 mt-2 font-mono">
+                          LEADER: {block.leader} | 📞 {block.contact}
                         </div>
                       </div>
                       <div className="card-body p-0">
@@ -169,7 +169,7 @@ const EventParticipants = () => {
                             <div key={idx} className="p-3 border-bottom border-white border-opacity-5 hover-bg">
                               <div className="d-flex justify-content-between align-items-center">
                                 <span className="text-white fw-bold small">{p.name}</span>
-                                <div className="d-flex gap-1">
+                                <div className="d-flex gap-1 flex-wrap justify-content-end">
                                   {p.events?.map((evName, eIdx) => (
                                     <span key={eIdx} className="badge bg-black border border-secondary text-info x-small-badge">
                                       {evName}
@@ -195,8 +195,9 @@ const EventParticipants = () => {
         .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(15px); border-radius: 15px; }
         .hover-bg:hover { background: rgba(255, 255, 255, 0.05); }
         .x-small { font-size: 0.7rem; }
-        .x-small-badge { font-size: 0.6rem; }
+        .x-small-badge { font-size: 0.6rem; font-weight: 700; }
         .ls-1 { letter-spacing: 1px; }
+        .fw-black { font-weight: 900; }
       `}</style>
     </div>
   );

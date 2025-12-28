@@ -1,17 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const Team = require('../models/Team');
+const Event = require('../models/Event'); // Added missing model
+const Score = require('../models/Score'); // 🚀 CRITICAL FIX: Added missing model import
 const verifyAdmin = require('../middleware/verifyAdmin');
 const mongoose = require('mongoose');
 
 // ==========================================
 // 🔐 PROTECTED ANALYTICS ROUTES (Admin Only)
 // ==========================================
-// These MUST come before the dynamic /:id route
+
+/**
+ * @route   POST /api/admin/teams/reset-all-scores
+ * @desc    Wipe all scores from teams and delete score records
+ */
+router.post('/reset-all-scores', verifyAdmin, async (req, res) => {
+  try {
+    // 1. Wipe individual points map and reset total points for every team
+    await Team.updateMany(
+      {}, 
+      { $set: { finalPoints: {}, totalTrophyPoints: 0 } }
+    );
+    
+    // 2. Wipe the Scores collection entirely to remove judge records
+    // This was failing because Score wasn't required at the top
+    await Score.deleteMany({}); 
+
+    res.json({ success: true, message: "Database scores purged successfully." });
+  } catch (err) {
+    console.error('Reset Error:', err);
+    res.status(500).json({ error: "Failed to reset database." });
+  }
+});
 
 /**
  * @route   GET /api/admin/teams/catering-report
- * @desc    Safely calculate dietary analytics
  */
 router.get('/catering-report', verifyAdmin, async (req, res) => {
   try {
@@ -23,6 +46,7 @@ router.get('/catering-report', verifyAdmin, async (req, res) => {
       
       return {
         college: t.college || 'Unknown Institution',
+        teamName: t.teamName || '',
         veg: veg,
         nonVeg: nonVeg,
         total: veg + nonVeg
@@ -55,6 +79,7 @@ router.get('/leaderboard/overall', verifyAdmin, async (req, res) => {
     const result = teams.map(t => ({
       id: t._id,
       college: t.college,
+      teamName: t.teamName || '',
       leader: t.leader,
       score: t.totalTrophyPoints || 0
     }));
@@ -75,6 +100,7 @@ router.get('/leaderboard/event/:eventId', verifyAdmin, async (req, res) => {
     const leaderboard = teams.map(team => ({
       id: team._id,
       college: team.college,
+      teamName: team.teamName || '',
       leader: team.leader,
       score: team.finalPoints instanceof Map 
               ? (team.finalPoints.get(eventId) || 0) 
@@ -91,10 +117,6 @@ router.get('/leaderboard/event/:eventId', verifyAdmin, async (req, res) => {
 // 🌐 PUBLIC ROUTES
 // ==========================================
 
-/**
- * @route   POST /api/admin/teams
- * @desc    Public Registration
- */
 router.post('/', async (req, res) => {
     try {
         const newTeam = new Team(req.body);
@@ -105,25 +127,17 @@ router.post('/', async (req, res) => {
             team: newTeam 
         });
     } catch (err) {
-        console.error('Registration POST Error:', err);
         res.status(400).json({ success: false, message: err.message });
     }
 });
 
-/**
- * @route   GET /api/admin/teams/:id
- * @desc    Public Check: Get single team profile by ID
- */
 router.get('/:id', async (req, res) => {
     try {
-        // Defensive Check: If ID is not a valid MongoDB ID, don't query
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ success: false, message: 'Invalid ID format' });
         }
-
         const team = await Team.findById(req.params.id)
             .populate('registeredEvents', 'name category isTrophyEvent');
-            
         if (!team) return res.status(404).json({ success: false, message: 'ID not found' });
         res.status(200).json(team);
     } catch (err) {
@@ -135,9 +149,6 @@ router.get('/:id', async (req, res) => {
 // 🔐 PROTECTED CRUD ROUTES (Admin Only)
 // ==========================================
 
-/**
- * @route   GET /api/admin/teams (Fetch All)
- */
 router.get('/', verifyAdmin, async (req, res) => {
   try {
     const teams = await Team.find()
@@ -149,35 +160,23 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-/**
- * @route   PUT /api/admin/teams/:id
- */
 router.put('/:id', verifyAdmin, async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);
     if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
-
     Object.assign(team, req.body);
     await team.save();
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Team updated successfully', 
-      team 
-    });
+    res.status(200).json({ success: true, message: 'Team updated', team });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
 });
 
-/**
- * @route   DELETE /api/admin/teams/:id
- */
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const deleted = await Team.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ success: false, message: 'Team not found' });
-    res.status(200).json({ success: true, message: 'Team deleted successfully' });
+    res.status(200).json({ success: true, message: 'Team deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error deleting team' });
   }

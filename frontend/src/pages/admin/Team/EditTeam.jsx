@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
+
 const EditTeam = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ const EditTeam = () => {
 
         <header className="mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
           <div className="text-center text-sm-start">
-            <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">Edit Team: <span className="text-info">{team.college}</span></h2>
+            <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">Edit Team: <span className="text-info">{team.teamName || team.college}</span></h2>
             <p className="text-light opacity-75 small">Update administrative details and member list</p>
           </div>
           <button className="btn btn-outline-secondary btn-sm w-100 w-sm-auto" onClick={() => navigate('/admin/teams')}>
@@ -105,32 +106,45 @@ const EditTeam = () => {
               <div className="card-body p-3 p-md-4">
                 <h5 className="text-white fw-bold mb-4 border-bottom border-secondary pb-2">Institution Info</h5>
                 
+                {/* 🚀 NEW FIELD: ASSIGNED TEAM NAME */}
+                <div className="mb-4 p-3 rounded bg-info bg-opacity-10 border border-info border-opacity-25">
+                  <label className="text-info x-small fw-bold mb-2 d-block">ASSIGNED TEAM NAME (Fair Competition ID)</label>
+                  <input 
+                    type="text" 
+                    className="form-control bg-dark text-white border-info shadow-none py-2" 
+                    placeholder="e.g. Team Alpha / GEN-001"
+                    value={team.teamName || ''} 
+                    onChange={e => handleChange('teamName', e.target.value)} 
+                  />
+                  <small className="text-info opacity-50 x-small mt-1 d-block italic">This name will be visible to judges instead of the college name.</small>
+                </div>
+
                 <div className="mb-3">
-                  <label className="text-info x-small fw-bold mb-2 d-block">COLLEGE NAME</label>
+                  <label className="text-white text-opacity-50 x-small fw-bold mb-2 d-block">COLLEGE NAME</label>
                   <input type="text" className="form-control bg-dark text-white border-secondary shadow-none py-2" 
                     value={team.college} onChange={e => handleChange('college', e.target.value)} />
                 </div>
 
                 <div className="mb-3">
-                  <label className="text-info x-small fw-bold mb-2 d-block">TEAM LEADER</label>
+                  <label className="text-white text-opacity-50 x-small fw-bold mb-2 d-block">TEAM LEADER</label>
                   <input type="text" className="form-control bg-dark text-white border-secondary shadow-none py-2" 
                     value={team.leader} onChange={e => handleChange('leader', e.target.value)} />
                 </div>
 
                 <div className="mb-3">
-                  <label className="text-info x-small fw-bold mb-2 d-block">LEADER EMAIL</label>
+                  <label className="text-white text-opacity-50 x-small fw-bold mb-2 d-block">LEADER EMAIL</label>
                   <input type="email" className="form-control bg-dark text-white border-secondary shadow-none py-2" 
                     value={team.email} onChange={e => handleChange('email', e.target.value)} />
                 </div>
 
                 <div className="mb-3">
-                  <label className="text-info x-small fw-bold mb-2 d-block">PRIMARY CONTACT</label>
+                  <label className="text-white text-opacity-50 x-small fw-bold mb-2 d-block">PRIMARY CONTACT</label>
                   <input type="text" className="form-control bg-dark text-white border-secondary shadow-none py-2" 
                     value={team.contact} onChange={e => handleChange('contact', e.target.value)} />
                 </div>
 
                 <div className="mb-4">
-                  <label className="text-info x-small fw-bold mb-2 d-block">FACULTY IN-CHARGE</label>
+                  <label className="text-white text-opacity-50 x-small fw-bold mb-2 d-block">FACULTY IN-CHARGE</label>
                   <input type="text" className="form-control bg-dark text-white border-secondary shadow-none py-2" 
                     value={team.faculty} onChange={e => handleChange('faculty', e.target.value)} />
                 </div>
@@ -225,39 +239,31 @@ const EditTeam = () => {
       </main>
 
       <style>{`
-        /* Desktop: Standard Sidebar Offset */
         @media (min-width: 992px) {
           .dashboard-content { margin-left: 280px; }
         }
-
-        /* Mobile View Fixes */
         @media (max-width: 991.98px) {
           .dashboard-content { 
             margin-left: 0; 
             padding-top: 10px; 
           }
         }
-
         .bg-glass { 
           background: rgba(255, 255, 255, 0.05) !important; 
           backdrop-filter: blur(20px); 
           border-radius: 20px; 
         }
-
         .x-small { font-size: 0.7rem; letter-spacing: 0.5px; }
-        
-        /* Custom scrollbar for member list */
         .member-edit-list::-webkit-scrollbar { width: 5px; }
         .member-edit-list::-webkit-scrollbar-track { background: transparent; }
         .member-edit-list::-webkit-scrollbar-thumb { 
           background: rgba(13, 202, 240, 0.2); 
           border-radius: 10px; 
         }
-
-        /* Fix multiple select styling for mobile touch */
         select[multiple] {
           padding: 8px !important;
         }
+        .italic { font-style: italic; }
       `}</style>
     </div>
   );

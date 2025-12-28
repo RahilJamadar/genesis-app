@@ -8,6 +8,10 @@ const MemberSchema = new mongoose.Schema({
 });
 
 const TeamSchema = new mongoose.Schema({
+  // 🚀 NEW FIELD: teamName
+  // Set to default empty string so existing records stay compatible
+  teamName: { type: String, default: '', trim: true },
+  
   college: { type: String, required: true, trim: true },
   faculty: { type: String, required: true, trim: true },
   leader: { type: String, required: true, trim: true },

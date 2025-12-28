@@ -4,6 +4,7 @@ import axios from 'axios';
 import getApiBase from '../../../utils/getApiBase';
 import FacultyNavbar from '../../../components/FacultyNavbar';
 import { toast } from 'react-toastify';
+
 const FacultyEventScoring = () => {
   const { id: eventId } = useParams();
   const [eventData, setEventData] = useState(null);
@@ -36,7 +37,13 @@ const FacultyEventScoring = () => {
     Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
   }), []);
 
-  // 1. Fetch Event Meta & Judges (Initial Load)
+  // Helper to format team name for fairness
+  const getDisplayName = (team) => {
+    if (!team) return "";
+    // Priority: 1. teamName assigned by Admin, 2. Masked ID fallback
+    return team.teamName || `TEAM_${team._id.substring(team._id.length - 4).toUpperCase()}`;
+  };
+
   const fetchInitialMeta = useCallback(async () => {
     try {
       const [eventRes, judgeRes] = await Promise.all([
@@ -55,16 +62,14 @@ const FacultyEventScoring = () => {
     }
   }, [eventId, baseURL, headers]);
 
-  // 2. Fetch Teams specifically for the current Round (Round-Aware)
   const fetchTeamsForRound = useCallback(async () => {
     try {
-      // Send round as query param so backend can filter by promotion
       const res = await axios.get(`${baseURL}/api/faculty/scoring/event/${eventId}/teams?round=${round}`, { 
         headers, 
         withCredentials: true 
       });
       setTeams(res.data);
-      setSelectedTeam(''); // Reset selection when round changes
+      setSelectedTeam(''); 
     } catch (err) {
       toast.error('❌ Failed to fetch teams for this round');
     }
@@ -73,7 +78,6 @@ const FacultyEventScoring = () => {
   useEffect(() => { fetchInitialMeta(); }, [fetchInitialMeta]);
   useEffect(() => { fetchTeamsForRound(); }, [fetchTeamsForRound]);
 
-  // 3. Fetch existing scores
   const fetchCurrentScores = useCallback(async () => {
     const isDirect = eventData?.isDirectWin;
     const url = isDirect 
@@ -116,7 +120,6 @@ const FacultyEventScoring = () => {
     setCriteria(updated);
   };
 
-  // 🚀 Handle Leaderboard Promotion
   const handlePromotion = async () => {
     if (!window.confirm(`Are you sure you want to promote the top ${promotionCount} teams to Round ${round + 1}?`)) return;
     
@@ -211,7 +214,7 @@ const FacultyEventScoring = () => {
                       <select className="form-select bg-dark text-white border-secondary shadow-none py-3" 
                         value={firstPlace} onChange={e => setFirstPlace(e.target.value)} disabled={finalized}>
                         <option value="">-- Choose Winner --</option>
-                        {teams.map(t => <option key={t._id} value={t._id}>{t.college.toUpperCase()}</option>)}
+                        {teams.map(t => <option key={t._id} value={t._id}>{getDisplayName(t).toUpperCase()}</option>)}
                       </select>
                     </div>
                     <div className="mb-5">
@@ -219,7 +222,7 @@ const FacultyEventScoring = () => {
                       <select className="form-select bg-dark text-white border-secondary shadow-none py-3" 
                         value={secondPlace} onChange={e => setSecondPlace(e.target.value)} disabled={finalized}>
                         <option value="">-- Choose Runner-up --</option>
-                        {teams.map(t => <option key={t._id} value={t._id}>{t.college.toUpperCase()}</option>)}
+                        {teams.map(t => <option key={t._id} value={t._id}>{getDisplayName(t).toUpperCase()}</option>)}
                       </select>
                     </div>
                     {!finalized ? (
@@ -242,11 +245,15 @@ const FacultyEventScoring = () => {
                         <label className="text-info small fw-bold mb-2 d-block">TARGET TEAM</label>
                         <select className="form-select bg-dark text-white border-secondary shadow-none" 
                           value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)} disabled={loading}>
-                          <option value="">-- Choose Team --</option>
-                          {teams.map(t => <option key={t._id} value={t._id}>{t.college} ({t.leader})</option>)}
+                          <option value="">-- Choose Team Identity --</option>
+                          {teams.map(t => (
+                            <option key={t._id} value={t._id}>
+                              {getDisplayName(t)}
+                            </option>
+                          ))}
                         </select>
                         <small className="text-secondary mt-1 d-block" style={{fontSize: '0.7rem'}}>
-                          {round > 1 ? 'Showing promoted teams only' : 'Showing all registered teams'}
+                          {round > 1 ? 'Promoted teams only' : 'All identified teams'}
                         </small>
                       </div>
                       <div className="col-md-6">
@@ -291,7 +298,7 @@ const FacultyEventScoring = () => {
                         )}
                       </div>
                     ) : (
-                      <div className="text-center py-5 opacity-50 text-white">Select a team to begin round evaluation</div>
+                      <div className="text-center py-5 opacity-50 text-white">Select a team identity to begin evaluation</div>
                     )}
 
                     {/* 🚀 PROMOTION CONTROL UI */}
@@ -301,10 +308,6 @@ const FacultyEventScoring = () => {
                            <h6 className="text-warning fw-bold mb-3 d-flex align-items-center gap-2">
                              <i className="bi bi-lightning-charge-fill"></i> ROUND PROMOTION CONTROL
                            </h6>
-                           <p className="text-secondary small mb-3">
-                             Promote top teams from this round's leaderboard to Round {round + 1}. 
-                             Teams will be selected automatically based on the finalized scores below.
-                           </p>
                            <div className="d-flex gap-2">
                               <div className="flex-grow-1">
                                 <input 
@@ -315,15 +318,14 @@ const FacultyEventScoring = () => {
                                   onChange={(e) => setPromotionCount(e.target.value)}
                                   disabled={isPromoting}
                                 />
-                                <small className="text-secondary" style={{fontSize: '0.6rem'}}>NUMBER OF TEAMS TO PROMOTE</small>
+                                <small className="text-secondary" style={{fontSize: '0.6rem'}}>NUMBER TO PROMOTE</small>
                               </div>
                               <button 
                                 className="btn btn-warning fw-bold px-4 h-100" 
-                                style={{height: '38px'}}
                                 onClick={handlePromotion}
                                 disabled={isPromoting}
                               >
-                                {isPromoting ? 'PROMOTING...' : 'PROMOTE TOP TEAMS'}
+                                {isPromoting ? 'PROMOTING...' : 'PROMOTE'}
                               </button>
                            </div>
                         </div>
@@ -372,6 +374,7 @@ const FacultyEventScoring = () => {
         .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px); border-radius: 24px; }
         .x-small { font-size: 0.65rem; }
         .ls-1 { letter-spacing: 1px; }
+        .fw-black { font-weight: 900; }
         .custom-slider { height: 6px; border-radius: 5px; background: #2b2f3a; -webkit-appearance: none; }
         .custom-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #0dcaf0; cursor: pointer; border: 3px solid #0D0D15; }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }

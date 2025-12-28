@@ -108,7 +108,8 @@ router.get('/admin/event/:eventId/scores', verifyAdmin, async (req, res) => {
         if (roundNum !== null) query.round = roundNum;
 
         const scores = await Score.find(query)
-            .populate('team', 'college leader')
+            // 🚀 UPDATE: Added teamName to populate
+            .populate('team', 'college leader teamName') 
             .populate('judge', 'name')
             .lean();
             
@@ -135,7 +136,6 @@ router.patch('/finalize/:scoreId', verifyAdmin, async (req, res) => {
 
 /**
  * @route   GET /api/faculty/scoring/event/:id/teams
- * @desc    🚀 ROUND-AWARE: Fetches teams based on previous round promotions
  */
 router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
     try {
@@ -143,19 +143,20 @@ router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
         const roundNum = parseInt(req.query.round) || 1;
 
         if (roundNum === 1) {
-            // Round 1 always shows all registered teams
+            // Round 1
             const teams = await Team.find({ registeredEvents: eventId })
-                .select('college leader')
+                // 🚀 UPDATE: Included teamName in the selection
+                .select('college leader teamName') 
                 .sort({ college: 1 });
             return res.json(teams);
         }
 
-        // Round 2/3: Only show teams promoted from the previous round
+        // Round 2/3
         const promotedScores = await Score.find({
             event: eventId,
             round: roundNum - 1,
             promotedNextRound: true
-        }).populate('team', 'college leader');
+        }).populate('team', 'college leader teamName'); // 🚀 UPDATE: Added teamName to populate
 
         const promotedTeams = promotedScores.map(s => s.team).filter(t => t != null);
         res.json(promotedTeams);
@@ -166,14 +167,12 @@ router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
 
 /**
  * @route   POST /api/faculty/scoring/event/:eventId/promote
- * @desc    🚀 NEW: Mark top X teams as promoted based on current round scores
  */
 router.post('/event/:eventId/promote', verifyFaculty, async (req, res) => {
     try {
         const { eventId } = req.params;
         const { round, count } = req.body; 
 
-        // 1. Find all finalized scores for this event and round, sorted by totalPoints
         const scores = await Score.find({ event: eventId, round, finalized: true })
             .sort({ totalPoints: -1 });
 
@@ -181,10 +180,8 @@ router.post('/event/:eventId/promote', verifyFaculty, async (req, res) => {
             return res.status(400).json({ error: "No finalized scores found. Finalize scores before promoting." });
         }
 
-        // 2. Reset existing promotions for this specific round
         await Score.updateMany({ event: eventId, round }, { promotedNextRound: false });
 
-        // 3. Mark the top X teams as promoted
         const promotedTeams = scores.slice(0, count).map(s => s._id);
         await Score.updateMany(
             { _id: { $in: promotedTeams } },

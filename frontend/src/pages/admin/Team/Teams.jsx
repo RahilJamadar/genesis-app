@@ -21,6 +21,7 @@ const Teams = () => {
     const results = teams.filter(team => 
       team.college.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.leader.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (team.teamName && team.teamName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (team.transactionId && team.transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredTeams(results);
@@ -50,34 +51,28 @@ const Teams = () => {
     teams.forEach((team) => {
         if (team.members && team.members.length > 0) {
             team.members.forEach((member, index) => {
-                // Only show Team/College details on the FIRST row of that team
                 const isFirstRow = index === 0;
 
                 masterData.push({
+                    "Assigned Team Name": isFirstRow ? (team.teamName || "PENDING") : "",
                     "College Name": isFirstRow ? team.college : "", 
                     "Team Leader": isFirstRow ? team.leader : "",
                     "Leader Contact": isFirstRow ? team.contact : "",
                     "Payment Status": isFirstRow ? team.paymentStatus.toUpperCase() : "",
                     "Transaction ID": isFirstRow ? (team.transactionId || 'N/A') : "",
-                    
-                    // Member data always shows
                     "Member Name": member.name,
                     "Member Contact": member.contact || 'N/A',
                     "Member Diet": member.diet ? member.diet.toUpperCase() : 'N/A',
                     "Member Events": member.events && Array.isArray(member.events) 
                                      ? member.events.join(", ") 
                                      : 'N/A',
-                    
-                    // Totals only on first row
                     "Team Veg/Non Total": isFirstRow ? `V: ${team.vegCount || 0} | NV: ${team.nonVegCount || 0}` : ""
                 });
             });
-            
-            // Add a completely empty row after each college group for extra spacing
             masterData.push({}); 
         } else {
-            // Handle teams with no members
             masterData.push({
+                "Assigned Team Name": team.teamName || "PENDING",
                 "College Name": team.college,
                 "Team Leader": team.leader,
                 "Leader Contact": team.contact,
@@ -94,10 +89,9 @@ const Teams = () => {
     });
 
     const ws = XLSX.utils.json_to_sheet(masterData);
-    
-    // Width configuration for a cleaner desktop feel
     const wscols = [
-        { wch: 35 }, // College Name (wider)
+        { wch: 25 }, // Assigned Team Name
+        { wch: 35 }, // College Name
         { wch: 20 }, // Team Leader
         { wch: 15 }, // Leader Contact
         { wch: 15 }, // Payment Status
@@ -105,17 +99,16 @@ const Teams = () => {
         { wch: 25 }, // Member Name
         { wch: 15 }, // Member Contact
         { wch: 12 }, // Diet
-        { wch: 45 }, // Member Events (wide for multiple events)
+        { wch: 45 }, // Member Events
         { wch: 20 }  // Totals
     ];
     ws['!cols'] = wscols;
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Grouped Registry");
-
-    XLSX.writeFile(wb, `Genesis_Grouped_Report_${new Date().toLocaleDateString()}.xlsx`);
+    XLSX.writeFile(wb, `Genesis_Full_Report_${new Date().toLocaleDateString()}.xlsx`);
     toast.success("🚀 Formatted report downloaded");
-};
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm('🚨 Warning: This action is permanent. Proceed?')) return;
@@ -153,7 +146,7 @@ const Teams = () => {
                     <input 
                         type="text" 
                         className="form-control bg-dark border-secondary text-white shadow-none" 
-                        placeholder="Search College or Leader..." 
+                        placeholder="Search Team, College, Leader..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -182,9 +175,18 @@ const Teams = () => {
               <div key={team._id} className="col-12 col-xl-6">
                 <div className="card bg-glass border-secondary team-card h-100">
                   <div className="card-body p-3 p-md-4">
+                    
+                    {/* Assigned Team Name Row */}
+                    <div className="mb-3 pb-2 border-bottom border-white border-opacity-10">
+                        <span className="text-secondary x-small fw-bold text-uppercase ls-1">Assigned Name</span>
+                        <h4 className="text-white fw-black mb-0 tracking-tight">
+                            {team.teamName ? team.teamName : <span className="text-white opacity-50 fw-normal small italic">Awaiting Assignment...</span>}
+                        </h4>
+                    </div>
+
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2 mb-3">
                       <div className="flex-grow-1">
-                        <h4 className="text-info fw-bold mb-1 fs-5">{team.college}</h4>
+                        <h5 className="text-info fw-bold mb-1">{team.college}</h5>
                         <div className="d-flex flex-wrap align-items-center gap-2 text-white opacity-75 x-small">
                           <span><i className="bi bi-person-badge text-warning me-1"></i>{team.leader}</span>
                           <span className="opacity-25">|</span>
@@ -248,6 +250,7 @@ const Teams = () => {
         .x-small { font-size: 0.7rem; }
         .x-small-badge { font-size: 0.65rem; font-weight: 800; border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; rounded: 4px; }
         .ls-1 { letter-spacing: 1px; }
+        .fw-black { font-weight: 900; }
       `}</style>
     </div>
   );

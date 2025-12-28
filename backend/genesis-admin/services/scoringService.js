@@ -6,24 +6,23 @@ const Score = require('../models/Score');
 /**
  * Core Service to finalize scores for an event round.
  * Implements tie-breaking and normalization (100/50/10).
- * No negative points or penalties.
+ * Updated to handle Assigned Team Names.
  */
 async function finalizeScores(eventId, round) {
   try {
-    // 1. Validate the event and check if it's a Trophy Event
+    // 1. Validate the event
     const event = await Event.findById(eventId);
     if (!event) throw new Error(`Event not found for ID: ${eventId}`);
 
-    // If it's an "Open Event" (Hackathon/Football/Valorant), we don't normalize for the trophy board
     if (!event.isTrophyEvent) {
       console.log(`ℹ️ Skipping normalization for Open Event: ${event.name}`);
       return { message: "Open Event scores finalized locally, not added to Trophy Board." };
     }
 
-    // 2. Fetch all teams assigned to this specific event
+    // 2. Fetch teams assigned to this event (Including their assigned names)
     const allAssignedTeams = await Team.find({ 'members.events': event.name });
 
-    // 3. Aggregate finalized scores from judges for this round
+    // 3. Aggregate finalized scores from judges
     const aggregated = await Score.aggregate([
       { $match: { event: new mongoose.Types.ObjectId(eventId), round: Number(round), finalized: true } },
       {
@@ -47,40 +46,31 @@ async function finalizeScores(eventId, round) {
 
     const rankedIds = rankedTeams.map(t => t._id.toString());
 
-    // 5. Update teams for the Trophy Leaderboard
-    // We iterate through all teams to ensure we handle those who participated
+    // 5. Update Trophy Leaderboard
     const allTeams = await Team.find(); 
     
     for (const team of allTeams) {
       const teamIdStr = team._id.toString();
-      
-      // Check if team was even supposed to be in this event
-      const isAssigned = allAssignedTeams.some(t => t._id.equals(team._id));
-      // Check if they actually have a recorded score from a judge
       const hasScores = rankedIds.includes(teamIdStr);
 
-      let pointsToAward = 0;
-
       if (hasScores) {
-        // Team participated and was scored
         const rank = rankedIds.indexOf(teamIdStr);
-        if (rank === 0) pointsToAward = 100;      // First Place
-        else if (rank === 1) pointsToAward = 50;  // Second Place
-        else pointsToAward = 10;                  // Any other participant with a score
-      } else {
-        // If the team was not scored or not assigned to this event, 
-        // they get 0 points (No penalty).
-        continue; 
-      }
+        let pointsToAward = 10; // Participation base
+        if (rank === 0) pointsToAward = 100;      // 1st Place
+        else if (rank === 1) pointsToAward = 50;  // 2nd Place
 
-      // Save to Team's map (Key must be a string for Mongoose Maps)
-      team.finalPoints.set(eventId.toString(), pointsToAward);
-      
-      // The Team model pre-save hook will automatically update totalTrophyPoints
-      await team.save();
+        // Map updates
+        team.finalPoints.set(eventId.toString(), pointsToAward);
+        
+        // Log using assigned name for clarity in terminal
+        const identifier = team.teamName || team.college;
+        console.log(`🏆 Awarding ${pointsToAward} pts to ${identifier} for ${event.name}`);
+        
+        await team.save();
+      }
     }
 
-    console.log(`✅ Trophy points normalized for ${event.name} (Round ${round})`);
+    console.log(`✅ Normalization complete for ${event.name} (Round ${round})`);
     return { success: true, rankedTeams };
   } catch (err) {
     console.error(`❌ Scoring Service Error:`, err);

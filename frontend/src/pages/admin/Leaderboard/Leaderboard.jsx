@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
+
 const Leaderboard = () => {
   const [events, setEvents] = useState([]);
   const [overallLeaderboard, setOverallLeaderboard] = useState([]);
@@ -65,7 +66,7 @@ const Leaderboard = () => {
         <thead>
           <tr className="text-info x-small text-uppercase fw-bold border-secondary ls-1">
             <th style={{ width: '80px' }} className="ps-3 ps-md-4">Rank</th>
-            <th className="min-w-150">College / Team</th>
+            <th className="min-w-150">Team Identity / College</th>
             <th className="text-end pe-3 pe-md-4">{isOverall ? 'Trophy' : 'Event'} Pts</th>
           </tr>
         </thead>
@@ -82,8 +83,14 @@ const Leaderboard = () => {
                   </div>
                 </td>
                 <td>
-                  <div className="fw-bold text-white small text-uppercase ls-1 text-truncate" style={{maxWidth: '180px'}}>{team.college}</div>
-                  <div className="x-small text-light opacity-50 fst-italic text-truncate" style={{maxWidth: '180px'}}>Ldr: {team.leader}</div>
+                  {/* 🚀 SHOW BOTH: Priority to Team Name, fallback to College */}
+                  <div className="fw-black text-info small text-uppercase ls-1 text-truncate mb-0" style={{maxWidth: '220px'}}>
+                    {team.teamName || team.college}
+                  </div>
+                  {/* College name shown as secondary reference */}
+                  <div className="x-small text-light opacity-40 text-truncate" style={{maxWidth: '220px'}}>
+                    {team.college} {team.teamName ? '' : '(Awaiting Name)'}
+                  </div>
                 </td>
                 <td className="text-end pe-3 pe-md-4">
                   <div className="d-flex flex-column align-items-end">
@@ -106,7 +113,7 @@ const Leaderboard = () => {
       <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
 
         <header className="mb-4 mb-lg-5 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-          <div className="text-center text-md-start">
+          <div className="text-center text-sm-start">
             <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">🏆 Hall of Fame</h2>
             <p className="text-light opacity-75 small">Real-time normalization and championship standings</p>
           </div>
@@ -116,7 +123,6 @@ const Leaderboard = () => {
         </header>
 
         <div className="row g-4">
-          {/* Master Standings - Overall Championship */}
           <div className="col-12 col-xl-7">
             <div className="card bg-glass border-secondary shadow-lg h-100 border-opacity-10">
               <div className="card-body p-3 p-md-4">
@@ -138,7 +144,6 @@ const Leaderboard = () => {
             </div>
           </div>
 
-          {/* Event Filter & Ranking */}
           <div className="col-12 col-xl-5">
             <div className="card bg-glass border-secondary shadow-lg border-opacity-10 mb-4">
               <div className="card-body p-3 p-md-4">
@@ -208,17 +213,14 @@ const Leaderboard = () => {
         @media (min-width: 992px) {
           .dashboard-content { margin-left: 280px; }
         }
-
         @media (max-width: 991.98px) {
           .dashboard-content { margin-left: 0; padding-top: 10px; }
         }
-
         .bg-glass { 
           background: rgba(255, 255, 255, 0.03) !important; 
           backdrop-filter: blur(20px); 
           border-radius: 24px; 
         }
-
         .bg-bronze { background-color: #cd7f32; }
         .border-dashed { border-style: dashed !important; }
         .ls-1 { letter-spacing: 1px; }
@@ -226,6 +228,7 @@ const Leaderboard = () => {
         .x-small-text { font-size: 0.6rem; }
         .fs-7 { font-size: 0.85rem; }
         .min-w-150 { min-width: 150px; }
+        .fw-black { font-weight: 900; }
 
         .rank-badge {
             width: 54px;

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
+
 const ViewTeam = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,8 +55,13 @@ const ViewTeam = () => {
       <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
 
         <header className="mb-4 mb-lg-5 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-          <div className="text-center text-md-start">
-            <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">{team.college}</h2>
+          <div className="text-center text-sm-start overflow-hidden">
+            {/* 🚀 NEW: Assigned Team Name Badge displayed above College Name */}
+            <div className="d-flex align-items-center gap-2 mb-2 justify-content-center justify-content-md-start">
+               <span className="badge bg-info text-black fw-black x-small-badge ls-1">ASSIGNED_ID</span>
+               <span className="text-info font-mono fw-bold">{team.teamName || "AWAITING_ASSIGNMENT"}</span>
+            </div>
+            <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2 text-truncate">{team.college}</h2>
             <p className="text-light opacity-75 small uppercase tracking-widest">Full Team Profile & Logistics Audit</p>
           </div>
           <div className="d-flex gap-2 w-100 w-md-auto justify-content-center">
@@ -79,6 +85,14 @@ const ViewTeam = () => {
                 </div>
                 
                 <div className="row">
+                    {/* 🚀 Added Team Name to the detail list as well */}
+                    <div className="col-12 mb-4">
+                      <label className="text-info x-small fw-bold mb-1 d-block text-uppercase ls-1">Assigned Identity</label>
+                      <div className="p-2 rounded bg-black bg-opacity-40 border border-white border-opacity-10">
+                        <h5 className="text-white fw-black fs-5 mb-0">{team.teamName || "Not yet assigned"}</h5>
+                      </div>
+                    </div>
+
                     <div className="col-12 col-sm-6 col-lg-12 mb-4">
                       <label className="text-info x-small fw-bold mb-1 d-block text-uppercase ls-1">Team Leader</label>
                       <h5 className="text-white fw-bold fs-6 fs-md-5">{team.leader}</h5>
@@ -106,7 +120,7 @@ const ViewTeam = () => {
                 </div>
 
                 <div className="p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25 shadow-sm mb-4">
-                   <div className="row text-center g-0">
+                    <div className="row text-center g-0">
                       <div className="col-6 border-end border-white border-opacity-10">
                         <label className="text-info x-small fw-bold d-block mb-1 text-uppercase ls-1">Residency</label>
                         <span className="text-warning fw-bold x-small-mobile">{team.isOutstation ? 'OUTSTATION' : 'LOCAL'}</span>
@@ -115,7 +129,7 @@ const ViewTeam = () => {
                         <label className="text-info x-small fw-bold d-block mb-1 text-uppercase ls-1">Units</label>
                         <span className="text-white fw-bold fs-5">{team.members?.length || 0}</span>
                       </div>
-                   </div>
+                    </div>
                 </div>
 
                 <div className="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-40">
@@ -180,35 +194,29 @@ const ViewTeam = () => {
       </main>
 
       <style>{`
-        /* Desktop: Standard Sidebar Offset */
         @media (min-width: 992px) {
           .dashboard-content { margin-left: 280px; }
         }
-
-        /* Mobile Adjustments */
         @media (max-width: 991.98px) {
           .dashboard-content { margin-left: 0; padding-top: 10px; }
           .x-small-mobile { font-size: 0.75rem; }
         }
-
         .bg-glass { 
           background: rgba(255, 255, 255, 0.03) !important; 
           backdrop-filter: blur(20px); 
           border-radius: 20px; 
         }
-
         .x-small { font-size: 0.68rem; }
         .x-small-badge { font-size: 0.6rem; }
         .ls-1 { letter-spacing: 0.8px; }
-        
         .member-list::-webkit-scrollbar { width: 5px; }
         .member-list::-webkit-scrollbar-track { background: transparent; }
         .member-list::-webkit-scrollbar-thumb { 
           background: rgba(13, 202, 240, 0.2); 
           border-radius: 10px; 
         }
-
         .text-break { word-wrap: break-word; word-break: break-all; }
+        .fw-black { font-weight: 900; }
       `}</style>
     </div>
   );
