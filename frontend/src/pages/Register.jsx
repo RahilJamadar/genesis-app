@@ -28,6 +28,7 @@ const Register = () => {
         const allEvents = res.data;
 
         if (mode === 'main') {
+          // Only show Trophy events, completely hide standalone Open events
           setEvents(allEvents.filter(e => !['Football', 'Valorant', 'Hackathon'].includes(e.name)));
         } else {
           // Case-insensitive search to ensure "football" matches "Football"
@@ -112,14 +113,13 @@ const Register = () => {
         return toast.error("Leader phone must be 10 digits.");
       }
       
+      // If single event mode, go directly to member list (Step 4)
       if (mode !== 'main') return setStep(4);
       setStep(2);
     } else if (currentStep === 2) {
       if (teamInfo.selectedTrophyEvents.length === 0)
         return toast.error("Select at least one Trophy event.");
-      setStep(3);
-    } else if (currentStep === 3) {
-      setStep(4);
+      setStep(4); // 🚀 SKIP STEP 3, GO DIRECTLY TO MEMBER LIST
     }
     window.scrollTo(0, 0);
   };
@@ -149,7 +149,6 @@ const Register = () => {
         });
       });
 
-      // 🚀 CRITICAL FIX: Explicitly check for Hackathon to set status
       const isHackathon = mode.toLowerCase() === 'hackathon';
 
       const payload = {
@@ -166,7 +165,6 @@ const Register = () => {
       const res = await axios.post(`${baseURL}/api/admin/teams`, payload);
       toast.success("Registration Uplink Successful!");
       
-      // 🚀 CRITICAL FIX: Redirect strictly based on event category
       if (isHackathon) {
         setTimeout(() => navigate('/'), 2000);
       } else {
@@ -193,10 +191,10 @@ const Register = () => {
 
         {mode === 'main' && (
             <div className="d-flex justify-content-between mb-5 px-2">
-            {[1, 2, 3, 4].map(num => (
+            {[1, 2, 4].map((num, idx) => (
                 <div key={num} className="text-center z-10" style={{ flex: 1 }}>
                 <div className={`step-circle mx-auto transition-all duration-500 ${step >= num ? 'active' : ''}`}>
-                    {step > num ? <i className="bi bi-check-lg"></i> : num}
+                    {step > num ? <i className="bi bi-check-lg"></i> : idx + 1}
                 </div>
                 </div>
             ))}
@@ -258,40 +256,14 @@ const Register = () => {
               </div>
               <div className="d-flex gap-3">
                 <button className="btn-genesis-outline-v2 w-50" onClick={() => setStep(1)}>BACK</button>
-                <button className="btn-genesis-v2 w-50" onClick={() => validateStep(2)}>NEXT</button>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 3 && mode === 'main' && (
-            <motion.div key="st3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="card bg-glass border-white border-opacity-10 p-3 p-md-5 rounded-4">
-              <h2 className="text-white font-black mb-1 uppercase tracking-tighter fs-3">Step 3: <span className="text-cyan-400">Open Events</span></h2>
-              <p className="text-white text-opacity-50 mb-4 small font-mono">SELECT OPTIONAL NON-TROPHY EVENTS</p>
-              <div className="row g-2 mb-4">
-                {events.filter(e => !e.isTrophyEvent).map(ev => {
-                  const isSelected = teamInfo.selectedOpenEvents.includes(ev._id);
-                  return (
-                    <div key={ev._id} className="col-12 col-sm-6">
-                      <div className={`event-selector-v2 ${isSelected ? 'selected-open' : ''}`} onClick={() => handleEventToggle(ev, 'open')}>
-                        <span className="event-name text-white">{ev.name}</span>
-                        <div className={`check-icon ${isSelected ? 'checked-open' : ''}`}>
-                          {isSelected && <i className="bi bi-plus-lg"></i>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="d-flex gap-3">
-                <button className="btn-genesis-outline-v2 w-50" onClick={() => setStep(2)}>BACK</button>
-                <button className="btn-genesis-v2 w-50" onClick={() => validateStep(3)}>MEMBERS</button>
+                <button className="btn-genesis-v2 w-50" onClick={() => validateStep(2)}>ADD MEMBERS</button>
               </div>
             </motion.div>
           )}
 
           {step === 4 && (
             <motion.div key="st4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card bg-glass border-white border-opacity-10 p-3 p-md-5 rounded-4 shadow-2xl">
-              <h2 className="text-white font-black mb-1 uppercase tracking-tighter fs-3">Step 4: <span className="text-cyan-400">Member List</span></h2>
+              <h2 className="text-white font-black mb-1 uppercase tracking-tighter fs-3">Step 3: <span className="text-cyan-400">Member List</span></h2>
               <p className="text-white text-opacity-50 mb-4 small font-mono uppercase">Enter Team Details</p>
 
               {events.filter(e => [...teamInfo.selectedTrophyEvents, ...teamInfo.selectedOpenEvents].includes(e._id)).map(event => (
@@ -344,7 +316,7 @@ const Register = () => {
               ))}
 
               <div className="d-flex gap-3 mt-4">
-                <button className="btn-genesis-outline-v2 w-50" onClick={() => mode === 'main' ? setStep(3) : setStep(1)}>
+                <button className="btn-genesis-outline-v2 w-50" onClick={() => mode === 'main' ? setStep(2) : setStep(1)}>
                   BACK
                 </button>
                 <button className="btn-genesis-v2 w-50 shadow-cyan" onClick={finalizeRegistration} disabled={loading}>
@@ -372,11 +344,11 @@ const Register = () => {
         }
         .x-small-label { font-size: 0.65rem; font-weight: 800; color: #0dcaf0 !important; }
         .bg-glass { background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
-        .step-circle { width: 35px; height: 35px; line-height: 35px; border-radius: 50%; background: #1a1a1a; border: 1px solid #333; text-align: center; }
-        .step-circle.active { background: #0dcaf0; color: #000; box-shadow: 0 0 15px rgba(13, 202, 240, 0.4); }
-        .btn-genesis-v2 { background: #0dcaf0; color: black !important; font-weight: 900; border: none; padding: 15px; border-radius: 12px; transition: 0.3s; }
+        .step-circle { width: 35px; height: 35px; line-height: 35px; border-radius: 50%; background: #1a1a1a; border: 1px solid #333; text-align: center; font-size: 0.8rem; font-weight: bold;}
+        .step-circle.active { background: #0dcaf0; color: #000; box-shadow: 0 0 15px rgba(13, 202, 240, 0.4); border-color: #0dcaf0; }
+        .btn-genesis-v2 { background: #0dcaf0; color: black !important; font-weight: 900; border: none; padding: 15px; border-radius: 12px; transition: 0.3s; cursor: pointer; }
         .btn-genesis-v2:hover:not(:disabled) { transform: translateY(-2px); background: #00bacf; }
-        .btn-genesis-outline-v2 { background: transparent; color: white !important; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 15px; }
+        .btn-genesis-outline-v2 { background: transparent; color: white !important; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 15px; cursor: pointer; }
         .event-selector-v2 { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .event-selector-v2.selected { border-color: #0dcaf0; background: rgba(13, 202, 240, 0.1); }
         .check-icon { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2); border-radius: 5px; display: flex; align-items: center; justify-content: center; }
@@ -388,7 +360,7 @@ const Register = () => {
             background-size: 16px 12px; 
             appearance: none; 
         }
-        .btn-outline-cyan-v2 { color: #0dcaf0; border: 1px dashed #0dcaf0; background: transparent; padding: 10px; border-radius: 10px; }
+        .btn-outline-cyan-v2 { color: #0dcaf0; border: 1px dashed #0dcaf0; background: transparent; padding: 10px; border-radius: 10px; cursor: pointer; }
       `}</style>
     </div>
   );

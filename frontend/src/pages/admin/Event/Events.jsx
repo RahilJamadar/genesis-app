@@ -11,7 +11,8 @@ const Events = () => {
   const [facultyList, setFacultyList] = useState([]);
   const [coordinatorList, setCoordinatorList] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [newEvent, setNewEvent] = useState({
     name: '',
     category: '',
@@ -21,9 +22,9 @@ const Events = () => {
     rounds: 1,
     minParticipants: 1,
     maxParticipants: 1,
-    isTrophyEvent: true, 
-    isDirectWin: false, 
-    judgingCriteria: ['', '', ''] 
+    isTrophyEvent: true,
+    isDirectWin: false,
+    judgingCriteria: ['', '', '']
   });
 
   const [facultyInput, setFacultyInput] = useState('');
@@ -115,7 +116,7 @@ const Events = () => {
       toast.success('🎉 Event created successfully!');
       setNewEvent({
         name: '', category: '', judges: [], studentCoordinators: [],
-        rules: '', rounds: 1, minParticipants: 1, maxParticipants: 1, 
+        rules: '', rounds: 1, minParticipants: 1, maxParticipants: 1,
         isTrophyEvent: true, isDirectWin: false, judgingCriteria: ['', '', '']
       });
     } catch (err) {
@@ -135,16 +136,44 @@ const Events = () => {
       toast.error('Failed to delete event');
     }
   };
+  const filteredEvents = events.filter(event =>
+    event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row">
       <Navbar />
-      
+
       <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
 
-        <header className="mb-4 mb-lg-5 text-center text-lg-start">
-          <h2 className="fw-bold text-white mb-1">Event Management</h2>
-          <p className="text-light opacity-75 small">Configure categories, markers, and assignments</p>
+        <header className="mb-4 mb-lg-5 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+          <div className="text-center text-md-start">
+            <h2 className="fw-bold text-white mb-1">Event Management</h2>
+            <p className="text-light opacity-75 small">Configure categories, markers, and assignments</p>
+          </div>
+
+          {/* Search Bar Implementation */}
+          <div className="input-group input-group-sm mb-0" style={{ maxWidth: '350px' }}>
+            <span className="input-group-text bg-black border-secondary text-secondary">
+              <i className="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control bg-dark border-secondary text-white shadow-none py-2"
+              placeholder="Search event name or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className="btn btn-outline-secondary border-secondary text-white"
+                onClick={() => setSearchTerm('')}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            )}
+          </div>
         </header>
 
         <div className="row g-4">
@@ -157,14 +186,14 @@ const Events = () => {
                   <div className="row g-3">
                     <div className="col-12">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Event Name</label>
-                      <input type="text" className="form-control bg-dark text-white border-secondary shadow-none py-2" 
-                        value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} required />
+                      <input type="text" className="form-control bg-dark text-white border-secondary shadow-none py-2"
+                        value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} required />
                     </div>
 
                     <div className="col-md-6 col-12">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Category</label>
                       <select className="form-select bg-dark text-white border-secondary shadow-none py-2"
-                        value={newEvent.category} onChange={e => setNewEvent({...newEvent, category: e.target.value})} required>
+                        value={newEvent.category} onChange={e => setNewEvent({ ...newEvent, category: e.target.value })} required>
                         <option value="">Select Category</option>
                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                       </select>
@@ -173,19 +202,19 @@ const Events = () => {
                     <div className="col-md-6 col-12">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Total Rounds</label>
                       <select className="form-select bg-dark text-white border-secondary shadow-none py-2"
-                        value={newEvent.rounds} onChange={e => setNewEvent({...newEvent, rounds: parseInt(e.target.value)})}>
+                        value={newEvent.rounds} onChange={e => setNewEvent({ ...newEvent, rounds: parseInt(e.target.value) })}>
                         {[1, 2, 3].map(n => <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>)}
                       </select>
                     </div>
 
                     <div className="col-md-6 col-6">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Min Members</label>
-                      <input type="number" className="form-control bg-dark text-white border-secondary shadow-none" 
+                      <input type="number" className="form-control bg-dark text-white border-secondary shadow-none"
                         value={newEvent.minParticipants} onChange={e => handleNumberChange('minParticipants', e.target.value)} required />
                     </div>
                     <div className="col-md-6 col-6">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Max Members</label>
-                      <input type="number" className="form-control bg-dark text-white border-secondary shadow-none" 
+                      <input type="number" className="form-control bg-dark text-white border-secondary shadow-none"
                         value={newEvent.maxParticipants} onChange={e => handleNumberChange('maxParticipants', e.target.value)} required />
                     </div>
 
@@ -193,15 +222,15 @@ const Events = () => {
                       <div className="bg-black bg-opacity-25 p-3 rounded border border-secondary border-opacity-20">
                         <div className="form-check form-switch d-flex align-items-center justify-content-between mb-3">
                           <label className="form-check-label text-white fw-bold small">🏆 INCLUDE IN TROPHY?</label>
-                          <input className="form-check-input ms-0" type="checkbox" role="switch" checked={newEvent.isTrophyEvent} 
-                            onChange={e => setNewEvent({...newEvent, isTrophyEvent: e.target.checked})} />
+                          <input className="form-check-input ms-0" type="checkbox" role="switch" checked={newEvent.isTrophyEvent}
+                            onChange={e => setNewEvent({ ...newEvent, isTrophyEvent: e.target.checked })} />
                         </div>
-                        
+
                         {newEvent.isTrophyEvent && (
                           <div className="form-check form-switch d-flex align-items-center justify-content-between animate-fade-in">
                             <label className="form-check-label text-warning fw-bold small">⚡ DIRECT WIN (NO CRITERIA)?</label>
-                            <input className="form-check-input ms-0" type="checkbox" role="switch" checked={newEvent.isDirectWin} 
-                              onChange={e => setNewEvent({...newEvent, isDirectWin: e.target.checked})} />
+                            <input className="form-check-input ms-0" type="checkbox" role="switch" checked={newEvent.isDirectWin}
+                              onChange={e => setNewEvent({ ...newEvent, isDirectWin: e.target.checked })} />
                           </div>
                         )}
                       </div>
@@ -212,7 +241,7 @@ const Events = () => {
                         <label className="text-info x-small fw-bold mb-3 d-block text-uppercase">Judging Criteria (Exactly 3)</label>
                         {newEvent.judgingCriteria.map((val, i) => (
                           <input key={i} type="text" className="form-control bg-dark text-white border-info border-opacity-25 mb-2 shadow-none"
-                            placeholder={`Criteria ${i + 1}`} value={val} 
+                            placeholder={`Criteria ${i + 1}`} value={val}
                             onChange={e => handleCriteriaChange(i, e.target.value)} required />
                         ))}
                       </div>
@@ -221,7 +250,7 @@ const Events = () => {
                     <div className="col-12">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Assign Judges</label>
                       <div className="input-group mb-2">
-                        <select className="form-select bg-dark text-white border-secondary shadow-none py-2" 
+                        <select className="form-select bg-dark text-white border-secondary shadow-none py-2"
                           value={facultyInput} onChange={e => setFacultyInput(e.target.value)}>
                           <option value="">Select Faculty...</option>
                           {facultyList.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
@@ -241,7 +270,7 @@ const Events = () => {
                     <div className="col-12">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Assign Coordinators</label>
                       <div className="input-group mb-2">
-                        <select className="form-select bg-dark text-white border-secondary shadow-none py-2" 
+                        <select className="form-select bg-dark text-white border-secondary shadow-none py-2"
                           value={coordinatorInput} onChange={e => setCoordinatorInput(e.target.value)}>
                           <option value="">Select Coordinator...</option>
                           {coordinatorList.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
@@ -261,7 +290,7 @@ const Events = () => {
                     <div className="col-12">
                       <label className="text-info x-small fw-bold mb-2 text-uppercase">Rules & Description</label>
                       <textarea className="form-control bg-dark text-white border-secondary shadow-none"
-                        rows="4" value={newEvent.rules} onChange={e => setNewEvent({...newEvent, rules: e.target.value})} required></textarea>
+                        rows="4" value={newEvent.rules} onChange={e => setNewEvent({ ...newEvent, rules: e.target.value })} required></textarea>
                     </div>
 
                     <div className="col-12 mt-3">
@@ -278,7 +307,7 @@ const Events = () => {
           {/* RIGHT: LIST OF EVENTS */}
           <div className="col-xl-7">
             <div className="row g-3">
-              {events.map(event => (
+              {filteredEvents.map(event => (
                 <div key={event._id} className="col-md-6 col-12">
                   <div className="card bg-glass border-secondary h-100 event-card shadow-sm border-opacity-10">
                     <div className="card-body p-3 p-md-4 d-flex flex-column h-100 text-white">
@@ -295,9 +324,9 @@ const Events = () => {
                       <div className="mb-4 flex-grow-1 opacity-75 small">
                         <div className="mb-1"><i className="bi bi-layers me-2 text-info"></i> {event.rounds} Round{event.rounds > 1 ? 's' : ''}</div>
                         <div>
-                          <i className="bi bi-people me-2 text-info"></i> 
-                          {event.minParticipants === event.maxParticipants 
-                            ? `Size: ${event.minParticipants}` 
+                          <i className="bi bi-people me-2 text-info"></i>
+                          {event.minParticipants === event.maxParticipants
+                            ? `Size: ${event.minParticipants}`
                             : `Size: ${event.minParticipants}-${event.maxParticipants}`}
                         </div>
                       </div>
