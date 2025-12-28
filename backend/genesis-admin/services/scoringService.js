@@ -5,7 +5,8 @@ const Score = require('../models/Score');
 
 /**
  * Core Service to finalize scores for an event round.
- * Implements tie-breaking, normalization (100/50/10), and participation penalty (-5).
+ * Implements tie-breaking and normalization (100/50/10).
+ * No negative points or penalties.
  */
 async function finalizeScores(eventId, round) {
   try {
@@ -13,7 +14,7 @@ async function finalizeScores(eventId, round) {
     const event = await Event.findById(eventId);
     if (!event) throw new Error(`Event not found for ID: ${eventId}`);
 
-    // If it's an "Open Event" (Hackathon/Football), we don't normalize for the trophy
+    // If it's an "Open Event" (Hackathon/Football/Valorant), we don't normalize for the trophy board
     if (!event.isTrophyEvent) {
       console.log(`ℹ️ Skipping normalization for Open Event: ${event.name}`);
       return { message: "Open Event scores finalized locally, not added to Trophy Board." };
@@ -46,12 +47,16 @@ async function finalizeScores(eventId, round) {
 
     const rankedIds = rankedTeams.map(t => t._id.toString());
 
-    // 5. Update every team in the database for the Trophy Leaderboard
+    // 5. Update teams for the Trophy Leaderboard
+    // We iterate through all teams to ensure we handle those who participated
     const allTeams = await Team.find(); 
     
     for (const team of allTeams) {
       const teamIdStr = team._id.toString();
+      
+      // Check if team was even supposed to be in this event
       const isAssigned = allAssignedTeams.some(t => t._id.equals(team._id));
+      // Check if they actually have a recorded score from a judge
       const hasScores = rankedIds.includes(teamIdStr);
 
       let pointsToAward = 0;
@@ -59,14 +64,12 @@ async function finalizeScores(eventId, round) {
       if (hasScores) {
         // Team participated and was scored
         const rank = rankedIds.indexOf(teamIdStr);
-        if (rank === 0) pointsToAward = 100;      // Winner
-        else if (rank === 1) pointsToAward = 50;  // Runner-up
-        else pointsToAward = 10;                  // Participated
-      } else if (isAssigned) {
-        // Team was supposed to participate but didn't show up
-        pointsToAward = -5;
+        if (rank === 0) pointsToAward = 100;      // First Place
+        else if (rank === 1) pointsToAward = 50;  // Second Place
+        else pointsToAward = 10;                  // Any other participant with a score
       } else {
-        // Team wasn't registered for this event, no points/penalty
+        // If the team was not scored or not assigned to this event, 
+        // they get 0 points (No penalty).
         continue; 
       }
 

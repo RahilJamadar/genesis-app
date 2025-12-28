@@ -111,7 +111,7 @@ const RegisterHub = () => {
                 <p className="font-mono x-small text-secondary mb-0">Contact support if you missed the upload step.</p>
               </div>
             </div>
-            <a href="YOUR_GOOGLE_FORM_LINK" target="_blank" rel="noreferrer" className="btn btn-sm btn-info fw-bold px-4 py-2 font-mono x-small">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="btn btn-sm btn-info fw-bold px-4 py-2 font-mono x-small">
               GET HELP
             </a>
           </div>
@@ -123,7 +123,7 @@ const RegisterHub = () => {
               <motion.div 
                 whileHover={{ y: -8 }}
                 onClick={() => navigate(`/register-form/${p.id}`)}
-                className="card bg-glass border-secondary h-100 shadow-lg border-opacity-10 cursor-pointer overflow-hidden group-hover-border"
+                className="card regicard bg-glass border-secondary h-100 shadow-lg border-opacity-10 cursor-pointer overflow-hidden group-hover-border"
               >
                 <div className="indicator-bar" style={{ height: '3px', background: '#111' }}>
                    <div className={`bg-${p.color}`} style={{ width: '100%', height: '100%', boxShadow: '0 0 10px rgba(13,202,240,0.5)' }}></div>
@@ -172,6 +172,9 @@ const RegisterHub = () => {
         @keyframes pulse-glow { 
           0%, 100% { border-color: rgba(13, 202, 240, 0.5); box-shadow: 0 0 5px rgba(13, 202, 240, 0.2); }
           50% { border-color: rgba(13, 202, 240, 1); box-shadow: 0 0 15px rgba(13, 202, 240, 0.5); }
+        }
+        .regicard{
+          cursor:pointer;
         }
       `}</style>
     </div>

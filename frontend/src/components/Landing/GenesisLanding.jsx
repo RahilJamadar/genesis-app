@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useGLTF } from '@react-three/drei'; // Required for global preloading
 import MatrixModel from '../../ThreeModel/RotatingModel';
 import getApiBase from '../../utils/getApiBase';
+import { User, Phone } from 'lucide-react';
 
 // =================================================================
 // 🚀 GLOBAL PERFORMANCE OPTIMIZATION
@@ -56,14 +57,14 @@ const CATEGORY_MAP = {
 };
 
 const SPONSORS = [
-    { name: "Afreen Shaikh", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
-    { name: "Nafisa Shaikh", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Nebula+Tech" },
-    { name: "AR Computer Services", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Quantum+Forge" },
-    { name: "Digital Computers", img: "https://via.placeholder.com/400x200/0a0a0a/00ffff?text=Vertex+Media" },
-    { name: "VCare", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Afreen Shaikh", img: "/afreen.jpeg" },
+    { name: "Nafisa Shaikh", img: "/nafisa.jpeg" },
+    { name: "AR Computer Services", img: "/ar.jpeg" },
+    { name: "Digital Computers", img: "/digital.jpeg" },
+    { name: "VCare", img: "/vcare.JPG" },
     { name: "Raymond Hardware", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
-    { name: "Daji Salkar", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
-    { name: "Anthony Vaz", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Daji Salkar", img: "/daji.jpeg" },
+    { name: "Anthony Vaz", img: "/anthony.jpeg" },
 
 
 
@@ -86,7 +87,7 @@ const Trophy = (props) => <IconWrapper {...props}><path d="M6 9H4.5a2.5 2.5 0 0 
 const Zap = (props) => <IconWrapper {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></IconWrapper>
 const ChevronDown = (props) => <IconWrapper {...props}><path d="m6 9 6 6 6-6" /></IconWrapper>
 const ExternalLink = (props) => <IconWrapper {...props}><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></IconWrapper>
-const User = (props) => <IconWrapper {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></IconWrapper>
+// const User = (props) => <IconWrapper {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></IconWrapper>
 const MapPin = (props) => <IconWrapper {...props}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></IconWrapper>
 const ArrowLeft = (props) => <IconWrapper {...props}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></IconWrapper>
 
@@ -260,8 +261,8 @@ const Hero = () => {
 
             {/* 2. 3D Model - Added pointer-events-none to prevent interaction issues */}
             <div
-                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-                style={{ width: '100vw', height: '100vh', marginTop: '-30px' }}
+                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none -mt-[60px] md:-mt-8"
+                style={{ width: '100vw', height: '100vh' }}
             >
                 <Suspense fallback={null}>
                     <MatrixCube color="green" size={heroSize} />
@@ -320,7 +321,7 @@ const AboutSection = () => (
                 ABOUT <span className="text-cyan-400">GENESIS 8.0</span>
             </motion.h2>
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 }} className="text-lg md:text-2xl text-gray-300 leading-relaxed space-y-8">
-                <p>Genesis 8.0 marks the evolution of our digital frontier. Organized by the visionary minds of the BCA department at M.E.S College, it represents the convergence of culture, technology, and gaming.</p>
+                <p>Genesis 8.0 marks the evolution of our digital frontier. Organized by the visionary minds of the BCA department at M.E.S Vasant Joshi College of Arts & Commerce, it represents the convergence of culture, technology, and gaming.</p>
                 <p>This year, we transcend boundaries with <span className="text-green-400 font-mono">GENESIS 8.0</span>. A nexus where code meets creativity and where the next generation of tech leaders rises.</p>
                 <p className="text-cyan-400 font-mono text-sm md:text-base mt-8 opacity-80">{"// SYSTEM STATUS: ONLINE"}<br />{"// PROTOCOL: ENGAGE"}</p>
             </motion.div>
@@ -413,32 +414,52 @@ const EventsGrid = ({ onEventSelect }) => (
 );
 
 const SponsorsSection = () => {
-    const scrollingSponsors = [...SPONSORS, ...SPONSORS];
+    // Duplicate the array to ensure a seamless infinite loop
+    const scrollingSponsors = [...SPONSORS, ...SPONSORS, ...SPONSORS];
 
     return (
-        <section id="sponsors" className="bg-black py-24 relative overflow-hidden border-y border-gray-900/50">
-            <div className="absolute inset-0 bg-cyan-900/5 pointer-events-none" />
+        <section id="sponsors" className="bg-black py-20 md:py-32 relative overflow-hidden border-y border-white/5">
+            {/* Background Radial Glow for Depth */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/5 blur-[120px] pointer-events-none" />
 
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="text-center mb-14 relative z-10">
-                <h2 className="text-3xl md:text-4xl font-black text-white tracking-[0.3em] uppercase opacity-40">Our Sponsors</h2>
-                <div className="h-[2px] w-24 bg-cyan-500/50 mx-auto mt-4" />
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-center mb-10 relative z-10 px-4"
+            >
+                <h2 className="text-2xl md:text-5xl font-black text-white tracking-[0.2em] uppercase italic">
+                    Powering <span className="text-cyan-400">Genesis</span>
+                </h2>
+                <div className="h-[1px] w-40 bg-gradient-to-r from-transparent via-cyan-500 to-transparent mx-auto mt-6" />
             </motion.div>
 
+            {/* Marquee Container */}
             <div className="flex overflow-hidden group select-none relative z-10">
-                <div className="flex animate-infinite-scroll space-x-12 items-center py-6">
+                {/* Masking gradients for smooth fade in/out on edges */}
+                <div className="absolute inset-y-0 left-0 w-20 md:w-40 bg-gradient-to-r from-black to-transparent z-20 pointer-events-none" />
+                <div className="absolute inset-y-0 right-0 w-20 md:w-40 bg-gradient-to-l from-black to-transparent z-20 pointer-events-none" />
+
+                <div className="flex animate-infinite-scroll space-x-6 md:space-x-10 items-center py-10">
                     {scrollingSponsors.map((sponsor, index) => (
                         <div
                             key={index}
-                            className="flex-shrink-0 w-80 h-48 bg-gradient-to-b from-gray-900/60 to-black border border-gray-800 rounded-2xl flex flex-col items-center justify-center p-6 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] transition-all duration-300"
+                            className="flex-shrink-0 w-64 h-40 md:w-96 md:h-56 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center p-6 md:p-10 hover:border-cyan-500/50 hover:bg-white/[0.06] hover:shadow-[0_0_40px_rgba(6,182,212,0.15)] transition-all duration-500 group/card"
                         >
-                            <div className="h-28 w-full flex items-center justify-center mb-4">
+                            {/* Logo Wrapper */}
+                            <div className="h-full w-full flex items-center justify-center relative">
                                 <img
                                     src={sponsor.img}
                                     alt={sponsor.name}
-                                    className="max-h-full max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-700 opacity-60 group-hover:opacity-100"
+                                    className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover/card:scale-110"
+                                    loading="lazy"
                                 />
                             </div>
-                            <span className="text-sm font-mono tracking-[0.2em] text-gray-500 uppercase group-hover:text-cyan-400 transition-colors">{sponsor.name}</span>
+
+                            {/* Sponsor Name - Hidden on small mobile, visible on desktop */}
+                            <span className="mt-4 text-[10px] md:text-xs font-mono font-bold tracking-[0.3em] text-gray-500 uppercase group-hover/card:text-cyan-400 transition-colors">
+                                {sponsor.name}
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -447,37 +468,124 @@ const SponsorsSection = () => {
             <style>{`
                 @keyframes infinite-scroll {
                     from { transform: translateX(0); }
-                    to { transform: translateX(-50%); }
+                    to { transform: translateX(calc(-100% / 3)); }
                 }
                 .animate-infinite-scroll {
-                    animation: infinite-scroll 35s linear infinite;
+                    animation: infinite-scroll 40s linear infinite;
+                    width: max-content;
                 }
+                /* Pause animation on hover for better visibility */
                 .group:hover .animate-infinite-scroll {
                     animation-play-state: paused;
+                }
+
+                /* Mobile Fixes for the animation */
+                @media (max-width: 768px) {
+                    .animate-infinite-scroll {
+                        animation-duration: 25s; /* Speed up a bit on mobile */
+                    }
                 }
             `}</style>
         </section>
     );
 };
 
-const Coordinators = () => (
-    <section className="py-24 bg-gradient-to-b from-black to-gray-900 text-center relative overflow-hidden px-4">
-        <div className="max-w-4xl mx-auto relative z-10">
-            <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} className="text-3xl font-bold text-white mb-12 tracking-wider">COMMAND CENTER</motion.h2>
-            <div className="flex justify-center">
-                <div className="w-full max-w-md">
-                    <ExplosiveEntry delay={0.1}>
-                        <div className="bg-gray-900/80 backdrop-blur-sm p-8 border border-gray-800 rounded-xl hover:border-cyan-500/50 transition-all duration-300 group h-full">
-                            <div className="w-24 h-24 bg-gray-800 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-gray-700 group-hover:border-cyan-400 transition-colors"><User className="w-10 h-10 text-gray-400" /></div>
-                            <h3 className="text-xl font-bold text-white">Rahil Jamadar</h3>
-                            <p className="text-cyan-400 text-sm font-mono mb-4">EVENT CO-ORDINATOR</p>
+
+const Coordinators = () => {
+    const coreTeam = [
+
+        {
+            name: "Pranav Powar",
+            role: "EVENT ASSISTANT COORDINATOR",
+            phone: "8421869506",
+            photo: "/pranav.jpeg"
+        },
+        {
+            name: "Rahil Jamadar",
+            role: "EVENT COORDINATOR",
+            phone: "9823988047", // Corrected typical digit length
+            photo: "/rahil.jpeg"
+        },
+        {
+            name: "Nilam Shetye",
+            role: "Faculty COORDINATOR",
+            phone: "9765946991",
+            photo: "/path-to-nilam-photo.jpg"
+        }
+    ];
+
+    return (
+        <section className="py-24 bg-gradient-to-b from-black to-gray-900 text-center relative overflow-hidden px-4">
+            {/* Background Decorative Elements */}
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                <div className="absolute top-10 left-10 w-64 h-64 bg-cyan-500 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-10 right-10 w-64 h-64 bg-purple-500 rounded-full blur-[120px]"></div>
+            </div>
+
+            <div className="max-w-6xl mx-auto relative z-10">
+                <motion.h2
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="text-3xl md:text-4xl font-black text-white mb-16 tracking-[0.2em] uppercase italic"
+                >
+                    COMMAND <span className="text-cyan-400">CENTER</span>
+                </motion.h2>
+
+                {/* Update: grid-cols-1 for mobile, md:grid-cols-3 for desktop. 
+            items-stretch ensures all cards fill the available height.
+        */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-stretch">
+                    {coreTeam.map((member, index) => (
+                        <div key={index} className="flex flex-col h-full">
+                            <ExplosiveEntry delay={0.1 * (index + 1)}>
+                                {/* Update: Added h-full and min-h-[420px] to ensure cards are uniform.
+                            Added flex-col to allow the contact button to pin to the bottom.
+                        */}
+                                <div className="bg-gray-900/60 backdrop-blur-md p-6 md:p-8 border border-gray-800 rounded-2xl hover:border-cyan-500/50 transition-all duration-500 group flex flex-col items-center h-full relative overflow-hidden">
+
+                                    {/* Card Hover Glow */}
+                                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500"></div>
+
+                                    {/* Photo Container */}
+                                    <div className="relative z-10 w-28 h-28 md:w-32 md:h-32 mb-6 shrink-0">
+                                        <div className="absolute inset-0 bg-cyan-400 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                                        <div className="w-full h-full rounded-full border-2 border-gray-700 group-hover:border-cyan-400 transition-colors overflow-hidden bg-gray-800 flex items-center justify-center">
+                                            {member.photo && member.photo !== "/path-to-photo.jpg" ? (
+                                                <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <User className="w-10 h-10 md:w-12 md:h-12 text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Member Info */}
+                                    <div className="relative z-10 flex flex-col flex-grow w-full text-center">
+                                        <h3 className="text-xl md:text-2xl font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors line-clamp-1">
+                                            {member.name}
+                                        </h3>
+                                        <p className="text-cyan-400 text-[10px] md:text-xs font-mono font-bold tracking-widest mb-6 uppercase opacity-80 min-h-[32px] flex items-center justify-center">
+                                            {member.role}
+                                        </p>
+
+                                        {/* Contact Link - mt-auto forces this to the bottom of the equal-height card */}
+                                        <a
+                                            href={`tel:${member.phone}`}
+                                            className="mt-auto flex items-center justify-center gap-2 text-gray-400 hover:text-white transition-colors bg-gray-800/50 py-3 rounded-lg border border-gray-700 hover:border-cyan-500/50 w-full group/btn"
+                                        >
+                                            <Phone className="w-4 h-4 text-cyan-400 group-hover/btn:scale-110 transition-transform" />
+                                            <span className="font-mono text-sm tracking-tighter">{member.phone}</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </ExplosiveEntry>
                         </div>
-                    </ExplosiveEntry>
+                    ))}
                 </div>
             </div>
-        </div>
-    </section>
-);
+        </section>
+    );
+};
 
 const ContactSection = () => (
     <section id="contact" className="py-24 bg-black relative overflow-hidden">
@@ -759,7 +867,7 @@ export default function GenesisLanding() {
         scrollToTop();
     };
 
-    
+
 
 
 

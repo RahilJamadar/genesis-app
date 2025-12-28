@@ -15,19 +15,21 @@ const Payment = () => {
     const CONFIG = {
         FEES: {
             COLLEGE_TROPHY: 2500,
-            OPEN_EVENT: 500,
+            FOOTBALL: 500,
+            VALORANT: 0, // Set to 0 based on your snippet logic
             HACKATHON: 0
         },
         QR_CODES: {
-            MAIN: "/qr-college-2500.png",
-            FOOTBALL: "/qr-football-500.png",
-            VALORANT: "/qr-valorant-500.png"
+            // Updated to use the specific image path from your snippet
+            MAIN: "/rahil-qr.jpeg",
+            FOOTBALL: "/rahil-qr.jpeg",
+            VALORANT: "/rahil-qr.jpeg"
         },
-        // 🚀 SEPARATE GOOGLE FORMS FOR EACH CATEGORY
         FORM_LINKS: {
-            MAIN: "https://forms.gle/MainCollegeForm",
-            FOOTBALL: "https://forms.gle/FootballForm",
-            VALORANT: "https://forms.gle/ValorantForm"
+            // Updated to use the specific Google Form link from your snippet
+            MAIN: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor",
+            FOOTBALL: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor",
+            VALORANT: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor"
         }
     };
 
@@ -48,34 +50,35 @@ const Payment = () => {
     const getPaymentDetails = () => {
         if (!team) return { total: 0, type: 'UNKNOWN', qr: CONFIG.QR_CODES.MAIN, form: "#" };
 
-        const registeredNames = team.registeredEvents?.map(e => e.name.toLowerCase()) || [];
+        // Normalize registered names for reliable matching
+        const registeredNames = team.registeredEvents?.map(e => e.name.toLowerCase().trim()) || [];
         
-        // 1. Hackathon (Free)
+        // 1. Hackathon (Free Entry)
         if (registeredNames.includes('hackathon') && registeredNames.length === 1) {
-            return { total: 0, type: 'HACKATHON', qr: null, form: null };
+            return { total: CONFIG.FEES.HACKATHON, type: 'HACKATHON', qr: null, form: null };
         }
 
-        // 2. Valorant Independent
+        // 2. Valorant Independent (Free based on your CONFIG)
         if (registeredNames.includes('valorant') && registeredNames.length === 1) {
             return { 
-                total: CONFIG.FEES.OPEN_EVENT, 
+                total: CONFIG.FEES.VALORANT, 
                 type: 'VALORANT', 
                 qr: CONFIG.QR_CODES.VALORANT,
                 form: CONFIG.FORM_LINKS.VALORANT
             };
         }
 
-        // 3. Football Independent
+        // 3. Football Independent (₹500 Entry)
         if (registeredNames.includes('football') && registeredNames.length === 1) {
             return { 
-                total: CONFIG.FEES.OPEN_EVENT, 
+                total: CONFIG.FEES.FOOTBALL, 
                 type: 'FOOTBALL', 
                 qr: CONFIG.QR_CODES.FOOTBALL,
                 form: CONFIG.FORM_LINKS.FOOTBALL
             };
         }
 
-        // 4. Default: College Trophy Team (Main)
+        // 4. Default: College Trophy Team (₹2500 Entry)
         return { 
             total: CONFIG.FEES.COLLEGE_TROPHY, 
             type: 'COLLEGE_TEAM', 
@@ -103,7 +106,7 @@ const Payment = () => {
                 <div className="text-center mb-5">
                     <h5 className="text-cyan-400 font-mono x-small tracking-[0.4em] uppercase mb-3">Secure_Payment_Protocol</h5>
                     <h2 className="text-white font-black fs-1 uppercase tracking-tighter">
-                        {payment.total === 0 ? 'Registration' : 'Finalize'} <span className="text-cyan-400">Payment</span>
+                        {payment.total === 0 ? 'Protocol' : 'Finalize'} <span className="text-cyan-400">Uplink</span>
                     </h2>
                 </div>
 
@@ -114,64 +117,63 @@ const Payment = () => {
                 >
                     <div className="position-absolute top-0 end-0 w-50 h-50 bg-cyan-500 bg-opacity-5 blur-[80px] rounded-circle" style={{ zIndex: 0 }}></div>
 
-                    {/* Summary */}
+                    {/* Summary Block */}
                     <div className="mb-5 pb-4 border-bottom border-white border-opacity-10 position-relative" style={{ zIndex: 1 }}>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                             <span className="text-white text-opacity-40 font-mono x-small uppercase tracking-widest">Institution</span>
                             <span className="text-white fw-bold fs-6 text-end">{team?.college}</span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
-                            <span className="text-white text-opacity-40 font-mono x-small uppercase tracking-widest">Entry Sector</span>
+                            <span className="text-white text-opacity-40 font-mono x-small uppercase tracking-widest">Deployment Sector</span>
                             <span className="text-cyan-400 fw-bold fs-6 tracking-wider uppercase">{payment.type.replace('_', ' ')}</span>
                         </div>
                     </div>
 
-                    {/* QR Code Logic */}
+                    {/* Payment vs. Confirmation Logic */}
                     {payment.total > 0 ? (
                         <div className="text-center mb-5 position-relative" style={{ zIndex: 1 }}>
-                            <p className="text-white text-opacity-60 small mb-4 font-light">Scan this code using Google Pay, PhonePe, or Paytm.</p>
+                            <p className="text-white text-opacity-60 small mb-4 font-light">Scan code with any UPI app (GPay, PhonePe, Paytm) to transfer ₹{payment.total}.</p>
                             
                             <div className="bg-white p-3 d-inline-block rounded-4 shadow-lg mb-4 border border-4 border-cyan-400">
                                 <img 
                                     src={payment.qr} 
                                     alt={`${payment.type} QR`} 
                                     className="img-fluid"
-                                    style={{ width: '220px', height: '220px', objectFit: 'contain' }}
+                                    style={{ width: '240px', height: '240px', objectFit: 'contain' }}
                                 />
                             </div>
                             
                             <div className="bg-cyan-500 bg-opacity-10 border border-cyan-500 border-opacity-20 py-4 rounded-4">
-                                <span className="text-white text-opacity-50 font-mono x-small block mb-1 tracking-widest">PAYMENT_DUE</span>
+                                <span className="text-white text-opacity-50 font-mono x-small block mb-1 tracking-widest">TRANSACTION_VALUE</span>
                                 <h2 className="text-white font-black mb-0 fs-1">₹{payment.total}</h2>
                             </div>
                         </div>
                     ) : (
                         <div className="text-center mb-5 py-5 position-relative" style={{ zIndex: 1 }}>
-                            <i className="bi bi-shield-check text-cyan-400 fs-1 mb-3 d-block"></i>
-                            <h3 className="text-white font-black uppercase">Confirmed</h3>
-                            <p className="text-white text-opacity-50 font-mono small">HACKATHON_FREE_BYPASS</p>
-                            <div className="bg-white bg-opacity-5 border border-white border-opacity-10 p-4 rounded-4 mt-4">
-                                <p className="mb-0 small text-white text-opacity-70">
-                                    No payment is required for this sector. Your crew list has been sent for admin verification.
+                            <i className="bi bi-patch-check-fill text-cyan-400 fs-1 mb-3 d-block"></i>
+                            <h3 className="text-white font-black uppercase">Direct Entry Verified</h3>
+                            <p className="text-white text-opacity-50 font-mono small">NO_PAYMENT_REQUIRED_FOR_{payment.type}</p>
+                            <div className="bg-white bg-opacity-5 border border-white border-opacity-10 p-4 rounded-4 mt-4 text-start">
+                                <p className="mb-0 small leading-relaxed text-white text-opacity-70">
+                                    Your registration for <strong>{payment.type}</strong> has been logged. Our sector admins will verify your crew list shortly. You do not need to perform any further actions.
                                 </p>
                             </div>
                         </div>
                     )}
 
-                    {/* Verification Instructions */}
+                    {/* Verification Step (Only if paid) */}
                     {payment.total > 0 && (
                         <div className="mb-5 position-relative" style={{ zIndex: 1 }}>
                             <h4 className="text-white text-sm font-bold uppercase mb-3 font-mono tracking-widest d-flex align-items-center gap-2">
-                                <i className="bi bi-camera text-cyan-400"></i> Step 2: Upload Screenshot
+                                <i className="bi bi-shield-check text-cyan-400"></i> Step 2: Protocol Log
                             </h4>
-                            <p className="text-white text-opacity-60 small leading-relaxed">
-                                Take a screenshot of the payment confirmation screen (must show UTR/Transaction ID). 
-                                Use the button below to submit it for manual verification.
+                            <p className="text-white text-opacity-60 small leading-relaxed font-light">
+                                Take a screenshot of the successful transaction. Ensure the <strong>UTR / Transaction ID</strong> is visible. Upload it using the button below.
                             </p>
                         </div>
                     )}
 
-                    {/* Action Buttons */}
+                    {/* Action Links */}
                     <div className="d-grid gap-3 position-relative" style={{ zIndex: 1 }}>
                         {payment.total > 0 && (
                             <a 
@@ -180,18 +182,19 @@ const Payment = () => {
                                 rel="noopener noreferrer"
                                 className="btn-genesis text-center text-decoration-none"
                             >
-                                UPLOAD SCREENSHOT TO {payment.type.replace('_', ' ')} FORM
+                                UPLOAD SCREENSHOT (Google Form)
                             </a>
                         )}
                         <Link to="/" className="btn-genesis-outline text-center text-decoration-none x-small uppercase fw-bold">
-                            RETURN TO BASE
+                            RETURN TO MAIN_BASE
                         </Link>
                     </div>
                 </motion.div>
 
+                {/* Footer Uplink ID */}
                 <p className="text-center text-white text-opacity-20 x-small mt-5 tracking-[0.3em] font-mono">
-                    ID: {teamId?.substring(0, 12).toUpperCase()} {' // '} 
-                    SYS_LOG: {payment.type}
+                    UPLINK_ID: {teamId?.substring(0, 8).toUpperCase()} {' // '} 
+                    STATUS: {payment.total > 0 ? 'WAITING_FOR_PAYMENT_LOG' : 'LOGGED_SUCCESSFULLY'}
                 </p>
             </div>
 
