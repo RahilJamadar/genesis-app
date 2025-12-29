@@ -304,8 +304,8 @@ const FacultyEventScoring = () => {
                     {/* 🚀 PROMOTION CONTROL UI */}
                     {round < eventData?.rounds && (
                       <div className="mt-5 pt-4 border-top border-secondary border-opacity-50">
-                        <div className="bg-warning bg-opacity-5 rounded p-4 border border-warning border-opacity-20 shadow-sm">
-                           <h6 className="text-warning fw-bold mb-3 d-flex align-items-center gap-2">
+                        <div className="bg-grey-700 bg-opacity-5 rounded p-4 border border-warning border-opacity-20 shadow-sm">
+                           <h6 className="text-white fw-bold mb-3 d-flex align-items-center gap-2">
                              <i className="bi bi-lightning-charge-fill"></i> ROUND PROMOTION CONTROL
                            </h6>
                            <div className="d-flex gap-2">
@@ -318,7 +318,7 @@ const FacultyEventScoring = () => {
                                   onChange={(e) => setPromotionCount(e.target.value)}
                                   disabled={isPromoting}
                                 />
-                                <small className="text-secondary" style={{fontSize: '0.6rem'}}>NUMBER TO PROMOTE</small>
+                                <small className="text-white" style={{fontSize: '0.6rem'}}>NUMBER TO PROMOTE</small>
                               </div>
                               <button 
                                 className="btn btn-warning fw-bold px-4 h-100" 

@@ -47,7 +47,7 @@ const RegisterHub = () => {
       id: 'football', 
       title: 'Football', 
       desc: 'Join the open Football tournament',
-      fee: '₹500',
+      fee: '₹800',
       icon: <Activity size={28} />,
       tag: 'OPEN_EVENT',
       color: 'success'

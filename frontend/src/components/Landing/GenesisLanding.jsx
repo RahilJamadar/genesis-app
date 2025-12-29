@@ -57,17 +57,14 @@ const CATEGORY_MAP = {
 };
 
 const SPONSORS = [
-    { name: "Afreen Shaikh", img: "/afreen.jpeg" },
-    { name: "Nafisa Shaikh", img: "/nafisa.jpeg" },
-    { name: "AR Computer Services", img: "/ar.jpeg" },
-    { name: "Digital Computers", img: "/digital.jpeg" },
-    { name: "VCare", img: "/vcare.JPG" },
-    { name: "Raymond Hardware", img: "https://images.pexels.com/photos/6598961/pexels-photo-6598961.jpeg" },
+    { name: "Afreen Shaikh", img: "/afreen.jpeg" }, // Marked for stretching
+    { name: "Nafisa Shaikh", img: "/nafisa.jpg" },
+    { name: "Anthony Vaz", img: "/anthony.jpeg", stretch: true },
+    { name: "AR Computer Services", img: "/ar.jpeg", stretch: true }, // Marked for stretching
+    { name: "Digital Computers", img: "/digital.jpeg", stretch: true },
+    { name: "VCare", img: "/vcare.JPG", stretch: true },
+    { name: "Raymond Hardware", img: "/raymond.png" },
     { name: "Daji Salkar", img: "/daji.jpeg" },
-    { name: "Anthony Vaz", img: "/anthony.jpeg" },
-
-
-
 ];
 
 // =================================================================
@@ -321,7 +318,7 @@ const AboutSection = () => (
                 ABOUT <span className="text-cyan-400">GENESIS 8.0</span>
             </motion.h2>
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 }} className="text-lg md:text-2xl text-gray-300 leading-relaxed space-y-8">
-                <p>Genesis 8.0 marks the evolution of our digital frontier. Organized by the visionary minds of the BCA department at M.E.S Vasant Joshi College of Arts & Commerce, it represents the convergence of culture, technology, and gaming.</p>
+                <p>Genesis 8.0 marks the evolution of our digital frontier. An initiative organized by the students of the BCA Program, under the guidance of the faculty at M.E.S. Vasant Joshi College of Arts & Commerce, it represents the convergence of culture, technology, and gaming.</p>
                 <p>This year, we transcend boundaries with <span className="text-green-400 font-mono">GENESIS 8.0</span>. A nexus where code meets creativity and where the next generation of tech leaders rises.</p>
                 <p className="text-cyan-400 font-mono text-sm md:text-base mt-8 opacity-80">{"// SYSTEM STATUS: ONLINE"}<br />{"// PROTOCOL: ENGAGE"}</p>
             </motion.div>
@@ -414,75 +411,101 @@ const EventsGrid = ({ onEventSelect }) => (
 );
 
 const SponsorsSection = () => {
-    // Duplicate the array to ensure a seamless infinite loop
+    // Duplicate for seamless loop
     const scrollingSponsors = [...SPONSORS, ...SPONSORS, ...SPONSORS];
 
     return (
-        <section id="sponsors" className="bg-black py-20 md:py-32 relative overflow-hidden border-y border-white/5">
-            {/* Background Radial Glow for Depth */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/5 blur-[120px] pointer-events-none" />
+        <section id="sponsors" className="bg-black py-16 md:py-24 relative overflow-hidden border-y border-white/5">
 
+            {/* --- THEME BACKGROUND ELEMENTS --- */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{ backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`, backgroundSize: '50px 50px' }} />
+
+            <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 blur-[120px] pointer-events-none" />
+
+            {/* --- SECTION HEADER (Reduced Margins) --- */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-center mb-10 relative z-10 px-4"
+                className="text-center mb-8 md:mb-12 relative z-10 px-4"
             >
-                <h2 className="text-2xl md:text-5xl font-black text-white tracking-[0.2em] uppercase italic">
+                <h2 className="text-3xl md:text-6xl font-black text-white tracking-[0.25em] uppercase italic">
                     Powering <span className="text-cyan-400">Genesis</span>
                 </h2>
-                <div className="h-[1px] w-40 bg-gradient-to-r from-transparent via-cyan-500 to-transparent mx-auto mt-6" />
+                {/* Tightened Spacing */}
+                <div className="h-[2px] w-32 bg-gradient-to-r from-transparent via-cyan-500 to-transparent mx-auto mt-4" />
             </motion.div>
 
-            {/* Marquee Container */}
-            <div className="flex overflow-hidden group select-none relative z-10">
-                {/* Masking gradients for smooth fade in/out on edges */}
-                <div className="absolute inset-y-0 left-0 w-20 md:w-40 bg-gradient-to-r from-black to-transparent z-20 pointer-events-none" />
-                <div className="absolute inset-y-0 right-0 w-20 md:w-40 bg-gradient-to-l from-black to-transparent z-20 pointer-events-none" />
+            {/* --- MARQUEE CONTAINER --- */}
+            <div className="relative z-10 flex overflow-hidden group select-none">
 
-                <div className="flex animate-infinite-scroll space-x-6 md:space-x-10 items-center py-10">
+                {/* Edge Fades */}
+                <div className="absolute inset-y-0 left-0 w-24 md:w-64 bg-gradient-to-r from-black via-black/90 to-transparent z-20 pointer-events-none" />
+                <div className="absolute inset-y-0 right-0 w-24 md:w-64 bg-gradient-to-l from-black via-black/90 to-transparent z-20 pointer-events-none" />
+
+                <div className="flex animate-infinite-scroll space-x-6 md:space-x-10 items-center py-8">
                     {scrollingSponsors.map((sponsor, index) => (
                         <div
                             key={index}
-                            className="flex-shrink-0 w-64 h-40 md:w-96 md:h-56 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center p-6 md:p-10 hover:border-cyan-500/50 hover:bg-white/[0.06] hover:shadow-[0_0_40px_rgba(6,182,212,0.15)] transition-all duration-500 group/card"
+                            className="flex-shrink-0 flex flex-col items-center group/card"
                         >
-                            {/* Logo Wrapper */}
-                            <div className="h-full w-full flex items-center justify-center relative">
-                                <img
-                                    src={sponsor.img}
-                                    alt={sponsor.name}
-                                    className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover/card:scale-110"
-                                    loading="lazy"
-                                />
+                            {/* Logo Card: Larger and more prominent */}
+                            <div className="w-[260px] h-[160px] md:w-[400px] md:h-[220px] relative mb-4">
+                                {/* Card Background */}
+                                <div className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-2xl md:rounded-3xl transition-all duration-500 group-hover/card:bg-white/[0.07] group-hover/card:border-cyan-400/50 group-hover/card:shadow-[0_0_40px_rgba(6,182,212,0.2)]" />
+
+                                {/* Logo Wrapper */}
+                                <div className="absolute inset-0 flex items-center justify-center p-2">
+                                    <img
+                                        src={sponsor.img}
+                                        alt={sponsor.name}
+                                        className={`
+            /* Base styles for all images */
+            filter brightness-100 group-hover/card:scale-105 transition-all duration-700 ease-in-out
+            
+            /* Conditional Logic */
+            ${sponsor.stretch
+                                                ? "w-[85%] h-[75%] object-fill"   // Stretches marked images
+                                                : "max-w-[85%] max-h-[80%] object-contain" // Keeps others clean and proportional
+                                            }
+        `}
+                                        loading="lazy"
+                                    />
+                                </div>
+
+                                {/* Tech accents */}
+                                <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-white/30 group-hover/card:border-cyan-400 transition-colors" />
+                                <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-white/30 group-hover/card:border-cyan-400 transition-colors" />
                             </div>
 
-                            {/* Sponsor Name - Hidden on small mobile, visible on desktop */}
-                            <span className="mt-4 text-[10px] md:text-xs font-mono font-bold tracking-[0.3em] text-gray-500 uppercase group-hover/card:text-cyan-400 transition-colors">
-                                {sponsor.name}
-                            </span>
+                            {/* Permanent Name Label (Visible always, glows on hover) */}
+                            <div className="text-center">
+                                <span className="text-gray-400 group-hover/card:text-cyan-400 font-mono text-[10px] md:text-sm font-bold tracking-[0.3em] uppercase transition-colors duration-300">
+                                    {sponsor.name}
+                                </span>
+                            </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <style>{`
+            {/* --- ANIMATION STYLES --- */}
+            <style jsx>{`
                 @keyframes infinite-scroll {
                     from { transform: translateX(0); }
                     to { transform: translateX(calc(-100% / 3)); }
                 }
                 .animate-infinite-scroll {
-                    animation: infinite-scroll 40s linear infinite;
+                    animation: infinite-scroll 45s linear infinite;
                     width: max-content;
                 }
-                /* Pause animation on hover for better visibility */
                 .group:hover .animate-infinite-scroll {
                     animation-play-state: paused;
                 }
-
-                /* Mobile Fixes for the animation */
                 @media (max-width: 768px) {
                     .animate-infinite-scroll {
-                        animation-duration: 25s; /* Speed up a bit on mobile */
+                        animation-duration: 25s;
                     }
                 }
             `}</style>
@@ -492,95 +515,147 @@ const SponsorsSection = () => {
 
 
 const Coordinators = () => {
-    const coreTeam = [
+    const mainCoordinator = {
+        name: "Rahil Jamadar",
+        role: "EVENT COORDINATOR",
+        phone: "9823988047",
+        photo: "/rahil.jpeg"
+    };
 
-        {
-            name: "Pranav Powar",
-            role: "EVENT ASSISTANT COORDINATOR",
-            phone: "8421869506",
-            photo: "/pranav.jpeg"
-        },
-        {
-            name: "Rahil Jamadar",
-            role: "EVENT COORDINATOR",
-            phone: "9823988047", // Corrected typical digit length
-            photo: "/rahil.jpeg"
-        },
-        {
-            name: "Nilam Shetye",
-            role: "Faculty COORDINATOR",
-            phone: "9765946991",
-            photo: "/nilam.jpeg"
-        }
+    const departmentHeads = [
+        { name: "Pranav Powar", role: "EVENT ASSISTANT", photo: "/pranav.jpeg" },
+        { name: "Sujith Roshan", role: "DESIGNER", photo: "/sujith.jpeg" },
+        { name: "Ayush Maurya", role: "CONTENT HEAD", photo: "/content.jpeg" },
+        { name: "Adnan Sayed", role: "MARKETING HEAD", photo: "/adnan.jpeg" },
+        { name: "Shreshth Alornecar", role: "VIDEOGRAPHER", photo: "/videographer.jpg" },
+        { name: "Lucky Ali", role: "EDITOR", photo: "/Editor.jpeg" },
+        { name: "Gaurav Gupta", role: "BROCHURE HEAD", photo: "/gaurav.jpg" },
+
     ];
 
+    // Duplicate list for seamless infinite loop
+    const sliderItems = [...departmentHeads, ...departmentHeads];
+
     return (
-        <section className="py-24 bg-gradient-to-b from-black to-gray-900 text-center relative overflow-hidden px-4">
-            {/* Background Decorative Elements */}
+        <section id='contactco' className="py-24 bg-gradient-to-b from-black via-gray-900 to-black text-center relative overflow-hidden">
+            {/* Background Glows */}
             <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                <div className="absolute top-10 left-10 w-64 h-64 bg-cyan-500 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-10 right-10 w-64 h-64 bg-purple-500 rounded-full blur-[120px]"></div>
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-[150px]"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600 rounded-full blur-[150px]"></div>
             </div>
 
-            <div className="max-w-6xl mx-auto relative z-10">
+            <div className="max-w-7xl mx-auto relative z-10 px-4">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-3xl md:text-4xl font-black text-white mb-16 tracking-[0.2em] uppercase italic"
+                    className="text-4xl md:text-6xl font-black text-white mb-20 tracking-[0.2em] uppercase italic"
                 >
                     COMMAND <span className="text-cyan-400">CENTER</span>
                 </motion.h2>
 
-                {/* Update: grid-cols-1 for mobile, md:grid-cols-3 for desktop. 
-            items-stretch ensures all cards fill the available height.
-        */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-stretch">
-                    {coreTeam.map((member, index) => (
-                        <div key={index} className="flex flex-col h-full">
-                            <ExplosiveEntry delay={0.1 * (index + 1)}>
-                                {/* Update: Added h-full and min-h-[420px] to ensure cards are uniform.
-                            Added flex-col to allow the contact button to pin to the bottom.
-                        */}
-                                <div className="bg-gray-900/60 backdrop-blur-md p-6 md:p-8 border border-gray-800 rounded-2xl hover:border-cyan-500/50 transition-all duration-500 group flex flex-col items-center h-full relative overflow-hidden">
+                {/* --- MAIN COORDINATOR SPOTLIGHT --- */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-12 mb-32 text-left">
 
-                                    {/* Card Hover Glow */}
-                                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500"></div>
+                    {/* Left Side: Text Paragraph */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="flex-1 space-y-6"
+                    >
+                        <h3 className="text-2xl md:text-4xl font-bold text-white uppercase tracking-tight">
+                            Leading the <span className="text-cyan-400">Mission</span>
+                        </h3>
+                        <p className="text-gray-400 text-lg leading-relaxed max-w-xl">
+                            Our command center is led by dedicated visionaries ensuring every technical
+                            operation and creative execution aligns with our core objectives. From
+                            strategic planning to real-time event management, we maintain the
+                            pulse of the event through constant innovation and coordination.
+                        </p>
+                        <div className="h-1 w-20 bg-gradient-to-r from-cyan-500 to-transparent rounded-full"></div>
+                    </motion.div>
 
-                                    {/* Photo Container */}
-                                    <div className="relative z-10 w-28 h-28 md:w-32 md:h-32 mb-6 shrink-0">
-                                        <div className="absolute inset-0 bg-cyan-400 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                                        <div className="w-full h-full rounded-full border-2 border-gray-700 group-hover:border-cyan-400 transition-colors overflow-hidden bg-gray-800 flex items-center justify-center">
-                                            {member.photo && member.photo !== "/path-to-photo.jpg" ? (
-                                                <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <User className="w-10 h-10 md:w-12 md:h-12 text-gray-500 group-hover:text-cyan-400 transition-colors" />
-                                            )}
-                                        </div>
+                    {/* Right Side: Main Coordinator Card */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        /* CARD WIDTH: 
+                           Mobile: w-full (full width) 
+                           Desktop: md:w-[450px] (Adjust this for card width)
+                        */
+                        className="relative group w-full md:w-[450px]"
+                    >
+                        <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/50 to-purple-600/50 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+
+                        <div className="relative bg-gray-900/80 border border-white/10 rounded-2xl p-5 backdrop-blur-sm overflow-hidden">
+
+                            {/* IMAGE CONTAINER: 
+               Mobile: h-[250px] 
+               Desktop: md:h-[280px] (Adjust this for image height)
+            */}
+                            <div className="w-full h-[250px] md:h-[280px] overflow-hidden rounded-xl mb-6 bg-gray-800 border border-white/5">
+                                <img
+                                    src={mainCoordinator.photo}
+                                    alt={mainCoordinator.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                />
+                            </div>
+
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-white">{mainCoordinator.name}</h3>
+                                    <p className="text-cyan-400 font-mono tracking-widest text-xs uppercase mt-1">
+                                        {mainCoordinator.role}
+                                    </p>
+                                </div>
+
+                                <a
+                                    href={`tel:${mainCoordinator.phone}`}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-cyan-500/50 hover:text-cyan-400 transition-all duration-300 text-sm"
+                                >
+                                    <Phone size={14} className="text-cyan-400" />
+                                    <span className="font-mono">{mainCoordinator.phone}</span>
+                                </a>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* --- DEPARTMENT HEADS SLIDER --- */}
+                <div className="relative mt-20">
+                    <div className="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                        <motion.div
+                            className="flex gap-8 py-10"
+                            animate={{ x: [0, -1920] }} // Adjust based on total width
+                            transition={{
+                                x: { repeat: Infinity, duration: 30, ease: "linear" }
+                            }}
+                        >
+                            {sliderItems.map((head, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex-shrink-0 w-72 bg-gray-900/40 border border-white/5 rounded-2xl p-3 backdrop-blur-sm hover:border-cyan-500/50 transition-colors group"
+                                >
+                                    <div className="w-full aspect-square overflow-hidden rounded-xl mb-4 bg-gray-800">
+                                        <img
+                                            src={head.photo}
+                                            alt={head.name}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
                                     </div>
-
-                                    {/* Member Info */}
-                                    <div className="relative z-10 flex flex-col flex-grow w-full text-center">
-                                        <h3 className="text-xl md:text-2xl font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors line-clamp-1">
-                                            {member.name}
-                                        </h3>
-                                        <p className="text-cyan-400 text-[10px] md:text-xs font-mono font-bold tracking-widest mb-6 uppercase opacity-80 min-h-[32px] flex items-center justify-center">
-                                            {member.role}
+                                    <div className="px-2 pb-2">
+                                        <h4 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors truncate">
+                                            {head.name}
+                                        </h4>
+                                        <p className="text-s font-mono text-gray-400 tracking-tighter uppercase mt-1">
+                                            {head.role}
                                         </p>
-
-                                        {/* Contact Link - mt-auto forces this to the bottom of the equal-height card */}
-                                        <a
-                                            href={`tel:${member.phone}`}
-                                            className="mt-auto flex items-center justify-center gap-2 text-gray-400 hover:text-white transition-colors bg-gray-800/50 py-3 rounded-lg border border-gray-700 hover:border-cyan-500/50 w-full group/btn"
-                                        >
-                                            <Phone className="w-4 h-4 text-cyan-400 group-hover/btn:scale-110 transition-transform" />
-                                            <span className="font-mono text-sm tracking-tighter">{member.phone}</span>
-                                        </a>
                                     </div>
                                 </div>
-                            </ExplosiveEntry>
-                        </div>
-                    ))}
+                            ))}
+                        </motion.div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -604,17 +679,43 @@ const ContactSection = () => (
                         Zuarinagar, Goa - 403726
                     </p>
                 </div>
-                <a href="http://maps.google.com/?q=MES+College+Zuarinagar" target="_blank" rel="noopener noreferrer" className="group w-full h-80 bg-gray-900 rounded-2xl border border-gray-800 relative overflow-hidden flex items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.1)] hover:border-cyan-500/50 transition-all duration-300 cursor-pointer no-underline">
+                <a
+                    href="https://www.google.com/maps/search/?api=1&query=M.E.S+Vasant+Joshi+College+of+Arts+%26+Commerce+Zuarinagar+Goa"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group w-full h-80 bg-gray-900 rounded-2xl border border-gray-800 relative overflow-hidden flex items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.1)] hover:border-cyan-500/50 transition-all duration-300 cursor-pointer no-underline"
+                >
+                    {/* Background Decorative Elements */}
                     <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
                         <div className="absolute top-1/2 left-0 w-full h-[1px] bg-cyan-500 animate-pulse" />
                         <div className="absolute top-0 left-1/2 h-full w-[1px] bg-purple-500 animate-pulse" />
                         <div className="w-32 h-32 border border-white/20 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-ping opacity-20" />
                     </div>
-                    <div className="relative z-10 flex flex-col items-center">
+
+                    {/* Center Pin Icon */}
+                    <div className="relative z-10 flex flex-col items-center mb-8">
                         <MapPin className="w-12 h-12 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-bounce" />
-                        <span className="mt-4 text-xs font-mono text-cyan-400 bg-black/80 px-4 py-2 border border-cyan-500/30 rounded backdrop-blur group-hover:text-white group-hover:border-cyan-400 transition-colors">
+                        <span className="mt-4 text-[10px] font-mono text-cyan-400 bg-black/80 px-3 py-1 border border-cyan-500/30 rounded backdrop-blur group-hover:text-white group-hover:border-cyan-400 transition-colors">
                             TARGET_LOCKED // CLICK_TO_NAVIGATE
                         </span>
+                    </div>
+
+                    {/* --- NEW: ADDRESS HUD OVERLAY --- */}
+                    <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/80 to-transparent z-20">
+                        <div className="flex flex-col text-left">
+                            <span className="text-cyan-400 font-mono text-[10px] tracking-widest uppercase mb-1 opacity-70">
+                                Base Coordinates
+                            </span>
+                            <h4 className="text-white font-bold text-sm md:text-base leading-tight">
+                                M.E.S Vasant Joshi College of Arts & Commerce
+                            </h4>
+                            <p className="text-gray-400 text-xs font-mono mt-1">
+                                Zuarinagar, Goa - 403726
+                            </p>
+                        </div>
+
+                        {/* Decorative corner bracket */}
+                        <div className="absolute bottom-4 right-6 w-8 h-8 border-r-2 border-b-2 border-cyan-500/30 rounded-br-lg group-hover:border-cyan-400 transition-colors" />
                     </div>
                 </a>
             </motion.div>
@@ -651,7 +752,7 @@ const Navbar = ({ onHomeClick, onRegisterClick }) => {
                         { name: 'HOME', href: '#', onClick: onHomeClick },
                         { name: 'ABOUT', href: '#about' },
                         { name: 'EVENTS', href: '#events' },
-                        { name: 'CONTACT', href: '#contact' }
+                        { name: 'CONTACT', href: '#contactco' }
                     ].map((link) => (
                         <a
                             key={link.name}
@@ -734,7 +835,7 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
 
             {/* Main Event Card */}
             <div className="bg-gray-900/40 border border-white/5 rounded-[1.5rem] md:rounded-[2.5rem] p-5 md:p-12 backdrop-blur-xl shadow-2xl">
-                
+
                 {/* Event Header */}
                 <div className="mb-8 md:mb-10">
                     <div className="flex items-center gap-2 mb-3">
@@ -754,7 +855,7 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
                         <div>
                             <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Capacity</span>
                             <span className="text-sm md:text-base text-white font-bold">
-                                {event.minParticipants === event.maxParticipants 
+                                {event.minParticipants === event.maxParticipants
                                     ? `${event.minParticipants} ${event.minParticipants === 1 ? 'Member' : 'Members'}`
                                     : `${event.minParticipants}-${event.maxParticipants} Members`
                                 }
@@ -818,9 +919,9 @@ const EventInfoPage = ({ event, onBack, onRegister }) => (
                         <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-6">
                             All detailed rules and timing for this event are available in our official event guide. Please download and read the brochure to make sure you have all the information.
                         </p>
-                        <a 
-                            href="/brochure.pdf" 
-                            download 
+                        <a
+                            href="/brochure.pdf"
+                            download
                             className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300 no-underline"
                         >
                             Download Brochure <ExternalLink size={14} />
@@ -975,7 +1076,7 @@ export default function GenesisLanding() {
                         <h2 className="text-3xl font-black text-white tracking-tighter mb-2 uppercase">Genesis 8.0</h2>
                         <p className="text-gray-500 text-sm max-w-xs">Murgaon Education Society's Vasant Joshi College of Arts & Commerce</p>
                     </div>
-                    <div className="mt-8 text-center text-gray-800 text-xs font-mono uppercase">System_ID: GEN_8.0 // Terminal_End</div>
+                    <div className="mt-8 text-center text-white text-xs font-mono uppercase">System_ID: GEN_8.0 // Terminal_End</div>
                 </div>
             </footer>
 

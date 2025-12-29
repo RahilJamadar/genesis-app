@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
+import * as XLSX from 'xlsx'; // Import XLSX for excel export
 
 const EventParticipants = () => {
   const [events, setEvents] = useState([]);
@@ -61,7 +62,6 @@ const EventParticipants = () => {
 
     const transformed = results.map(team => ({
       college: team.college,
-      // 🚀 NEW: Include teamName for the Admin view
       teamName: team.teamName, 
       leader: team.leader,
       contact: team.contact,
@@ -74,14 +74,71 @@ const EventParticipants = () => {
     setFilteredData(transformed);
   }, [selectedEvent, selectedCollege, allTeams]);
 
+  // --- 🚀 NEW: EXPORT FUNCTIONALITY ---
+  const handleExport = () => {
+    if (!selectedEvent) {
+      toast.warn("Please select an event first to export.");
+      return;
+    }
+
+    if (filteredData.length === 0) {
+      toast.error("No data available to export.");
+      return;
+    }
+
+    // Prepare data for Excel
+    const excelRows = [];
+    
+    filteredData.forEach(block => {
+      block.participants.forEach(p => {
+        excelRows.push({
+          "Team Name": block.teamName || "N/A",
+          "Participant Name": p.name,
+          "Contact Number": p.contact || "N/A"
+        });
+      });
+    });
+
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(excelRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
+
+    // Fix column widths for better readability
+    const wscols = [
+      { wch: 25 }, // Team Name width
+      { wch: 30 }, // Participant Name width
+      { wch: 20 }, // Contact width
+    ];
+    worksheet['!cols'] = wscols;
+
+    // Trigger Download
+    const fileName = `${selectedEvent.replace(/\s+/g, '_')}_Participants.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success(`📊 ${selectedEvent} report exported!`);
+  };
+
   return (
     <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row">
       <Navbar />
 
       <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
-        <header className="mb-4 mb-lg-5 text-center text-lg-start">
-          <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">Participation Tracker</h2>
-          <p className="text-light opacity-75 small">Filter sector-wise registrations and audit crew lists</p>
+        <header className="mb-4 mb-lg-5 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+          <div className="text-center text-lg-start">
+            <h2 className="fw-bold text-white mb-1 fs-3 fs-md-2">Participation Tracker</h2>
+            <p className="text-light opacity-75 small">Filter sector-wise registrations and audit crew lists</p>
+          </div>
+          
+          {/* 🚀 EXPORT BUTTON */}
+          {selectedEvent && (
+            <button 
+                onClick={handleExport}
+                className="btn btn-info fw-bold d-flex align-items-center gap-2 shadow-sm"
+            >
+                <i className="bi bi-file-earmark-excel-fill"></i>
+                EXPORT DATA
+            </button>
+          )}
         </header>
 
         {/* Filter Section */}
@@ -149,7 +206,6 @@ const EventParticipants = () => {
                       <div className="card-header bg-info bg-opacity-10 border-bottom border-info border-opacity-10 p-3">
                         <div className="d-flex justify-content-between align-items-center">
                           <div className="overflow-hidden">
-                            {/* 🚀 SHOW BOTH: Team Name and College Name */}
                             <div className="d-flex align-items-center gap-2 mb-1">
                                 <span className="badge bg-info text-black fw-black x-small-badge ls-1">TEAM: {block.teamName || "PENDING"}</span>
                             </div>

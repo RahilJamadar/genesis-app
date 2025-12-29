@@ -14,14 +14,14 @@ const Payment = () => {
     const CONFIG = {
         FEES: {
             COLLEGE_TROPHY: 2500,
-            FOOTBALL: 500,
-            VALORANT: 300, 
+            FOOTBALL: 800,
+            VALORANT: 500, 
             HACKATHON: 0
         },
         QR_CODES: {
-            MAIN: "/rahil-qr.jpeg",
-            FOOTBALL: "/rahil-qr.jpeg",
-            VALORANT: "/rahil-qr.jpeg"
+            MAIN: "/mes_qr.jpeg",
+            FOOTBALL: "/mes_qr.jpeg",
+            VALORANT: "/mes_qr.jpeg"
         },
         FORM_LINKS: {
             MAIN: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor",

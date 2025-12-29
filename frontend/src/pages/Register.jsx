@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Register = () => {
-  const { mode } = useParams(); 
+  const { mode } = useParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
@@ -101,7 +101,7 @@ const Register = () => {
 
   const validateStep = (currentStep) => {
     const { college, faculty, leaderName, leaderEmail, leaderPhone } = teamInfo;
-    
+
     if (currentStep === 1) {
       if (!college || !faculty || !leaderName || !leaderEmail || !leaderPhone) {
         return toast.error("Please fill all leader and institution details.");
@@ -112,7 +112,7 @@ const Register = () => {
       if (!validatePhone(leaderPhone)) {
         return toast.error("Leader phone must be 10 digits.");
       }
-      
+
       // If single event mode, go directly to member list (Step 4)
       if (mode !== 'main') return setStep(4);
       setStep(2);
@@ -164,7 +164,7 @@ const Register = () => {
 
       const res = await axios.post(`${baseURL}/api/admin/teams`, payload);
       toast.success("Registration Uplink Successful!");
-      
+
       if (isHackathon) {
         setTimeout(() => navigate('/'), 2000);
       } else {
@@ -190,15 +190,15 @@ const Register = () => {
         </div>
 
         {mode === 'main' && (
-            <div className="d-flex justify-content-between mb-5 px-2">
+          <div className="d-flex justify-content-between mb-5 px-2">
             {[1, 2, 4].map((num, idx) => (
-                <div key={num} className="text-center z-10" style={{ flex: 1 }}>
+              <div key={num} className="text-center z-10" style={{ flex: 1 }}>
                 <div className={`step-circle mx-auto transition-all duration-500 ${step >= num ? 'active' : ''}`}>
-                    {step > num ? <i className="bi bi-check-lg"></i> : idx + 1}
+                  {step > num ? <i className="bi bi-check-lg"></i> : idx + 1}
                 </div>
-                </div>
+              </div>
             ))}
-            </div>
+          </div>
         )}
 
         <AnimatePresence mode="wait">
@@ -226,7 +226,7 @@ const Register = () => {
                 </div>
                 <div className="col-12 col-md-6">
                   <label className="text-white x-small mb-1 d-block fw-bold tracking-widest">MOBILE NUMBER</label>
-                  <input type="text" maxLength="10" className="form-control genesis-input" value={teamInfo.leaderPhone} onChange={e => setTeamInfo({ ...teamInfo, leaderPhone: e.target.value.replace(/\D/g,'') })} placeholder="10 Digits Only" />
+                  <input type="text" maxLength="10" className="form-control genesis-input" value={teamInfo.leaderPhone} onChange={e => setTeamInfo({ ...teamInfo, leaderPhone: e.target.value.replace(/\D/g, '') })} placeholder="10 Digits Only" />
                 </div>
               </div>
               <button className="btn-genesis-v2 w-100 mt-5" onClick={() => validateStep(1)}>
@@ -239,6 +239,16 @@ const Register = () => {
             <motion.div key="st2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="card bg-glass border-white border-opacity-10 p-3 p-md-5 rounded-4">
               <h2 className="text-white font-black mb-2 uppercase tracking-tighter fs-3">Step 2: <span className="text-cyan-400">Trophy Events</span></h2>
               <p className="text-white text-opacity-50 mb-4 small font-mono">CHOOSE EVENTS FOR OVERALL CHAMPIONSHIP</p>
+              {/* --- IMPORTANT TROPHY NOTE --- */}
+              <div className="mb-4 p-3 rounded-4 bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20 d-flex gap-3 align-items-start">
+                <i className="bi bi-exclamation-triangle-fill text-red-500 mt-1"></i>
+                <div>
+                  <h6 className="text-white font-bold small mb-1 tracking-widest uppercase">Trophy Qualification Alert</h6>
+                  <p className="text-white text-opacity-70 x-small-label mb-0 leading-relaxed" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+                    To be eligible for the <span className="text-white fw-bold">Overall Championship Trophy</span>, teams MUST participate in <span className="text-cyan-400 fw-bold">EVERY SINGLE EVENT</span> listed below. Missing even one event will disqualify your institution from the overall standings.
+                  </p>
+                </div>
+              </div>
               <div className="row g-2 mb-4">
                 {events.filter(e => e.isTrophyEvent).map(ev => {
                   const isSelected = teamInfo.selectedTrophyEvents.includes(ev._id);
@@ -287,7 +297,7 @@ const Register = () => {
                           </div>
                           <div className="col-7 col-md-4">
                             <label className="x-small-label mb-2 uppercase text-white opacity-50">Mobile Number</label>
-                            <input type="text" maxLength="10" className="form-control genesis-input-v2" value={member.phone} placeholder="10 Digits" onChange={e => updateMember(event._id, idx, 'phone', e.target.value.replace(/\D/g,''))} />
+                            <input type="text" maxLength="10" className="form-control genesis-input-v2" value={member.phone} placeholder="10 Digits" onChange={e => updateMember(event._id, idx, 'phone', e.target.value.replace(/\D/g, ''))} />
                           </div>
                           <div className="col-5 col-md-3">
                             <label className="x-small-label mb-2 uppercase text-white opacity-50">Food</label>
