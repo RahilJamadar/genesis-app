@@ -523,18 +523,22 @@ const Coordinators = () => {
     };
 
     const departmentHeads = [
-        { name: "Pranav Powar", role: "EVENT ASSISTANT", photo: "/pranav.jpeg" },
         { name: "Sujith Roshan", role: "DESIGNER", photo: "/sujith.jpeg" },
         { name: "Ayush Maurya", role: "CONTENT HEAD", photo: "/content.jpeg" },
         { name: "Adnan Sayed", role: "MARKETING HEAD", photo: "/adnan.jpeg" },
         { name: "Shreshth Alornecar", role: "VIDEOGRAPHER", photo: "/videographer.jpg" },
         { name: "Lucky Ali", role: "EDITOR", photo: "/Editor.jpeg" },
         { name: "Gaurav Gupta", role: "BROCHURE HEAD", photo: "/gaurav.jpg" },
+        { name: "Sakshi Singh", role: "BROCHURE TEAM", photo: "/sakshi.jpeg" },
+        { name: "Pranav Powar", role: "EVENT ASSISTANT", photo: "/pranav.jpeg" },
+        { name: "Amaan Sayed", role: "DESIGNING TEAM", photo: "/amaan.jpeg" },
+        { name: "Hiba Shaikh", role: "DESIGNING TEAM", photo: "/hiba.jpeg" },
 
     ];
 
     // Duplicate list for seamless infinite loop
     const sliderItems = [...departmentHeads, ...departmentHeads];
+    const duplicatedItems = [...sliderItems, ...sliderItems];
 
     return (
         <section id='contactco' className="py-24 bg-gradient-to-b from-black via-gray-900 to-black text-center relative overflow-hidden">
@@ -580,20 +584,17 @@ const Coordinators = () => {
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
+                        whileHover={{ scale: 1 }} // Keeps scale same but allows catching the hover state
                         /* CARD WIDTH: 
                            Mobile: w-full (full width) 
                            Desktop: md:w-[450px] (Adjust this for card width)
                         */
-                        className="relative group w-full md:w-[450px]"
+                        className={`relative group w-full md:w-[450px] flex gap-8 py-10`}
                     >
                         <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/50 to-purple-600/50 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition duration-1000"></div>
 
                         <div className="relative bg-gray-900/80 border border-white/10 rounded-2xl p-5 backdrop-blur-sm overflow-hidden">
 
-                            {/* IMAGE CONTAINER: 
-               Mobile: h-[250px] 
-               Desktop: md:h-[280px] (Adjust this for image height)
-            */}
                             <div className="w-full h-[250px] md:h-[280px] overflow-hidden rounded-xl mb-6 bg-gray-800 border border-white/5">
                                 <img
                                     src={mainCoordinator.photo}
@@ -623,16 +624,19 @@ const Coordinators = () => {
                 </div>
 
                 {/* --- DEPARTMENT HEADS SLIDER --- */}
-                <div className="relative mt-20">
+                <div className="relative mt-10">
                     <div className="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                         <motion.div
                             className="flex gap-8 py-10"
-                            animate={{ x: [0, -1920] }} // Adjust based on total width
+                            // Move exactly half of the total width (since items are duplicated)
+                            animate={{ x: ["0%", "-50%"] }}
                             transition={{
-                                x: { repeat: Infinity, duration: 30, ease: "linear" }
+                                ease: "linear",
+                                duration: 100, // Increase this number to make it even slower (e.g., 80 or 100)
+                                repeat: Infinity,
                             }}
                         >
-                            {sliderItems.map((head, idx) => (
+                            {duplicatedItems.map((head, idx) => (
                                 <div
                                     key={idx}
                                     className="flex-shrink-0 w-72 bg-gray-900/40 border border-white/5 rounded-2xl p-3 backdrop-blur-sm hover:border-cyan-500/50 transition-colors group"
@@ -657,6 +661,7 @@ const Coordinators = () => {
                         </motion.div>
                     </div>
                 </div>
+
             </div>
         </section>
     );

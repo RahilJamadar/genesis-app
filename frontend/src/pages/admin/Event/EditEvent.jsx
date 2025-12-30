@@ -72,10 +72,12 @@ const EditEvent = () => {
   };
 
   const handleSave = async () => {
+    // 1. Convert strings to actual numbers for the backend
     const finalMin = Number(event.minParticipants);
     const finalMax = Number(event.maxParticipants);
     const needsCriteria = event.isTrophyEvent && !event.isDirectWin;
 
+    // 2. Validation
     if (needsCriteria && event.judgingCriteria.some(c => !c || c.trim() === '')) {
       return toast.warn('⚠️ All 3 judging criteria must be filled');
     }
@@ -86,21 +88,29 @@ const EditEvent = () => {
 
     setLoading(true);
     try {
-      const { _id, createdAt, updatedAt, __v, ...cleanData } = event;
+      // 3. Destructure and remove the old values explicitly to prevent overwriting
+      const { _id, createdAt, updatedAt, __v, minParticipants, maxParticipants, ...cleanData } = event;
+
       const payload = {
         ...cleanData,
-        minParticipants: finalMin,
+        minParticipants: finalMin, // Use the converted numbers
         maxParticipants: finalMax,
         rounds: Number(event.rounds),
         judgingCriteria: needsCriteria ? event.judgingCriteria : [],
+        // Ensure we send only IDs to the backend
         judges: event.judges.map(j => j._id || j),
         studentCoordinators: event.studentCoordinators.map(s => s._id || s)
       };
 
+      // 4. Update via API
       await adminApi.put(`/events/${id}`, payload);
+      
       toast.success('✅ Event updated successfully');
+      
+      // Delay navigation slightly so user sees the success toast
       setTimeout(() => navigate('/admin/events'), 1500);
     } catch (err) {
+      console.error("Update Error:", err);
       toast.error(`❌ ${err.response?.data?.error || 'Failed to save changes'}`);
     } finally {
       setLoading(false);
