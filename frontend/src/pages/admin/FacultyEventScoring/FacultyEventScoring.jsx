@@ -12,20 +12,15 @@ const FacultyEventScoring = () => {
   const [judges, setJudges] = useState([]);
   const [allScores, setAllScores] = useState([]);
   
-  // Selection States
   const [round, setRound] = useState(1);
   const [selectedTeam, setSelectedTeam] = useState('');
-  
-  // 🥇 Direct Win States
   const [firstPlace, setFirstPlace] = useState('');
 
-  // 📊 Standard Evaluation States
   const [criteria, setCriteria] = useState([]);
   const [comment, setComment] = useState('');
   const [finalized, setFinalized] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🚀 Promotion States
   const [promotionCount, setPromotionCount] = useState(2);
   const [isPromoting, setIsPromoting] = useState(false);
 
@@ -35,6 +30,19 @@ const FacultyEventScoring = () => {
   const headers = useMemo(() => ({
     Authorization: `Bearer ${localStorage.getItem('facultyToken')}`
   }), []);
+
+  const uniqueTeams = useMemo(() => {
+    const seen = new Set();
+    return teams.filter(t => {
+      if (!t || !t._id || seen.has(t._id)) return false;
+      seen.add(t._id);
+      return true;
+    });
+  }, [teams]);
+
+  const isHeadJudge = useMemo(() => {
+    return judges.length > 0 && judges[0]._id === facultyId;
+  }, [judges, facultyId]);
 
   const getDisplayName = (team) => {
     if (!team) return "";
@@ -65,7 +73,7 @@ const FacultyEventScoring = () => {
         headers, 
         withCredentials: true 
       });
-      setTeams(res.data);
+      setTeams(res.data || []);
       setSelectedTeam(''); 
     } catch (err) {
       toast.error('❌ Failed to fetch teams');
@@ -117,14 +125,15 @@ const FacultyEventScoring = () => {
   };
 
   const handlePromotion = async () => {
-    if (!window.confirm(`Promote top ${promotionCount} teams?`)) return;
+    if (!window.confirm(`Promote top ${promotionCount} teams to next round?`)) return;
     setIsPromoting(true);
     try {
       await axios.post(`${baseURL}/api/faculty/scoring/event/${eventId}/promote`, {
         round: round,
         count: parseInt(promotionCount)
       }, { headers, withCredentials: true });
-      toast.success(`🚀 Promoted successfully!`);
+      toast.success(`🚀 Round ${round} complete. Teams promoted!`);
+      fetchTeamsForRound();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Promotion failed.');
     } finally {
@@ -134,16 +143,14 @@ const FacultyEventScoring = () => {
 
   const submitDirectWin = async (isFinal) => {
     if (!firstPlace) return toast.warn('Please select the winner');
-    
     setLoading(true);
     try {
       await axios.post(`${baseURL}/api/faculty/scoring/event/${eventId}/direct-win`, {
         firstPlaceTeamId: firstPlace,
-        secondPlaceTeamId: null, // 🚀 Fixed: Only First Place is sent
+        secondPlaceTeamId: null,
         finalized: isFinal
       }, { headers, withCredentials: true });
-
-      toast.success(isFinal ? '🏆 Winner Locked!' : '💾 Draft Saved');
+      toast.success(isFinal ? '🏆 Winner Published!' : '💾 Draft Saved');
       fetchCurrentScores();
     } catch (err) {
       toast.error('Submission failed');
@@ -163,7 +170,7 @@ const FacultyEventScoring = () => {
         comment,
         finalized: isFinal
       }, { headers, withCredentials: true });
-      toast.success(isFinal ? '🏆 Scores Finalized!' : '💾 Draft Saved');
+      toast.success(isFinal ? '🏆 Evaluation Locked!' : '💾 Draft Saved');
       fetchCurrentScores();
     } catch (err) {
       toast.error('Submission failed');
@@ -183,11 +190,11 @@ const FacultyEventScoring = () => {
             <div>
               <h4 className="text-info fw-bold mb-0">{eventData?.name || 'Loading...'}</h4>
               <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 mt-1 text-uppercase ls-1 x-small">
-                {eventData?.isDirectWin ? 'Direct Winner Selection' : 'Criteria Evaluation'}
+                {eventData?.isDirectWin ? 'Direct Winner Selection' : `Criteria Evaluation`}
               </span>
             </div>
             <div className="text-end text-secondary small font-mono">
-               {eventData?.isDirectWin ? 'STANDALONE ROUND' : `ACTIVE ROUND: ${round}`}
+               {eventData?.isDirectWin ? 'STANDALONE' : `ROUND ${round}`}
             </div>
         </header>
 
@@ -197,46 +204,33 @@ const FacultyEventScoring = () => {
               <div className="card-body p-4 p-md-5">
                 
                 {eventData?.isDirectWin ? (
-                  /* 🥇 DIRECT WIN UI */
                   <div className="animate-fade-in">
                     <h5 className="text-white mb-4 border-bottom border-secondary pb-3">Final Result Selection</h5>
                     <div className="mb-5">
-                      <label className="text-warning small fw-bold mb-2 d-block ls-1">FIRST PLACE (100 PTS)</label>
+                      <label className="text-warning small fw-bold mb-2 d-block ls-1">WINNER (100 PTS)</label>
                       <select className="form-select bg-dark text-white border-secondary shadow-none py-3" 
                         value={firstPlace} onChange={e => setFirstPlace(e.target.value)} disabled={finalized}>
                         <option value="">-- Choose Winner --</option>
-                        {teams.map(t => <option key={t._id} value={t._id}>{getDisplayName(t).toUpperCase()}</option>)}
+                        {uniqueTeams.map(t => <option key={t._id} value={t._id}>{getDisplayName(t).toUpperCase()}</option>)}
                       </select>
-                      <p className="text-secondary x-small mt-3 italic">
-                        * Note: Selecting a winner will award them 100 points. All other participating teams will receive 10 points for participation.
-                      </p>
+                      <p className="text-secondary x-small mt-3 italic">* Winner gets 100pts, all other participants get 10pts.</p>
                     </div>
-                    
                     {!finalized ? (
-                      <div className="d-grid gap-2">
-                        <button className="btn btn-info fw-bold py-3" onClick={() => submitDirectWin(true)} disabled={loading}>
-                          FINALIZE & PUBLISH WINNER
-                        </button>
-                      </div>
+                      <button className="btn btn-info w-100 fw-bold py-3" onClick={() => submitDirectWin(true)} disabled={loading}>PUBLISH RESULT</button>
                     ) : (
-                      <div className="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-center py-3">
-                        <i className="bi bi-trophy-fill text-white me-2"></i> Result Finalized and Published.
-                      </div>
+                      <div className="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-center py-3">Result Finalized.</div>
                     )}
                   </div>
                 ) : (
-                  /* 📊 STANDARD SLIDER UI */
                   <>
                     <div className="row g-3 mb-4 border-bottom border-secondary pb-4">
                       <div className="col-md-6">
                         <label className="text-info small fw-bold mb-2 d-block">TARGET TEAM</label>
                         <select className="form-select bg-dark text-white border-secondary shadow-none" 
                           value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)} disabled={loading}>
-                          <option value="">-- Choose Team Identity --</option>
-                          {teams.map(t => (
-                            <option key={t._id} value={t._id}>
-                              {getDisplayName(t)}
-                            </option>
+                          <option value="">-- Choose Identity --</option>
+                          {uniqueTeams.map(t => (
+                            <option key={t._id} value={t._id}>{getDisplayName(t)}</option>
                           ))}
                         </select>
                       </div>
@@ -268,47 +262,29 @@ const FacultyEventScoring = () => {
                         </div>
                         {!finalized ? (
                           <div className="d-grid gap-2">
-                            <button className="btn btn-info fw-bold py-3 shadow-sm" onClick={() => submitScore(true)} disabled={loading}>
-                              FINALIZE SCORE
-                            </button>
-                            <button className="btn btn-outline-secondary text-white border-secondary" onClick={() => submitScore(false)} disabled={loading}>
-                              SAVE AS DRAFT
-                            </button>
+                            <button className="btn btn-info fw-bold py-3 shadow-sm" onClick={() => submitScore(true)} disabled={loading}>FINALIZE SCORE</button>
+                            <button className="btn btn-outline-secondary text-white border-secondary" onClick={() => submitScore(false)} disabled={loading}>SAVE AS DRAFT</button>
                           </div>
                         ) : (
-                          <div className="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-center">
-                            Evaluation Locked.
-                          </div>
+                          <div className="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-center">Evaluation Locked.</div>
                         )}
                       </div>
                     ) : (
-                      <div className="text-center py-5 opacity-50 text-white">Select a team identity to begin evaluation</div>
+                      <div className="text-center py-5 opacity-50 text-white italic">Select a team identity to evaluate</div>
                     )}
 
-                    {round < eventData?.rounds && (
+                    {isHeadJudge && round < eventData?.rounds && (
                       <div className="mt-5 pt-4 border-top border-secondary border-opacity-50">
-                        <div className="bg-grey-700 bg-opacity-5 rounded p-4 border border-warning border-opacity-20 shadow-sm">
-                           <h6 className="text-white fw-bold mb-3 d-flex align-items-center gap-2">
-                             <i className="bi bi-lightning-charge-fill"></i> ROUND PROMOTION CONTROL
+                        <div className="bg-grey-600 bg-opacity-5 rounded p-4 border border-warning border-opacity-20 shadow-sm">
+                           <h6 className="text-warning fw-bold mb-1 d-flex align-items-center gap-2">
+                             <i className="bi bi-shield-lock-fill"></i> HEAD JUDGE CONTROL
                            </h6>
+                           <p className="text-secondary x-small mb-3">Promote top unique teams to Round {round+1}</p>
                            <div className="d-flex gap-2">
-                              <div className="flex-grow-1">
-                                <input 
-                                  type="number" 
-                                  className="form-control bg-dark text-white border-secondary shadow-none" 
-                                  placeholder="Count"
-                                  value={promotionCount}
-                                  onChange={(e) => setPromotionCount(e.target.value)}
-                                  disabled={isPromoting}
-                                />
-                                <small className="text-white" style={{fontSize: '0.6rem'}}>NUMBER TO PROMOTE</small>
-                              </div>
-                              <button 
-                                className="btn btn-warning fw-bold px-4 h-100" 
-                                onClick={handlePromotion}
-                                disabled={isPromoting}
-                              >
-                                {isPromoting ? 'PROMOTING...' : 'PROMOTE'}
+                              <input type="number" className="form-control bg-dark text-white border-secondary shadow-none w-25" 
+                                value={promotionCount} onChange={(e) => setPromotionCount(e.target.value)} />
+                              <button className="btn btn-warning fw-bold flex-grow-1" onClick={handlePromotion} disabled={isPromoting}>
+                                {isPromoting ? 'PROMOTING...' : 'PROMOTE TEAMS'}
                               </button>
                            </div>
                         </div>
@@ -323,23 +299,19 @@ const FacultyEventScoring = () => {
           <div className="col-lg-5">
             <div className="card bg-glass border-secondary shadow-lg">
               <div className="card-body p-4">
-                <h5 className="text-white fw-bold mb-4">Round <span className="text-info">Registry</span></h5>
+                <h5 className="text-white fw-bold mb-4 border-bottom border-white border-opacity-10 pb-3">Judge Status Panel</h5>
                 <div className="table-responsive">
                   <table className="table table-dark table-hover align-middle mb-0">
                     <tbody>
-                      {judges.map(j => {
+                      {judges.map((j, index) => {
                         const scoreEntry = allScores.find(s => s.judge._id === j._id);
                         return (
                           <tr key={j._id} className="border-secondary">
                             <td className="py-3 text-white fw-bold">
-                                {j.name} {j._id === facultyId && <span className="text-info ms-1 small">(YOU)</span>}
+                                {j.name} {index === 0 && <span className="badge bg-warning text-dark ms-1 x-small-badge">HEAD</span>}
                             </td>
                             <td className="text-end">
-                              {scoreEntry?.finalized ? (
-                                <span className="badge bg-success bg-opacity-10 text-success border border-success px-2 x-small ls-1">LOCKED</span>
-                              ) : (
-                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 x-small ls-1">PENDING</span>
-                              )}
+                              {scoreEntry?.finalized ? <span className="text-success small fw-bold">LOCKED</span> : <span className="text-danger small fw-bold">PENDING</span>}
                             </td>
                           </tr>
                         );
@@ -354,8 +326,9 @@ const FacultyEventScoring = () => {
       </div>
 
       <style>{`
-        .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px); border-radius: 24px; }
+        .bg-glass { background: rgba(15, 15, 15, 0.8) !important; backdrop-filter: blur(12px); border-radius: 24px; }
         .x-small { font-size: 0.65rem; }
+        .x-small-badge { font-size: 0.55rem; padding: 2px 5px; vertical-align: middle; }
         .ls-1 { letter-spacing: 1px; }
         .fw-black { font-weight: 900; }
         .custom-slider { height: 6px; border-radius: 5px; background: #2b2f3a; -webkit-appearance: none; }

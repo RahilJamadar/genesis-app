@@ -6,18 +6,37 @@ const Team = require('../models/Team');
 const Faculty = require('../models/faculty');
 const StudentCoordinator = require('../models/StudentCoordinator');
 
-/**
- * @route   GET /api/admin/events/public
- * @desc    🚀 Public route for Landing Page & Registration (No Auth Required)
- * Fetches essential event data including team size limits and coordinators.
- */
+let cachedEvents = null;
+let lastFetchTime = 0;
+
 router.get('/public', async (req, res) => {
   try {
+    // 1. ADD IT HERE: Check for the force reset parameter first
+    if (req.query.force === 'true') {
+        cachedEvents = null; 
+        console.log("♻️ Cache cleared via force parameter");
+    }
+
+    const now = Date.now();
+    
+    // 2. Then check if we have a valid cache
+    if (cachedEvents && (now - lastFetchTime < 60000)) {
+      return res.json(cachedEvents);
+    }
+
+    // 3. Fetch from DB if cache is null or expired
     const events = await Event.find()
       .populate('studentCoordinators', 'name phone')
       .select('name category isTrophyEvent rules minParticipants maxParticipants rounds studentCoordinators')
       .lean();
+
+    // 4. Update the cache with the fresh data
+    cachedEvents = events;
+    lastFetchTime = now;
+
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     res.json(events);
+
   } catch (err) {
     console.error('Public fetch failed:', err);
     res.status(500).json({ error: 'Failed to synchronize events database' });

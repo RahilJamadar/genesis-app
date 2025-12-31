@@ -12,7 +12,9 @@ const Score = require('../models/Score');
 
 const calculateStandings = (teamMetrics) => {
     return Object.entries(teamMetrics).sort(([, a], [, b]) => {
+        // Primary: Total points in the round
         if (b.total !== a.total) return b.total - a.total;
+        // Tie-breakers: Criteria 1 > 2 > 3
         if (b.c1 !== a.c1) return b.c1 - a.c1;
         if (b.c2 !== a.c2) return b.c2 - a.c2;
         return b.c3 - a.c3;
@@ -28,17 +30,31 @@ const parseRound = (roundVal) => {
     return null;
 };
 
+/**
+ * 🚀 FIXED NORMALIZATION ENGINE
+ * Isolates the LATEST round and applies 100/50/10 logic based on that round only.
+ */
 async function normalizeFinalScores(eventId) {
     try {
         const eventIdStr = eventId.toString();
         const event = await Event.findById(eventIdStr);
         if (!event || !event.isTrophyEvent) return;
 
+        // 1. Fetch ALL finalized scores for this event
+        const allFinalizedScores = await Score.find({ event: eventIdStr, finalized: true });
+        if (allFinalizedScores.length === 0) return;
+
+        // 2. Identify the highest round reached in this event (e.g., Round 3)
+        const maxRound = Math.max(...allFinalizedScores.map(s => s.round));
+        
+        // 3. Filter scores to only include that specific final round
+        const finalRoundScores = allFinalizedScores.filter(s => s.round === maxRound);
+
         const participatingTeams = await Team.find({ registeredEvents: eventIdStr });
-        const finalizedScores = await Score.find({ event: eventIdStr, finalized: true });
 
         if (event.isDirectWin) {
-            const result = finalizedScores[0]; 
+            // Logic for single-winner events (e.g., Football/Football)
+            const result = finalRoundScores[0]; 
             if (!result || !result.directWinners) return;
 
             const firstPlaceId = result.directWinners.firstPlace?.toString();
@@ -48,24 +64,23 @@ async function normalizeFinalScores(eventId) {
                 const tId = team._id.toString();
                 let points = 10; 
                 if (tId === firstPlaceId) points = 100;
-                else if (tId === secondPlaceId) points = 50;
+                else if (tId === secondPlaceId && !event.isDirectWin) points = 50; // Skip if direct win only allows 1 winner
 
-                if (!team.finalPoints) team.finalPoints = new Map();
                 team.finalPoints.set(eventIdStr, points);
                 team.markModified('finalPoints');
                 await team.save();
             }
         } 
         else {
-            if (finalizedScores.length === 0) return;
-
+            // Logic for Criteria events (e.g., Debate/Clash of Arguments)
             const teamMetrics = {};
-            finalizedScores.forEach(s => {
+            finalRoundScores.forEach(s => {
                 if (!s.team) return;
                 const tId = s.team.toString();
                 if (!teamMetrics[tId]) {
                     teamMetrics[tId] = { total: 0, c1: 0, c2: 0, c3: 0 };
                 }
+                // Aggregate scores from all judges for THIS round
                 teamMetrics[tId].total += (s.totalPoints || 0);
                 if (s.criteriaScores && s.criteriaScores.length === 3) {
                     teamMetrics[tId].c1 += (s.criteriaScores[0] || 0);
@@ -74,23 +89,26 @@ async function normalizeFinalScores(eventId) {
                 }
             });
 
+            // Rank teams based on the final round aggregate
             const ranked = calculateStandings(teamMetrics);
 
             for (const team of participatingTeams) {
                 const tId = team._id.toString();
-                let pointsAwarded = 10; 
+                let pointsAwarded = 10; // Participation
 
                 const rankIndex = ranked.findIndex(([id]) => id === tId);
+                
                 if (rankIndex === 0) pointsAwarded = 100; 
-                else if (rankIndex === 1) pointsAwarded = 50;  
+                else if (rankIndex === 1) pointsAwarded = 50;   
+                
 
-                if (!team.finalPoints) team.finalPoints = new Map();
+                // Update and persist
                 team.finalPoints.set(eventIdStr, pointsAwarded);
                 team.markModified('finalPoints');
-                await team.save();
+                await team.save(); // Triggers Team model pre-save hook for total points
             }
         }
-        console.log(`✅ Normalized standings for: ${event.name}`);
+        console.log(`✅ Normalized standings for: ${event.name} (Based on Round ${maxRound})`);
     } catch (err) {
         console.error("❌ Normalization Error:", err);
     }
@@ -108,7 +126,6 @@ router.get('/admin/event/:eventId/scores', verifyAdmin, async (req, res) => {
         if (roundNum !== null) query.round = roundNum;
 
         const scores = await Score.find(query)
-            // 🚀 UPDATE: Added teamName to populate
             .populate('team', 'college leader teamName') 
             .populate('judge', 'name')
             .lean();
@@ -124,7 +141,7 @@ router.patch('/finalize/:scoreId', verifyAdmin, async (req, res) => {
         const score = await Score.findByIdAndUpdate(req.params.scoreId, { finalized: true }, { new: true });
         if (!score) return res.status(404).json({ error: 'Score not found' });
         await normalizeFinalScores(score.event);
-        res.json({ success: true, message: 'Score finalized.' });
+        res.json({ success: true, message: 'Score finalized and leaderboard synced.' });
     } catch (err) {
         res.status(500).json({ error: 'Finalization failed' });
     }
@@ -134,29 +151,23 @@ router.patch('/finalize/:scoreId', verifyAdmin, async (req, res) => {
 // 🧑‍⚖️ FACULTY / JUDGE ROUTES
 // ==========================================
 
-/**
- * @route   GET /api/faculty/scoring/event/:id/teams
- */
 router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
     try {
         const eventId = req.params.id;
         const roundNum = parseInt(req.query.round) || 1;
 
         if (roundNum === 1) {
-            // Round 1
             const teams = await Team.find({ registeredEvents: eventId })
-                // 🚀 UPDATE: Included teamName in the selection
                 .select('college leader teamName') 
                 .sort({ college: 1 });
             return res.json(teams);
         }
 
-        // Round 2/3
         const promotedScores = await Score.find({
             event: eventId,
             round: roundNum - 1,
             promotedNextRound: true
-        }).populate('team', 'college leader teamName'); // 🚀 UPDATE: Added teamName to populate
+        }).populate('team', 'college leader teamName');
 
         const promotedTeams = promotedScores.map(s => s.team).filter(t => t != null);
         res.json(promotedTeams);
@@ -165,30 +176,41 @@ router.get('/event/:id/teams', verifyFaculty, async (req, res) => {
     }
 });
 
-/**
- * @route   POST /api/faculty/scoring/event/:eventId/promote
- */
 router.post('/event/:eventId/promote', verifyFaculty, async (req, res) => {
     try {
         const { eventId } = req.params;
         const { round, count } = req.body; 
+        const promotionCount = parseInt(count);
 
-        const scores = await Score.find({ event: eventId, round, finalized: true })
-            .sort({ totalPoints: -1 });
+        const allScores = await Score.find({ 
+            event: eventId, 
+            round: round, 
+            finalized: true 
+        });
 
-        if (scores.length === 0) {
-            return res.status(400).json({ error: "No finalized scores found. Finalize scores before promoting." });
+        if (allScores.length === 0) {
+            return res.status(400).json({ error: "Scores must be finalized before promotion." });
         }
 
-        await Score.updateMany({ event: eventId, round }, { promotedNextRound: false });
+        const teamTotals = {};
+        allScores.forEach(s => {
+            const tId = s.team.toString();
+            if (!teamTotals[tId]) {
+                teamTotals[tId] = { id: s.team, totalPoints: 0 };
+            }
+            teamTotals[tId].totalPoints += s.totalPoints;
+        });
 
-        const promotedTeams = scores.slice(0, count).map(s => s._id);
+        const sortedTeams = Object.values(teamTotals).sort((a, b) => b.totalPoints - a.totalPoints);
+        const topTeamIds = sortedTeams.slice(0, promotionCount).map(t => t.id);
+
+        await Score.updateMany({ event: eventId, round: round }, { promotedNextRound: false });
         await Score.updateMany(
-            { _id: { $in: promotedTeams } },
+            { event: eventId, round: round, team: { $in: topTeamIds } },
             { promotedNextRound: true }
         );
 
-        res.json({ success: true, message: `${count} teams promoted to next round.` });
+        res.json({ success: true, message: `Top ${topTeamIds.length} unique teams promoted.` });
     } catch (err) {
         res.status(500).json({ error: 'Promotion logic failed' });
     }
@@ -198,11 +220,7 @@ router.get('/event/:eventId/scores/:teamId', verifyFaculty, async (req, res) => 
     try {
         const roundNum = parseRound(req.query.round);
         const query = { event: req.params.eventId, round: roundNum };
-        
-        if (req.params.teamId !== 'null') {
-            query.team = req.params.teamId;
-        }
-
+        if (req.params.teamId !== 'null') query.team = req.params.teamId;
         const scores = await Score.find(query).populate('judge', 'name');
         res.json(scores);
     } catch (err) {
@@ -214,7 +232,6 @@ router.post('/event/:eventId/direct-win', verifyFaculty, async (req, res) => {
     try {
         const { firstPlaceTeamId, secondPlaceTeamId, finalized } = req.body;
         const { eventId } = req.params;
-
         const updatedScore = await Score.findOneAndUpdate(
             { event: eventId, judge: req.user.id, round: 1 },
             { 
@@ -225,7 +242,6 @@ router.post('/event/:eventId/direct-win', verifyFaculty, async (req, res) => {
             },
             { upsert: true, new: true }
         );
-
         if (finalized) await normalizeFinalScores(eventId);
         res.json({ success: true, score: updatedScore });
     } catch (err) {

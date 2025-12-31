@@ -64,7 +64,7 @@ const SPONSORS = [
     { name: "Digital Computers", img: "/digital.jpeg", stretch: true },
     { name: "VCare", img: "/vcare.JPG", stretch: true },
     { name: "Raymond Hardware", img: "/raymond.png" },
-    { name: "Daji Salkar", img: "/daji.jpeg" },
+    { name: "Krishna Daji Salkar", img: "/daji.jpeg" },
 ];
 
 // =================================================================
@@ -531,8 +531,11 @@ const Coordinators = () => {
         { name: "Gaurav Gupta", role: "BROCHURE HEAD", photo: "/gaurav.jpg" },
         { name: "Sakshi Singh", role: "BROCHURE TEAM", photo: "/sakshi.jpeg" },
         { name: "Pranav Powar", role: "EVENT ASSISTANT", photo: "/pranav.jpeg" },
+        { name: "Prince Naik", role: "DECORATION TEAM", photo: "/prince.jpeg" },
         { name: "Amaan Sayed", role: "DESIGNING TEAM", photo: "/amaan.jpeg" },
         { name: "Hiba Shaikh", role: "DESIGNING TEAM", photo: "/hiba.jpeg" },
+        { name: "Suman Ganati", role: "DECORATION TEAM", photo: "/suman.png" },
+
 
     ];
 
@@ -784,6 +787,7 @@ const Navbar = ({ onHomeClick, onRegisterClick }) => {
 
 const CategoryListPage = ({ categoryLabel, events, onEventSelect, onBack }) => {
     const data = EVENTS_DATA[categoryLabel];
+    
     return (
         <motion.div initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }} className="min-h-screen bg-black pt-24 px-4 relative overflow-hidden">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30 pointer-events-none" />
@@ -810,7 +814,12 @@ const CategoryListPage = ({ categoryLabel, events, onEventSelect, onBack }) => {
                             </div>
                         </motion.div>
                     )) : (
-                        <div className="col-12 text-center py-20 text-gray-600 font-mono">No events initialized in this sector.</div>
+                        <div className="col-span-full text-center py-20 text-gray-600 font-mono">
+                            {/* 🚀 Show a loader if data is likely still fetching */}
+                            <div className="animate-pulse text-cyan-500/50">
+                                ACCESSING SECTOR DATA...
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
@@ -971,6 +980,7 @@ export default function GenesisLanding() {
     const navigate = useNavigate();
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleRegister = () => navigate('/register');
+    const [isInitialLoad, setIsInitialLoad] = useState(true); // 🚀 Start as true
 
 
     const eventsRef = useRef(null); // 🚀 Create a Ref for the events section
@@ -1003,15 +1013,15 @@ export default function GenesisLanding() {
                 setAllEvents(res.data || []);
             } catch (err) {
                 console.error("Critical: Failed to sync with neural network database.");
+            } finally{
+                setIsInitialLoad(false);
             }
         };
         fetchEvents();
     }, []);
 
     const handleCategorySelect = (label) => {
-        const backendCat = CATEGORY_MAP[label];
-        const filtered = allEvents.filter(ev => ev.category === backendCat);
-        setView({ type: 'category', label, data: filtered });
+        setView({ type: 'category', label }); // Removed data: filtered
         scrollToTop();
     };
 
@@ -1048,10 +1058,11 @@ export default function GenesisLanding() {
                         <CategoryListPage
                             key="category"
                             categoryLabel={view.label}
-                            events={view.data}
+                            // 🚀 LIVE FILTER: This ensures as soon as allEvents updates, this list updates
+                            events={allEvents.filter(ev => ev.category === CATEGORY_MAP[view.label])}
+                            isInitialLoad={isInitialLoad}
                             onEventSelect={handleEventSelect}
-                            onBack={() => setView({ type: 'home', scrollToEvents: true })
-                            }
+                            onBack={() => setView({ type: 'home', scrollToEvents: true })}
                         />
                     )}
 

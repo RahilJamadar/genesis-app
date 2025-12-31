@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
+import * as XLSX from 'xlsx';
+
 const Scoring = () => {
   const [teams, setTeams] = useState([]);
   const [events, setEvents] = useState([]);
@@ -36,7 +38,7 @@ const Scoring = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // 2. Dynamic Rounds: Populate based on the selected event's "rounds" property
+  // 2. Dynamic Rounds: Populate based on the selected event
   useEffect(() => {
     if (selectedEventId) {
       const eventObj = events.find(e => e._id === selectedEventId);
@@ -81,7 +83,52 @@ const Scoring = () => {
     }
   }, [selectedEventId, selectedRound, selectedTeamId]);
 
-  // 4. Finalize Function
+  // 🚀 NEW: Export to Excel Function
+  const exportScores = () => {
+    if (scores.length === 0) {
+      toast.info("No scores available to export. Fetch data first.");
+      return;
+    }
+
+    const eventName = events.find(e => e._id === selectedEventId)?.name || "Event";
+    
+    // Prepare Data for Excel
+    const excelData = scores.map(s => {
+      const criteriaData = {};
+      // Map individual criteria if they exist
+      if (s.criteriaScores) {
+        s.criteriaScores.forEach((val, idx) => {
+          criteriaData[`Criteria ${idx + 1}`] = val;
+        });
+      }
+
+      return {
+        "College/Institution": s.team?.college || 'N/A',
+        "Team Identity": s.team?.teamName || 'N/A',
+        "Participant": s.participant || 'Full Team',
+        "Round": s.round || selectedRound,
+        "Judge": s.judge?.name || 'Manual/Direct',
+        ...criteriaData,
+        "Total Points": s.totalPoints || s.points,
+        "Verification Status": s.finalized ? "VERIFIED" : "PENDING"
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Scores");
+
+    // Column width adjustment
+    const wscols = [
+        { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 20 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 20 }
+    ];
+    worksheet['!cols'] = wscols;
+
+    XLSX.writeFile(workbook, `Genesis_Audit_${eventName}_${selectedRound}.xlsx`);
+    toast.success("🚀 Audit Report Downloaded");
+  };
+
   const handleFinalize = async (scoreId) => {
     if (!window.confirm("Verify points? This will lock the score and update the Master Leaderboard.")) return;
     try {
@@ -93,7 +140,6 @@ const Scoring = () => {
     }
   };
 
-  // 5. Filter Teams
   const filteredTeams = teams.filter(t => {
     if (!selectedEventId) return true;
     return t.registeredEvents?.some(re => {
@@ -108,9 +154,18 @@ const Scoring = () => {
 
       <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
 
-        <header className="mb-4 mb-lg-5 text-white text-center text-lg-start">
-          <h2 className="fw-bold mb-1 fs-3 fs-md-2">Scoring Audit</h2>
-          <p className="opacity-75 small">Review judge point breakdowns and finalize event standings</p>
+        <header className="mb-4 mb-lg-5 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+          <div className="text-white text-center text-md-start">
+            <h2 className="fw-bold mb-1 fs-3 fs-md-2">Scoring Audit</h2>
+            <p className="opacity-75 small">Review judge point breakdowns and finalize event standings</p>
+          </div>
+          <button 
+            className="btn btn-success fw-bold px-4 py-2 shadow-sm" 
+            onClick={exportScores}
+            disabled={scores.length === 0}
+          >
+            <i className="bi bi-file-earmark-spreadsheet me-2"></i> EXPORT REPORT
+          </button>
         </header>
 
         {/* Filter Section */}
@@ -175,7 +230,7 @@ const Scoring = () => {
                 <table className="table table-dark table-hover align-middle mb-0">
                   <thead className="bg-white bg-opacity-5 border-bottom border-secondary">
                     <tr className="text-info x-small text-uppercase fw-bold ls-1">
-                      <th className="ps-4 py-3 min-w-200">Institution / Participant</th>
+                      <th className="ps-4 py-3 min-w-200">Institution / Identity</th>
                       <th className="py-3 min-w-200">Points Breakdown</th>
                       <th className="py-3 min-w-150">Assigned Judge</th>
                       <th className="py-3">Total Points</th>
@@ -187,7 +242,9 @@ const Scoring = () => {
                       <tr key={s._id} className="border-bottom border-secondary border-opacity-10 transition-all">
                         <td className="ps-4 py-3">
                           <div className="fw-bold text-white small">{s.team?.college || 'N/A'}</div>
-                          <div className="x-small text-info opacity-75 text-truncate" style={{maxWidth: '180px'}}>{s.participant || 'Full Team Entry'}</div>
+                          <div className="x-small text-info opacity-75 text-truncate" style={{maxWidth: '180px'}}>
+                            {s.team?.teamName ? `ID: ${s.team.teamName}` : (s.participant || 'Full Team')}
+                          </div>
                         </td>
                         <td className="py-3">
                           <div className="d-flex flex-wrap gap-1">
@@ -200,7 +257,7 @@ const Scoring = () => {
                         </td>
                         <td className="py-3 text-white x-small">
                           <i className="bi bi-person-check me-2 text-warning"></i>
-                          {s.judge?.name || 'Manual'}
+                          {s.judge?.name || 'Manual/Head'}
                         </td>
                         <td className="py-3">
                           <span className="fs-5 fw-bold text-warning">{s.totalPoints || s.points}</span>

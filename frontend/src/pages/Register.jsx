@@ -149,6 +149,7 @@ const Register = () => {
         });
       });
 
+      const isFootball = mode.toLowerCase() === 'football';
       const isHackathon = mode.toLowerCase() === 'hackathon';
 
       const payload = {
@@ -159,7 +160,10 @@ const Register = () => {
         contact: teamInfo.leaderPhone,
         members: flattenedMembers,
         registeredEvents: allSelectedIds,
-        paymentStatus: isHackathon ? 'verified' : 'pending'
+        paymentStatus: isHackathon ? 'verified' : 'pending',
+        // 🚀 FORCE 0 FOR FOOTBALL
+        vegCount: isFootball ? 0 : undefined,
+        nonVegCount: isFootball ? 0 : undefined
       };
 
       const res = await axios.post(`${baseURL}/api/admin/teams`, payload);
@@ -292,20 +296,27 @@ const Register = () => {
                       <div key={idx} className="mb-4 pb-4 border-bottom border-white border-opacity-5">
                         <div className="row g-3">
                           <div className="col-12 col-md-5">
-                            <label className="x-small-label mb-2 uppercase text-white opacity-50">Full Name</label>
+                            <label className="x-small-label mb-2 uppercase text-info opacity-1">Full Name</label>
                             <input type="text" className="form-control genesis-input-v2" value={member.name} placeholder="Participant Name" onChange={e => updateMember(event._id, idx, 'name', e.target.value)} />
                           </div>
                           <div className="col-7 col-md-4">
-                            <label className="x-small-label mb-2 uppercase text-white opacity-50">Mobile Number</label>
+                            <label className="x-small-label mb-2 uppercase text-info opacity-1">Mobile Number</label>
                             <input type="text" maxLength="10" className="form-control genesis-input-v2" value={member.phone} placeholder="10 Digits" onChange={e => updateMember(event._id, idx, 'phone', e.target.value.replace(/\D/g, ''))} />
                           </div>
-                          <div className="col-5 col-md-3">
-                            <label className="x-small-label mb-2 uppercase text-white opacity-50">Food</label>
-                            <select className="form-select genesis-input-v2 select-arrow" value={member.diet} onChange={e => updateMember(event._id, idx, 'diet', e.target.value)}>
-                              <option value="veg">Veg</option>
-                              <option value="non-veg">Non-Veg</option>
-                            </select>
-                          </div>
+                          {/* Conditional Rendering for Food Selection */}
+                          {event.name.toLowerCase() !== 'football' && (
+                            <div className="col-5 col-md-3">
+                              <label className="x-small-label mb-2 uppercase text-white opacity-50">Food</label>
+                              <select
+                                className="form-select genesis-input-v2 select-arrow"
+                                value={member.diet}
+                                onChange={e => updateMember(event._id, idx, 'diet', e.target.value)}
+                              >
+                                <option value="veg">Veg</option>
+                                <option value="non-veg">Non-Veg</option>
+                              </select>
+                            </div>
+                          )}
                         </div>
                         {eventParticipants[event._id].length > event.minParticipants && (
                           <div className="text-end mt-2">
