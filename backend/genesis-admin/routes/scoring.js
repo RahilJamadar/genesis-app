@@ -31,29 +31,36 @@ const parseRound = (roundVal) => {
 };
 
 /**
- * 🚀 FIXED NORMALIZATION ENGINE
- * Isolates the LATEST round and applies 100/50/10 logic based on that round only.
+ * 🚀 POWER-BOOSTED NORMALIZATION ENGINE
+ * Handles standard 100/50/10 logic AND the 100/200/10 Power Pair logic.
+ * Ensures the 'finalPoints' Map is updated and 'totalTrophyPoints' is recalculated.
  */
 async function normalizeFinalScores(eventId) {
     try {
         const eventIdStr = eventId.toString();
         const event = await Event.findById(eventIdStr);
-        if (!event || !event.isTrophyEvent) return;
-
-        // 1. Fetch ALL finalized scores for this event
-        const allFinalizedScores = await Score.find({ event: eventIdStr, finalized: true });
-        if (allFinalizedScores.length === 0) return;
-
-        // 2. Identify the highest round reached in this event (e.g., Round 3)
-        const maxRound = Math.max(...allFinalizedScores.map(s => s.round));
         
-        // 3. Filter scores to only include that specific final round
-        const finalRoundScores = allFinalizedScores.filter(s => s.round === maxRound);
+        // 1. Basic Validation
+        if (!event || !event.isTrophyEvent) {
+            console.log(`ℹ️ Skipping normalization: ${event?.name || 'Unknown'} is not a Trophy Event.`);
+            return;
+        }
 
+        // 2. Fetch Finalized Scores for the latest round
+        const allFinalizedScores = await Score.find({ event: eventIdStr, finalized: true });
+        if (allFinalizedScores.length === 0) {
+            console.log(`ℹ️ No finalized scores found for ${event.name}.`);
+            return;
+        }
+
+        const maxRound = Math.max(...allFinalizedScores.map(s => s.round));
+        const finalRoundScores = allFinalizedScores.filter(s => s.round === maxRound);
         const participatingTeams = await Team.find({ registeredEvents: eventIdStr });
 
+        const isPowerPair = event.name.toLowerCase().includes("power pair");
+
+        // --- CASE A: DIRECT WIN LOGIC (Standalone selection) ---
         if (event.isDirectWin) {
-            // Logic for single-winner events (e.g., Football/Football)
             const result = finalRoundScores[0]; 
             if (!result || !result.directWinners) return;
 
@@ -62,53 +69,91 @@ async function normalizeFinalScores(eventId) {
 
             for (const team of participatingTeams) {
                 const tId = team._id.toString();
-                let points = 10; 
+                let points = 10; // Participation default
+                
                 if (tId === firstPlaceId) points = 100;
-                else if (tId === secondPlaceId && !event.isDirectWin) points = 50; // Skip if direct win only allows 1 winner
+                else if (tId === secondPlaceId) points = 50;
 
                 team.finalPoints.set(eventIdStr, points);
                 team.markModified('finalPoints');
-                await team.save();
+                await team.save(); // save hook in Team.js will update totalTrophyPoints
             }
         } 
+        // --- CASE B: EVALUATION BASED LOGIC (Criteria Summing) ---
         else {
-            // Logic for Criteria events (e.g., Debate/Clash of Arguments)
             const teamMetrics = {};
+
+            // Aggregate judge scores for the current final round
             finalRoundScores.forEach(s => {
                 if (!s.team) return;
                 const tId = s.team.toString();
+                
                 if (!teamMetrics[tId]) {
-                    teamMetrics[tId] = { total: 0, c1: 0, c2: 0, c3: 0 };
+                    teamMetrics[tId] = { total: 0, c1: 0, c2: 0, c3: 0, mTotal: 0, fTotal: 0 };
                 }
-                // Aggregate scores from all judges for THIS round
-                teamMetrics[tId].total += (s.totalPoints || 0);
-                if (s.criteriaScores && s.criteriaScores.length === 3) {
-                    teamMetrics[tId].c1 += (s.criteriaScores[0] || 0);
-                    teamMetrics[tId].c2 += (s.criteriaScores[1] || 0);
-                    teamMetrics[tId].c3 += (s.criteriaScores[2] || 0);
+
+                if (isPowerPair && s.criteriaScores.length === 6) {
+                    // Split Scoring: Indices 0,1,2 = Male | 3,4,5 = Female
+                    const mSum = Number(s.criteriaScores[0] || 0) + Number(s.criteriaScores[1] || 0) + Number(s.criteriaScores[2] || 0);
+                    const fSum = Number(s.criteriaScores[3] || 0) + Number(s.criteriaScores[4] || 0) + Number(s.criteriaScores[5] || 0);
+                    
+                    teamMetrics[tId].mTotal += mSum;
+                    teamMetrics[tId].fTotal += fSum;
+                    teamMetrics[tId].total += (mSum + fSum);
+                } else {
+                    // Standard Scoring (3 Criteria)
+                    teamMetrics[tId].total += (Number(s.totalPoints) || 0);
+                    if (s.criteriaScores && s.criteriaScores.length >= 3) {
+                        teamMetrics[tId].c1 += Number(s.criteriaScores[0] || 0);
+                        teamMetrics[tId].c2 += Number(s.criteriaScores[1] || 0);
+                        teamMetrics[tId].c3 += Number(s.criteriaScores[2] || 0);
+                    }
                 }
             });
 
-            // Rank teams based on the final round aggregate
-            const ranked = calculateStandings(teamMetrics);
+            // Handle Power Pair Result Assignment (Mr & Mrs Genesis)
+            if (isPowerPair) {
+                const mrWinnerEntry = Object.entries(teamMetrics).sort(([, a], [, b]) => b.mTotal - a.mTotal)[0];
+                const mrsWinnerEntry = Object.entries(teamMetrics).sort(([, a], [, b]) => b.fTotal - a.fTotal)[0];
 
-            for (const team of participatingTeams) {
-                const tId = team._id.toString();
-                let pointsAwarded = 10; // Participation
+                const mrWinnerId = mrWinnerEntry ? mrWinnerEntry[0] : null;
+                const mrsWinnerId = mrsWinnerEntry ? mrsWinnerEntry[0] : null;
 
-                const rankIndex = ranked.findIndex(([id]) => id === tId);
+                for (const team of participatingTeams) {
+                    const tId = team._id.toString();
+                    let pointsAwarded = 10; 
+
+                    const wonMale = tId === mrWinnerId;
+                    const wonFemale = tId === mrsWinnerId;
+
+                    // Scoring: 100 for one title, 200 for both
+                    if (wonMale && wonFemale) pointsAwarded = 200; 
+                    else if (wonMale || wonFemale) pointsAwarded = 100; 
+
+                    team.finalPoints.set(eventIdStr, pointsAwarded);
+                    team.markModified('finalPoints');
+                    await team.save();
+                }
+            } 
+            // Handle Standard Result Assignment (1st, 2nd)
+            else {
+                const ranked = calculateStandings(teamMetrics);
                 
-                if (rankIndex === 0) pointsAwarded = 100; 
-                else if (rankIndex === 1) pointsAwarded = 50;   
-                
+                for (const team of participatingTeams) {
+                    const tId = team._id.toString();
+                    let pointsAwarded = 10;
+                    const rankIndex = ranked.findIndex(([id]) => id === tId);
+                    
+                    if (rankIndex === 0) pointsAwarded = 100; 
+                    else if (rankIndex === 1) pointsAwarded = 50; 
 
-                // Update and persist
-                team.finalPoints.set(eventIdStr, pointsAwarded);
-                team.markModified('finalPoints');
-                await team.save(); // Triggers Team model pre-save hook for total points
+                    team.finalPoints.set(eventIdStr, pointsAwarded);
+                    team.markModified('finalPoints');
+                    await team.save();
+                }
             }
         }
-        console.log(`✅ Normalized standings for: ${event.name} (Based on Round ${maxRound})`);
+        console.log(`✅ Standings and Trophy Points synchronized for: ${event.name}`);
     } catch (err) {
         console.error("❌ Normalization Error:", err);
     }
@@ -254,7 +299,7 @@ router.post('/event/:eventId/score', verifyFaculty, async (req, res) => {
         const { teamId, round, criteriaScores, comment, finalized } = req.body;
         const { eventId } = req.params;
         const roundNum = parseRound(round);
-        const totalPoints = criteriaScores.reduce((a, b) => a + b, 0);
+        const totalPoints = criteriaScores.reduce((a, b) => Number(a) + Number(b), 0);
 
         const updatedScore = await Score.findOneAndUpdate(
             { team: teamId, event: eventId, round: roundNum, judge: req.user.id },

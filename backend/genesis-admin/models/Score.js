@@ -16,7 +16,7 @@ const ScoreSchema = new mongoose.Schema({
   round: {
     type: Number, 
     required: true,
-    enum: [1, 2, 3] // Expanded to support 3 rounds for eliminations
+    enum: [1, 2, 3] 
   },
   judge: {
     type: mongoose.Schema.Types.ObjectId,
@@ -28,11 +28,17 @@ const ScoreSchema = new mongoose.Schema({
     type: [Number],
     validate: {
       validator: function(v) {
-        // Only require 3 scores if it's NOT a direct win record
+        // Only require scores if it's NOT a direct win record
         if (this.directWinners) return true;
-        return Array.isArray(v) && v.length === 3;
+        
+        /**
+         * 🚀 UPDATE FOR POWER PAIR:
+         * Standard events use 3 criteria.
+         * Power Pair (Mr & Mrs) uses 6 criteria (3 for Male + 3 for Female).
+         */
+        return Array.isArray(v) && (v.length === 3 || v.length === 6);
       },
-      message: 'Scores for exactly 3 criteria must be provided.'
+      message: 'Provide exactly 3 criteria scores (Standard) or 6 criteria scores (Power Pair).'
     },
     default: [0, 0, 0]
   },
@@ -40,7 +46,11 @@ const ScoreSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0,
-    max: 300, // Adjusted for 3 criteria (0-100 each)
+    /**
+     * 🚀 UPDATE: Max is 600 now to support 6 criteria (100 each).
+     * This will not affect 3-criteria events as they naturally cap at 300.
+     */
+    max: 600, 
     default: 0
   },
   // 🥇 For Direct Win Events
@@ -48,7 +58,7 @@ const ScoreSchema = new mongoose.Schema({
     firstPlace: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
     secondPlace: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' }
   },
-  // 🚀 NEW: Tracks if this team qualified for the next round
+  // 🚀 Tracks if this team qualified for the next round
   promotedNextRound: {
     type: Boolean,
     default: false
@@ -63,17 +73,23 @@ const ScoreSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Auto-calculate total points before saving for standard events
+/**
+ * 🧠 DYNAMIC CALCULATION LOGIC
+ * This hook automatically detects if it's a 3-score or 6-score event
+ * and calculates the totalPoints correctly before saving.
+ */
 ScoreSchema.pre('save', function(next) {
-  if (this.criteriaScores && this.criteriaScores.length === 3 && !this.directWinners) {
+  if (this.criteriaScores && !this.directWinners) {
+    // Works for both 3 and 6 criteria lengths
     this.totalPoints = this.criteriaScores.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
   }
   next();
 });
 
 // Compound index to ensure a judge only submits one score per team per round
-// Note: For Direct Win, we'll use a specific logic where team might be null 
-// so we allow sparse/flexible indexing if needed, but for now this remains strict.
-ScoreSchema.index({ team: 1, event: 1, round: 1, judge: 1 }, { unique: true, partialFilterExpression: { team: { $exists: true } } });
+ScoreSchema.index(
+    { team: 1, event: 1, round: 1, judge: 1 }, 
+    { unique: true, partialFilterExpression: { team: { $exists: true } } }
+);
 
 module.exports = mongoose.models.Score || mongoose.model('Score', ScoreSchema);

@@ -787,7 +787,7 @@ const Navbar = ({ onHomeClick, onRegisterClick }) => {
 
 const CategoryListPage = ({ categoryLabel, events, onEventSelect, onBack }) => {
     const data = EVENTS_DATA[categoryLabel];
-    
+
     return (
         <motion.div initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }} className="min-h-screen bg-black pt-24 px-4 relative overflow-hidden">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30 pointer-events-none" />
@@ -827,148 +827,163 @@ const CategoryListPage = ({ categoryLabel, events, onEventSelect, onBack }) => {
     );
 };
 
-const EventInfoPage = ({ event, onBack, onRegister }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className="min-h-screen bg-black pt-20 md:pt-28 px-3 md:px-4 pb-12 relative overflow-hidden"
-    >
-        {/* Background Ambient Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-cyan-500/5 blur-[120px] pointer-events-none" />
+const EventInfoPage = ({ event, onBack, onRegister }) => {
+    // Helper to format name: "John Doe" -> "johndoe.jpg"
 
-        <div className="max-w-4xl mx-auto relative z-10">
-            {/* Back Button */}
-            <button
-                onClick={onBack}
-                className="flex items-center text-gray-400 hover:text-cyan-400 transition-all mb-6 md:mb-8 font-mono text-[10px] md:text-xs uppercase tracking-widest bg-transparent border-none cursor-pointer group"
-            >
-                <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-                Return to Sector
-            </button>
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="min-h-screen bg-black pt-20 md:pt-28 px-3 md:px-4 pb-12 relative overflow-hidden"
+        >
+            {/* Background Ambient Glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-cyan-500/5 blur-[120px] pointer-events-none" />
 
-            {/* Main Event Card */}
-            <div className="bg-gray-900/40 border border-white/5 rounded-[1.5rem] md:rounded-[2.5rem] p-5 md:p-12 backdrop-blur-xl shadow-2xl">
-
-                {/* Event Header */}
-                <div className="mb-8 md:mb-10">
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="h-px w-6 md:w-8 bg-cyan-500/50"></span>
-                        <span className="text-cyan-500 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.4em]">Event_Identity_File</span>
-                    </div>
-                    <h1 className="text-2xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight">
-                        {event.name}
-                    </h1>
-                </div>
-
-                {/* Quick Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 mb-10">
-                    {/* Capacity Card with Dynamic Number Logic */}
-                    <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
-                        <User className="text-cyan-400 w-5 h-5 shrink-0" />
-                        <div>
-                            <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Capacity</span>
-                            <span className="text-sm md:text-base text-white font-bold">
-                                {event.minParticipants === event.maxParticipants
-                                    ? `${event.minParticipants} ${event.minParticipants === 1 ? 'Member' : 'Members'}`
-                                    : `${event.minParticipants}-${event.maxParticipants} Members`
-                                }
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
-                        <Trophy className="text-purple-400 w-5 h-5 shrink-0" />
-                        <div>
-                            <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Rounds</span>
-                            <span className="text-sm md:text-base text-white font-bold">{event.rounds} Rounds</span>
-                        </div>
-                    </div>
-
-                    <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
-                        <Zap className="text-amber-400 w-5 h-5 shrink-0" />
-                        <div>
-                            <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Sector</span>
-                            <span className="text-sm md:text-base text-white font-bold uppercase">{event.category}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mission Brief (Scrollable Rules) */}
-                <div className="mb-10">
-                    <h3 className="text-[10px] md:text-xs font-bold text-gray-500 mb-4 font-mono uppercase tracking-[0.2em] flex items-center gap-2">
-                        {"// Mission_Brief"}
-                    </h3>
-                    <div className="text-gray-300 leading-relaxed whitespace-pre-wrap bg-white/[0.02] p-4 md:p-8 rounded-2xl border border-white/5 font-light text-sm md:text-base max-h-[250px] md:max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent">
-                        {event.rules || "Event guidelines are being updated by sector command."}
-                    </div>
-                </div>
-
-                {/* Command Staff */}
-                <div className="mb-10">
-                    <h3 className="text-[10px] md:text-xs font-bold text-gray-500 mb-4 font-mono uppercase tracking-[0.2em] flex items-center gap-2">
-                        {"// Command_Staff"}
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {event.studentCoordinators?.map((c, i) => (
-                            <div key={i} className="flex items-center p-3 md:p-4 bg-white/[0.03] rounded-xl border border-white/5">
-                                <div className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center mr-3 text-cyan-400 border border-white/10 shrink-0">
-                                    <User size={16} />
-                                </div>
-                                <div className="overflow-hidden">
-                                    <p className="text-white font-bold text-xs md:text-sm truncate uppercase mb-0">{c.name}</p>
-                                    <p className="text-[10px] text-gray-500 font-mono mt-0.5 mb-0 tracking-wider">
-                                        {c.phone || c.number}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Simplified Important Note */}
-                <div className="mb-10 bg-cyan-400/5 border border-cyan-400/20 rounded-2xl p-6 md:p-8">
-                    <div className="text-center md:text-left">
-                        <h4 className="text-cyan-400 font-mono text-[10px] md:text-xs uppercase tracking-[0.2em] mb-3 font-bold">Important Note</h4>
-                        <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-6">
-                            All detailed rules and timing for this event are available in our official event guide. Please download and read the brochure to make sure you have all the information.
-                        </p>
-                        <a
-                            href="/brochure.pdf"
-                            download
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300 no-underline"
-                        >
-                            Download Brochure <ExternalLink size={14} />
-                        </a>
-                    </div>
-                </div>
-
-                {/* Final Button */}
-                <motion.button
-                    whileHover={{ scale: 1.01, backgroundColor: '#06b6d4' }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={onRegister}
-                    className="w-full bg-cyan-600 text-black font-black py-4 md:py-5 rounded-xl md:rounded-2xl text-[11px] md:text-lg transition-all shadow-lg border-none cursor-pointer uppercase tracking-widest"
+            <div className="max-w-4xl mx-auto relative z-10">
+                {/* Back Button */}
+                <button
+                    onClick={onBack}
+                    className="flex items-center text-gray-400 hover:text-cyan-400 transition-all mb-6 md:mb-8 font-mono text-[10px] md:text-xs uppercase tracking-widest bg-transparent border-none cursor-pointer group"
                 >
-                    Initialize Registration
-                </motion.button>
-            </div>
-        </div>
+                    <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                    Return to Sector
+                </button>
 
-        <style jsx>{`
-            .scrollbar-thin::-webkit-scrollbar {
-                width: 4px;
-            }
-            .scrollbar-thin::-webkit-scrollbar-thumb {
-                background: rgba(6, 182, 212, 0.2);
-                border-radius: 10px;
-            }
-            .scrollbar-thin::-webkit-scrollbar-track {
-                background: transparent;
-            }
-        `}</style>
-    </motion.div>
-);
+                {/* Main Event Card */}
+                <div className="bg-gray-900/40 border border-white/5 rounded-[1.5rem] md:rounded-[2.5rem] p-5 md:p-12 backdrop-blur-xl shadow-2xl">
+
+                    {/* Event Header */}
+                    <div className="mb-8 md:mb-10">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="h-px w-6 md:w-8 bg-cyan-500/50"></span>
+                            <span className="text-cyan-500 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.4em]">Event_Identity_File</span>
+                        </div>
+                        <h1 className="text-2xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight">
+                            {event.name}
+                        </h1>
+                    </div>
+
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 mb-10">
+                        <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+                            <User className="text-cyan-400 w-5 h-5 shrink-0" />
+                            <div>
+                                <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Capacity</span>
+                                <span className="text-sm md:text-base text-white font-bold">
+                                    {event.minParticipants === event.maxParticipants
+                                        ? `${event.minParticipants} ${event.minParticipants === 1 ? 'Member' : 'Members'}`
+                                        : `${event.minParticipants}-${event.maxParticipants} Members`
+                                    }
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+                            <Trophy className="text-purple-400 w-5 h-5 shrink-0" />
+                            <div>
+                                <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Rounds</span>
+                                <span className="text-sm md:text-base text-white font-bold">{event.rounds} Rounds</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+                            <Zap className="text-amber-400 w-5 h-5 shrink-0" />
+                            <div>
+                                <span className="text-gray-500 text-[10px] md:text-[11px] block font-mono uppercase tracking-widest mb-0.5">Sector</span>
+                                <span className="text-sm md:text-base text-white font-bold uppercase">{event.category}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mission Brief */}
+                    <div className="mb-10">
+                        <h3 className="text-[10px] md:text-xs font-bold text-gray-500 mb-4 font-mono uppercase tracking-[0.2em] flex items-center gap-2">
+                            {"// Mission_Brief"}
+                        </h3>
+                        <div className="text-gray-300 leading-relaxed whitespace-pre-wrap bg-white/[0.02] p-4 md:p-8 rounded-2xl border border-white/5 font-light text-sm md:text-base max-h-[250px] md:max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent">
+                            {event.rules || "Event guidelines are being updated by sector command."}
+                        </div>
+                    </div>
+
+                    {/* Command Staff */}
+                    <div className="mb-10">
+                        <h3 className="text-[10px] md:text-xs font-bold text-gray-500 mb-4 font-mono uppercase tracking-[0.2em] flex items-center gap-2">
+                            {"// Command_Staff"}
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {event.studentCoordinators?.map((c, i) => (
+                                <div key={i} className="flex items-center p-3 md:p-4 bg-white/[0.03] rounded-xl border border-white/5 group hover:bg-white/[0.05] transition-colors">
+                                    {/* Image Container: Fixed size, rounded, with margin-right */}
+                                    <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center mr-4 shrink-0 overflow-hidden border border-white/10 relative">
+                                        <img
+                                            src={`/team/${c.name.replace(/\s+/g, '').toLowerCase()}.jpg`}
+                                            alt={c.name}
+                                            className="w-full h-full object-cover relative z-10"
+                                            onError={(e) => {
+                                                const name = c.name.replace(/\s+/g, '').toLowerCase();
+                                                const currentSrc = e.target.src;
+
+                                                // Extension rotation logic
+                                                if (currentSrc.endsWith('.jpg')) {
+                                                    e.target.src = `/team/${name}.jpeg`;
+                                                } else if (currentSrc.endsWith('.jpeg')) {
+                                                    e.target.src = `/team/${name}.png`;
+                                                } else {
+                                                    // Hide broken image to reveal the background icon
+                                                    e.target.style.opacity = '0';
+                                                }
+                                            }}
+                                        />
+                                        {/* Fallback Icon: Positioned absolutely behind the image */}
+                                        <User size={20} className="absolute text-cyan-500/50" />
+                                    </div>
+
+                                    {/* Content: Added ml-1 to separate slightly more from image */}
+                                    <div className="overflow-hidden">
+                                        <p className="text-white font-bold text-xs md:text-sm truncate uppercase mb-0 tracking-tight group-hover:text-cyan-400 transition-colors">
+                                            {c.name}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 font-mono mt-1 mb-0 tracking-wider">
+                                            {c.phone || c.number}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Important Note */}
+                    <div className="mb-10 bg-cyan-400/5 border border-cyan-400/20 rounded-2xl p-6 md:p-8">
+                        <div className="text-center md:text-left">
+                            <h4 className="text-cyan-400 font-mono text-[10px] md:text-xs uppercase tracking-[0.2em] mb-3 font-bold">Important Note</h4>
+                            <p className="text-gray-400 text-sm md:text-base leading-relaxed mb-6">
+                                All detailed rules and timing for this event are available in our official event guide. Please download and read the brochure to make sure you have all the information.
+                            </p>
+                            <a
+                                href="/brochure.pdf"
+                                download
+                                className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300 no-underline"
+                            >
+                                Download Brochure <ExternalLink size={14} />
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Final Button */}
+                    <motion.button
+                        whileHover={{ scale: 1.01, backgroundColor: '#06b6d4' }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={onRegister}
+                        className="w-full bg-cyan-600 text-black font-black py-4 md:py-5 rounded-xl md:rounded-2xl text-[11px] md:text-lg transition-all shadow-lg border-none cursor-pointer uppercase tracking-widest"
+                    >
+                        Initialize Registration
+                    </motion.button>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
 
 // =================================================================
 // 6. MAIN CONTROLLER
@@ -1013,7 +1028,7 @@ export default function GenesisLanding() {
                 setAllEvents(res.data || []);
             } catch (err) {
                 console.error("Critical: Failed to sync with neural network database.");
-            } finally{
+            } finally {
                 setIsInitialLoad(false);
             }
         };

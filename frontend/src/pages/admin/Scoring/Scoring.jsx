@@ -10,7 +10,7 @@ const Scoring = () => {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dataFetched, setDataFetched] = useState(false);
-  
+
   // Selection States
   const [selectedEventId, setSelectedEventId] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState('');
@@ -46,7 +46,7 @@ const Scoring = () => {
         const roundsCount = eventObj.rounds || 1;
         const roundsArray = Array.from({ length: roundsCount }, (_, i) => `Round ${i + 1}`);
         setAvailableRounds(roundsArray);
-        
+
         if (!selectedRound || !roundsArray.includes(selectedRound)) {
           setSelectedRound('Round 1');
         }
@@ -71,7 +71,7 @@ const Scoring = () => {
       if (selectedTeamId) {
         path += `/${selectedTeamId}`;
       }
-      
+
       const res = await adminApi.get(`${path}?round=${encodeURIComponent(selectedRound)}`);
       setScores(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
@@ -91,7 +91,7 @@ const Scoring = () => {
     }
 
     const eventName = events.find(e => e._id === selectedEventId)?.name || "Event";
-    
+
     // Prepare Data for Excel
     const excelData = scores.map(s => {
       const criteriaData = {};
@@ -120,8 +120,8 @@ const Scoring = () => {
 
     // Column width adjustment
     const wscols = [
-        { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 20 },
-        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 20 }
+      { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 20 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 20 }
     ];
     worksheet['!cols'] = wscols;
 
@@ -143,8 +143,8 @@ const Scoring = () => {
   const filteredTeams = teams.filter(t => {
     if (!selectedEventId) return true;
     return t.registeredEvents?.some(re => {
-        const id = typeof re === 'object' ? re._id : re;
-        return id === selectedEventId;
+      const id = typeof re === 'object' ? re._id : re;
+      return id === selectedEventId;
     });
   });
 
@@ -159,8 +159,8 @@ const Scoring = () => {
             <h2 className="fw-bold mb-1 fs-3 fs-md-2">Scoring Audit</h2>
             <p className="opacity-75 small">Review judge point breakdowns and finalize event standings</p>
           </div>
-          <button 
-            className="btn btn-success fw-bold px-4 py-2 shadow-sm" 
+          <button
+            className="btn btn-success fw-bold px-4 py-2 shadow-sm"
             onClick={exportScores}
             disabled={scores.length === 0}
           >
@@ -217,13 +217,13 @@ const Scoring = () => {
           <div className="card-body p-0">
             {!dataFetched ? (
               <div className="text-center py-5 opacity-50 text-white">
-                 <i className="bi bi-funnel fs-1 d-block mb-2 text-secondary"></i>
-                 <p className="small">Select parameters and click Fetch to display submissions.</p>
+                <i className="bi bi-funnel fs-1 d-block mb-2 text-secondary"></i>
+                <p className="small">Select parameters and click Fetch to display submissions.</p>
               </div>
             ) : loading ? (
               <div className="text-center py-5 text-info">
-                 <div className="spinner-border mb-3" role="status"></div>
-                 <p className="x-small fw-bold text-uppercase ls-1">Accessing Score Registry...</p>
+                <div className="spinner-border mb-3" role="status"></div>
+                <p className="x-small fw-bold text-uppercase ls-1">Accessing Score Registry...</p>
               </div>
             ) : scores.length > 0 ? (
               <div className="table-responsive">
@@ -237,45 +237,65 @@ const Scoring = () => {
                       <th className="pe-4 py-3 text-center">Status / Action</th>
                     </tr>
                   </thead>
-                  <tbody className="border-top-0">
-                    {scores.map(s => (
-                      <tr key={s._id} className="border-bottom border-secondary border-opacity-10 transition-all">
-                        <td className="ps-4 py-3">
-                          <div className="fw-bold text-white small">{s.team?.college || 'N/A'}</div>
-                          <div className="x-small text-info opacity-75 text-truncate" style={{maxWidth: '180px'}}>
-                            {s.team?.teamName ? `ID: ${s.team.teamName}` : (s.participant || 'Full Team')}
-                          </div>
-                        </td>
-                        <td className="py-3">
-                          <div className="d-flex flex-wrap gap-1">
-                              {s.criteriaScores ? s.criteriaScores.map((val, idx) => (
+                  <tbody>
+                    {scores.map(s => {
+                      // 1. Identify if this is a Direct Win record
+                      const isDirect = !!s.directWinners;
+
+                      // 2. Resolve the displayed team
+                      // For Direct wins, we find the team object matching the firstPlace ID
+                      const winnerTeam = isDirect
+                        ? teams.find(t => t._id === (s.directWinners?.firstPlace?._id || s.directWinners?.firstPlace))
+                        : s.team;
+
+                      return (
+                        <tr key={s._id} className="border-bottom border-secondary border-opacity-10 transition-all">
+                          <td className="ps-4 py-3">
+                            <div className="fw-bold text-white small">
+                              {winnerTeam?.college || 'N/A'}
+                            </div>
+                            <div className="x-small text-info opacity-75 text-truncate" style={{ maxWidth: '180px' }}>
+                              {winnerTeam?.teamName || (isDirect ? 'WINNER SELECTION' : 'Full Team')}
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            {isDirect ? (
+                              <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 py-2 px-3 x-small-badge">
+                                🏆 DIRECT WINNER ASSIGNED
+                              </span>
+                            ) : (
+                              <div className="d-flex flex-wrap gap-1">
+                                {s.criteriaScores?.map((val, idx) => (
                                   <span key={idx} className="badge bg-black bg-opacity-40 border border-secondary border-opacity-30 text-light x-small-badge fw-normal">
-                                      <span className="text-info opacity-75">C{idx+1}:</span> {val}
+                                    <span className="text-info opacity-75">C{idx + 1}:</span> {val}
                                   </span>
-                              )) : <span className="x-small text-muted italic">N/A</span>}
-                          </div>
-                        </td>
-                        <td className="py-3 text-white x-small">
-                          <i className="bi bi-person-check me-2 text-warning"></i>
-                          {s.judge?.name || 'Manual/Head'}
-                        </td>
-                        <td className="py-3">
-                          <span className="fs-5 fw-bold text-warning">{s.totalPoints || s.points}</span>
-                          <small className="text-secondary ms-1 x-small">pts</small>
-                        </td>
-                        <td className="pe-4 py-3 text-center">
-                          {s.finalized ? (
-                            <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 x-small-badge">
-                              <i className="bi bi-patch-check-fill me-1"></i> VERIFIED
-                            </span>
-                          ) : (
-                            <button className="btn btn-outline-success btn-sm px-3 x-small-badge fw-bold" onClick={() => handleFinalize(s._id)}>
-                               Finalize
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 text-white x-small">
+                            <i className="bi bi-person-check me-2 text-warning"></i>
+                            {s.judge?.name || 'Manual/Head'}
+                          </td>
+                          <td className="py-3">
+                            {/* For direct wins, the points are usually 100 */}
+                            <span className="fs-5 fw-bold text-warning">{isDirect ? '100' : (s.totalPoints || s.points || 0)}</span>
+                            <small className="text-secondary ms-1 x-small">pts</small>
+                          </td>
+                          <td className="pe-4 py-3 text-center">
+                            {s.finalized ? (
+                              <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 x-small-badge">
+                                <i className="bi bi-patch-check-fill me-1"></i> VERIFIED
+                              </span>
+                            ) : (
+                              <button className="btn btn-outline-success btn-sm px-3 x-small-badge fw-bold" onClick={() => handleFinalize(s._id)}>
+                                Finalize
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

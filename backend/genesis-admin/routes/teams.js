@@ -57,55 +57,74 @@ router.get('/catering-report', verifyAdmin, async (req, res) => {
   }
 });
 
+
+
 /**
  * @route   GET /api/admin/teams/leaderboard/overall
- * @desc    Calculates overall score by summing the finalPoints map live
+ * @desc    Calculates overall score correctly handling Mongoose Maps
  */
 router.get('/leaderboard/overall', verifyAdmin, async (req, res) => {
   try {
-    const teams = await Team.find().lean();
-    
+    const teams = await Team.find(); 
     const result = teams.map(t => {
-      // 🚀 ROBUST CALCULATION: 
-      // Instead of trusting totalTrophyPoints, we sum the actual Map entries
       let liveScore = 0;
-      if (t.finalPoints) {
-        liveScore = Object.values(t.finalPoints).reduce((sum, val) => sum + (Number(val) || 0), 0);
+      if (t.finalPoints && t.finalPoints instanceof Map) {
+        t.finalPoints.forEach((val) => {
+          liveScore += (Number(val) || 0);
+        });
       }
-
       return {
         id: t._id,
         college: t.college,
         teamName: t.teamName || '',
         leader: t.leader,
-        score: liveScore // Use the freshly calculated sum
+        score: liveScore 
       };
-    })
-    // Sort by calculated score descending
-    .sort((a, b) => b.score - a.score);
-
+    }).sort((a, b) => b.score - a.score);
     res.json(result);
   } catch (err) {
-    console.error("Overall Leaderboard Error:", err);
     res.status(500).json({ error: 'Overall leaderboard sync failed' });
   }
 });
 
 /**
  * @route   GET /api/admin/teams/leaderboard/event/:eventId
+ * @desc    NEW: Fetches event-specific scores AND calculates Gender Splits for Power Pair
  */
 router.get('/leaderboard/event/:eventId', verifyAdmin, async (req, res) => {
   try {
     const { eventId } = req.params;
-    const teams = await Team.find({ registeredEvents: eventId }).lean();
+    const event = await Event.findById(eventId);
+    const isPowerPair = event?.name?.toLowerCase().includes("power pair");
+
+    // Fetch teams registered for this event
+    const teams = await Team.find({ registeredEvents: eventId });
     
+    // Fetch all finalized scores for this event to calculate splits
+    const scores = await Score.find({ event: eventId, finalized: true });
+
     const leaderboard = teams.map(team => {
-      let eventScore = 0;
-      if (team.finalPoints) {
-        // Handle Map vs Object retrieval
-        eventScore = team.finalPoints instanceof Map 
-          ? team.finalPoints.get(eventId) 
-          : team.finalPoints[eventId];
+      const tId = team._id.toString();
+      
+      // Get trophy points (100, 50, 10, etc.)
+      const trophyPoints = team.finalPoints instanceof Map 
+        ? team.finalPoints.get(eventId) 
+        : (team.finalPoints ? team.finalPoints[eventId] : 0);
+
+      // 🚀 POWER PAIR SPLIT CALCULATION
+      let mTotal = 0;
+      let fTotal = 0;
+
+      if (isPowerPair) {
+        // Find judge scores for this team and sum M/F criteria
+        const teamScores = scores.filter(s => s.team?.toString() === tId);
+        teamScores.forEach(s => {
+          if (s.criteriaScores && s.criteriaScores.length === 6) {
+            // Indices 0,1,2 are Male | 3,4,5 are Female
+            mTotal += (Number(s.criteriaScores[0]) + Number(s.criteriaScores[1]) + Number(s.criteriaScores[2]));
+            fTotal += (Number(s.criteriaScores[3]) + Number(s.criteriaScores[4]) + Number(s.criteriaScores[5]));
+          }
+        });
       }
 
       return {
@@ -113,12 +132,15 @@ router.get('/leaderboard/event/:eventId', verifyAdmin, async (req, res) => {
         college: team.college,
         teamName: team.teamName || '',
         leader: team.leader,
-        score: Number(eventScore) || 0
+        score: Number(trophyPoints) || 0,
+        mTotal: mTotal, 
+        fTotal: fTotal
       };
     }).sort((a, b) => b.score - a.score);
 
     res.json(leaderboard);
   } catch (err) {
+    console.error("Event Leaderboard Error:", err);
     res.status(500).json({ error: 'Event ranking calculation failed' });
   }
 });

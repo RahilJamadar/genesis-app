@@ -35,17 +35,20 @@ const TeamSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 TeamSchema.pre('save', function (next) {
+  // 1. Update Food Counts
   if (this.members) {
     this.vegCount = this.members.filter(m => m.diet === 'veg').length;
     this.nonVegCount = this.members.filter(m => m.diet === 'non-veg').length;
   }
   
+  // 2. Update Total Trophy Points (Sum of finalPoints Map)
   let total = 0;
-  if (this.finalPoints) {
-    this.finalPoints.forEach((value) => {
+  if (this.finalPoints instanceof Map) {
+    for (let [eventId, value] of this.finalPoints) {
       total += (Number(value) || 0);
-    });
+    }
   }
+  
   this.totalTrophyPoints = total;
   next();
 });
