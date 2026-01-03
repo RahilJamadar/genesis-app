@@ -32,7 +32,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   `http://${localIP}:3000`, // Whitelist your actual LAN IP
-  'https://extraordinary-sunburst-5110ea.netlify.app'
+  'https://extraordinary-sunburst-5110ea.netlify.app',
+  'https://genesis8.netlify.app'
 ];
 
 const corsOptions = {
