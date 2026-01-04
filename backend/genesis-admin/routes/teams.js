@@ -171,6 +171,45 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ success: false, message: 'Error fetching profile' });
     }
 });
+/**
+ * @route   GET /api/teams/public/registration-counts
+ * @desc    Get counts for public registration limits (No Auth Required)
+ */
+router.get('/public/registration-counts', async (req, res) => {
+  try {
+    // 1. Fetch teams and populate their event names
+    const teams = await Team.find().populate('registeredEvents', 'name');
+
+    const counts = {
+      main: 0,
+      football: 0,
+      valorant: 0,
+      hackathon: 0
+    };
+
+    teams.forEach(team => {
+      if (!team.registeredEvents || team.registeredEvents.length === 0) return;
+
+      // Logic for College Team (Main Trophy)
+      // We count them as 'main' if they are registered for multiple events (Compulsory events)
+      if (team.registeredEvents.length > 1) {
+        counts.main++;
+      }
+
+      // Logic for specific Open Events
+      const eventNames = team.registeredEvents.map(e => e.name.toLowerCase());
+      
+      if (eventNames.some(n => n.includes('football'))) counts.football++;
+      if (eventNames.some(n => n.includes('valorant'))) counts.valorant++;
+      if (eventNames.some(n => n.includes('hackathon'))) counts.hackathon++;
+    });
+
+    res.json({ success: true, counts });
+  } catch (err) {
+    console.error("Public Count Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 // ==========================================
 // 🔐 PROTECTED CRUD ROUTES (Admin Only)

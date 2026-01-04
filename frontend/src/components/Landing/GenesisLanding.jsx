@@ -961,8 +961,8 @@ const EventInfoPage = ({ event, onBack, onRegister }) => {
                                 All detailed rules and timing for this event are available in our official event guide. Please download and read the brochure to make sure you have all the information.
                             </p>
                             <a
-                                href="/brochure.pdf"
-                                download
+                                href="/Genesis_8.0.pdf"
+                                download="Genesis_8.0_Brochure.pdf"
                                 className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300 no-underline"
                             >
                                 Download Brochure <ExternalLink size={14} />
