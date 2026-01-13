@@ -1,37 +1,62 @@
 const mongoose = require('mongoose');
 
 const scheduleSchema = new mongoose.Schema({
+  // TYPE: Is it a technical event or a general activity?
+  type: {
+    type: String,
+    required: true,
+    enum: ['event', 'activity'], // 'event' for technical/gaming, 'activity' for lunch/refreshment/inauguration
+    default: 'event'
+  },
+  // If type is 'event', this is required. If type is 'activity', this remains null.
   eventId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Event',
-    required: true
+    required: function() { return this.type === 'event'; }
   },
-  // Added: To specify if this is for Round 1 or Round 2
+  // Only applicable for type: 'event'
   round: {
     type: Number,
-    required: true,
-    enum: [1, 2], 
-    default: 1
+    enum: [1, 2, 3], // Allowed for up to 3 rounds
+    required: function() { return this.type === 'event'; }
   },
-  // Changed to Date type for better sorting/filtering
+  // Custom title for activities (e.g., "Grand Inauguration" or "Networking Lunch")
+  activityTitle: {
+    type: String,
+    trim: true,
+    required: function() { return this.type === 'activity'; }
+  },
   date: {
     type: Date, 
     required: true
   },
-  // Storing time as a string is okay for display, 
-  // but using a clear format like "HH:mm" is best
-  time: {
-    type: String,
+  startTime: {
+    type: String, // Format: "HH:mm" (24hr)
+    required: true
+  },
+  duration: {
+    type: Number, // In minutes (e.g., 60 for 1 hour)
     required: true
   },
   room: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    default: 'TBD' // e.g., Seminar Hall, Lab 1, Stage
+  },
+  details: {
+    type: String,
+    trim: true // Any extra instructions
   }
 }, { timestamps: true });
 
-// Prevent double-booking: Ensure an event doesn't have two schedules for the same round
-scheduleSchema.index({ eventId: 1, round: 1 }, { unique: true });
+// Sorting logic: Sort by date then by start time automatically
+scheduleSchema.index(
+  { eventId: 1, round: 1 }, 
+  { 
+    unique: true, 
+    partialFilterExpression: { eventId: { $exists: true } } 
+  }
+);
 
 module.exports = mongoose.model('Schedule', scheduleSchema);

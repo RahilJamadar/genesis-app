@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect, useMemo, Suspense } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import React, { useRef, useState, useEffect, useMemo, Suspense, useCallback } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence, useAnimation, useMotionValue } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useGLTF } from '@react-three/drei'; // Required for global preloading
 import MatrixModel from '../../ThreeModel/RotatingModel';
 import getApiBase from '../../utils/getApiBase';
-import { User, Phone, Download } from 'lucide-react';
+import { User, Phone, Download, MessageCircle } from 'lucide-react';
 
 // =================================================================
 // 🚀 GLOBAL PERFORMANCE OPTIMIZATION
@@ -59,7 +59,9 @@ const CATEGORY_MAP = {
 const TOP_SPONSORS = [
     { name: "Anthony Vaz", img: "/anthony.jpeg", portrait: true },
     { name: "AR Computer Services", img: "/ar.jpeg", stretch: true }, // Marked for stretching
-    { name: "Krishna Daji Salkar", img: "/daji.jpeg", portrait: true },
+    { name: "Shri Krishna Daji Salkar", img: "/daji.jpeg", portrait: true },
+    { name: "Brain Behind AI", img: "/bbai.jpeg" },
+
 ];
 
 const GENERAL_SPONSORS = [
@@ -68,6 +70,9 @@ const GENERAL_SPONSORS = [
     { name: "Digital Computers", img: "/digital.jpeg", stretch: true },
     { name: "VCare", img: "/vcare.JPG", stretch: true },
     { name: "Raymond Hardware", img: "/raymond.png" },
+    { name: "Sayani Fashion", img: "/sayani.png", stretch: true },
+    { name: "de Vasco", img: "/devasco.jpeg", stretch: true },
+
 ];
 
 // =================================================================
@@ -342,20 +347,32 @@ const AboutSection = () => (
                     This year, we transcend boundaries with <span className="text-green-400 font-mono">GENESIS 8.0</span>. A nexus where code meets creativity and where the next generation of tech leaders rises.
                 </p>
 
-                {/* Download Button Section */}
+                {/* Buttons Section */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="pt-8"
+                    className="pt-8 flex flex-col md:flex-row items-center justify-center gap-4"
                 >
+                    {/* Download Button */}
                     <a
-                        href="/Genesis_8.0.pdf" // Replace with your actual file path
+                        href="/Genesis_8.0.pdf"
                         download="Genesis_8.0_Brochure"
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300 no-underline"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-all duration-300 no-underline group"
                     >
-                        <Download className="w-5 h-5" />
+                        <Download className="w-5 h-5 transition-transform group-hover:-translate-y-1" />
                         DOWNLOAD BROCHURE
+                    </a>
+
+                    {/* WhatsApp Button */}
+                    <a
+                        href="https://chat.whatsapp.com/KMfEzsE4owK1k8lcMUqAMU" // Replace with your actual WhatsApp link
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 w-full md:w-auto bg-green-500/10 border border-green-500/30 text-green-500 rounded-xl font-mono text-[10px] md:text-xs uppercase tracking-widest hover:bg-green-500 hover:text-black transition-all duration-300 no-underline group"
+                    >
+                        <MessageCircle className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        JOIN COMMUNITY
                     </a>
                 </motion.div>
 
@@ -599,6 +616,7 @@ const Coordinators = () => {
     };
 
     const departmentHeads = [
+        { name: "Pranav Powar", role: "EVENT ASSITANT", photo: "/pranav.jpeg" },
         { name: "Sujith Roshan", role: "DESIGNER", photo: "/sujith.jpeg" },
         { name: "Ayush Maurya", role: "CONTENT HEAD", photo: "/content.jpeg" },
         { name: "Adnan Sayed", role: "MARKETING HEAD", photo: "/adnan.jpeg" },
@@ -606,20 +624,40 @@ const Coordinators = () => {
         { name: "Lucky Ali", role: "EDITOR", photo: "/Editor.jpeg" },
         { name: "Gaurav Gupta", role: "BROCHURE HEAD", photo: "/gaurav.jpg" },
         { name: "Sakshi Singh", role: "BROCHURE TEAM", photo: "/sakshi.jpeg" },
-        { name: "Pranav Powar", role: "EVENT ASSISTANT", photo: "/pranav.jpeg" },
-        { name: "Prince Naik", role: "DECORATION TEAM", photo: "/prince.jpeg" },
+        { name: "Prince Naik", role: "DESIGNING/TESTING TEAM", photo: "/prince.jpeg" },
         { name: "Amaan Sayed", role: "DESIGNING TEAM", photo: "/amaan.jpeg" },
-        { name: "Hiba Shaikh", role: "DESIGNING TEAM", photo: "/hiba.jpeg" },
-        { name: "Suman Ganati", role: "DECORATION TEAM", photo: "/suman.png" },
-        { name: "Mehraj Shaikh", role: "DECORATION TEAM", photo: "/team/mehrajShaikh.jpeg" },
-
-
-
+        { name: "Hiba Shaikh", role: "BACKSTAGE CREW", photo: "/hiba.jpeg" },
+        { name: "Suman Ganati", role: "BACKSTAGE CREW", photo: "/suman.png" },
+        { name: "Payal Prajapati", role: "BACKSTAGE CREW", photo: "/payal.jpeg" },
+        { name: "Mehraj Shaikh", role: "BACKSTAGE CREW", photo: "/team/mehrajShaikh.jpeg" },
+        { name: "Sachin Biradar", role: "BACKSTAGE CREW", photo: "/team/sachinBira.jpeg" },
+        { name: "Rahul Kauaripal", role: "BACKSTAGE CREW", photo: "/team/rahulKa.jpeg" },
+        { name: "Artesh Mahalkar", role: "GAMING HEAD", photo: "/artesh.JPG" },
+        { name: "Ezekiel Noronha", role: "DJ", photo: "/ezekial.jpeg" },
     ];
 
     // Duplicate list for seamless infinite loop
     const sliderItems = [...departmentHeads, ...departmentHeads];
     const duplicatedItems = [...sliderItems, ...sliderItems];
+
+    // Controls for manual and auto-scroll synchronization
+    const controls = useAnimation();
+    const x = useMotionValue(0);
+
+    const startAutoScroll = useCallback(() => {
+        controls.start({
+            x: "-50%",
+            transition: {
+                ease: "linear",
+                duration: 100,
+                repeat: Infinity,
+            },
+        });
+    }, [controls]); // controls is a stable object from Framer Motion
+
+    useEffect(() => {
+        startAutoScroll();
+    }, [startAutoScroll]); // 3. Now it is safe to include as a dependency
 
     return (
         <section id='contactco' className="py-24 bg-gradient-to-b from-black via-gray-900 to-black text-center relative overflow-hidden">
@@ -640,7 +678,6 @@ const Coordinators = () => {
 
                 {/* --- MAIN COORDINATOR SPOTLIGHT --- */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-12 mb-32 text-left">
-
                     {/* Left Side: Text Paragraph */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
@@ -665,17 +702,11 @@ const Coordinators = () => {
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        whileHover={{ scale: 1 }} // Keeps scale same but allows catching the hover state
-                        /* CARD WIDTH: 
-                           Mobile: w-full (full width) 
-                           Desktop: md:w-[450px] (Adjust this for card width)
-                        */
                         className={`relative group w-full md:w-[450px] flex gap-8 py-10`}
                     >
                         <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/50 to-purple-600/50 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition duration-1000"></div>
 
-                        <div className="relative bg-gray-900/80 border border-white/10 rounded-2xl p-5 backdrop-blur-sm overflow-hidden">
-
+                        <div className="relative bg-gray-900/80 border border-white/10 rounded-2xl p-5 backdrop-blur-sm overflow-hidden w-full">
                             <div className="w-full h-[250px] md:h-[280px] overflow-hidden rounded-xl mb-6 bg-gray-800 border border-white/5">
                                 <img
                                     src={mainCoordinator.photo}
@@ -692,41 +723,56 @@ const Coordinators = () => {
                                     </p>
                                 </div>
 
-                                <a
-                                    href={`tel:${mainCoordinator.phone}`}
-                                    className="text-decoration-none flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-cyan-500/50 hover:text-cyan-400 transition-all duration-300 text-sm"
-                                >
-                                    <Phone size={14} className="text-cyan-400" />
-                                    <span className="font-mono">{mainCoordinator.phone}</span>
-                                </a>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <a
+                                        href={`tel:${mainCoordinator.phone}`}
+                                        className="text-decoration-none flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-cyan-500/50 hover:text-cyan-400 transition-all duration-300 text-sm"
+                                    >
+                                        <Phone size={14} className="text-cyan-400" />
+                                        <span className="font-mono">{mainCoordinator.phone}</span>
+                                    </a>
+
+                                    <a
+                                        href="https://chat.whatsapp.com/KMfEzsE4owK1k8lcMUqAMU"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-decoration-none flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-gray-300 hover:border-green-500/50 hover:text-green-400 transition-all duration-300 text-sm group"
+                                    >
+                                        <User size={14} className="text-green-500 transition-transform group-hover:scale-110" />
+                                        <span className="font-mono uppercase tracking-wider text-[10px]">Join Community</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
                 </div>
 
-                {/* --- DEPARTMENT HEADS SLIDER --- */}
+                {/* --- DEPARTMENT HEADS SLIDER (WITH SWIPE/DRAG) --- */}
                 <div className="relative mt-10">
                     <div className="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                         <motion.div
-                            className="flex gap-8 py-10"
-                            // Move exactly half of the total width (since items are duplicated)
-                            animate={{ x: ["0%", "-50%"] }}
-                            transition={{
-                                ease: "linear",
-                                duration: 100, // Increase this number to make it even slower (e.g., 80 or 100)
-                                repeat: Infinity,
-                            }}
+                            className="flex gap-8 py-10 cursor-grab active:cursor-grabbing"
+                            style={{ x }}
+                            drag="x"
+                            // Constraints prevent dragging the list off-screen too far
+                            dragConstraints={{ left: -2000, right: 0 }} 
+                            animate={controls}
+                            onDragStart={() => controls.stop()}
+                            onDragEnd={() => startAutoScroll()}
+                            onHoverStart={() => controls.stop()}
+                            onHoverEnd={() => startAutoScroll()}
                         >
                             {duplicatedItems.map((head, idx) => (
                                 <div
                                     key={idx}
-                                    className="flex-shrink-0 w-72 bg-gray-900/40 border border-white/5 rounded-2xl p-3 backdrop-blur-sm hover:border-cyan-500/50 transition-colors group"
+                                    className="flex-shrink-0 w-72 bg-gray-900/40 border border-white/5 rounded-2xl p-3 backdrop-blur-sm hover:border-cyan-500/50 transition-colors group select-none"
                                 >
                                     <div className="w-full aspect-square overflow-hidden rounded-xl mb-4 bg-gray-800">
                                         <img
                                             src={head.photo}
                                             alt={head.name}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            draggable="false" // Prevents browser image ghosting during drag
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"
                                         />
                                     </div>
                                     <div className="px-2 pb-2">
@@ -742,7 +788,6 @@ const Coordinators = () => {
                         </motion.div>
                     </div>
                 </div>
-
             </div>
         </section>
     );
