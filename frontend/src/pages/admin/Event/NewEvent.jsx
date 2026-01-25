@@ -6,7 +6,7 @@ import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events'];
+const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events', 'Open'];
 
 function NewEvent() {
   const navigate = useNavigate();

@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useGLTF } from '@react-three/drei'; // Required for global preloading
 import MatrixModel from '../../ThreeModel/RotatingModel';
 import getApiBase from '../../utils/getApiBase';
-import { User, Phone, Download, MessageCircle } from 'lucide-react';
+import { User, Phone, Download, MessageCircle, Activity } from 'lucide-react';
 
 // =================================================================
 // 🚀 GLOBAL PERFORMANCE OPTIMIZATION
@@ -41,10 +41,10 @@ const EVENTS_DATA = {
         description: "Enter the arena. Reflexes and strategy will decide the champions.",
         color: "from-green-500/20 to-emerald-600/20",
     },
-    "SPORTS": {
-        title: "SPORTS",
-        description: "Physical prowess meets strategy. Dominate the field.",
-        color: "from-orange-500/20 to-red-600/20",
+    "OPEN": {
+        title: "OPEN",
+        description: "The rogue sector. Engage in standalone battles for individual glory. Separate registration required; these events operate outside the main trophy algorithm.",
+        color: "from-gray-500/20 to-gray-600/20",
     }
 };
 
@@ -53,15 +53,17 @@ const CATEGORY_MAP = {
     "TECHNICAL": "Tech",
     "CULTURAL": "Cultural",
     "GAMING": "Gaming",
-    "SPORTS": "Sports"
+    "OPEN": "Open",
 };
 
 const TOP_SPONSORS = [
-    { name: "Anthony Vaz", img: "/anthony.jpeg", portrait: true },
+    { name: "Anthony Vaz", img: "/anthony.png", portrait: true },
     { name: "AR Computer Services", img: "/ar.jpeg", stretch: true }, // Marked for stretching
-    { name: "Shri Krishna Daji Salkar", img: "/daji.jpeg", portrait: true },
+    { name: "Shri Krishna Daji Salkar", img: "/daji.JPG", portrait: true },
     { name: "Brain Behind AI", img: "/bbai.jpeg" },
-
+    { name: "Kamesh Para", img: "/kamesh.jpeg" },
+    { name: "shri kamala prasad yadav", img: "/kamla.png" },
+    { name: "Dr. Celso Fernandes", img: "/celso.jpeg" },
 ];
 
 const GENERAL_SPONSORS = [
@@ -71,7 +73,15 @@ const GENERAL_SPONSORS = [
     { name: "VCare", img: "/vcare.JPG", stretch: true },
     { name: "Raymond Hardware", img: "/raymond.png" },
     { name: "Sayani Fashion", img: "/sayani.png", stretch: true },
+    { name: "Viral Sensei", img: "/viral.jpeg", portrait: true },
+    { name: "Vikas InfoTech", img: "/vikas.jpeg" },
     { name: "de Vasco", img: "/devasco.jpeg", stretch: true },
+    { name: "Krishnaurals", img: "/krishna.jpeg" },
+    { name: "eDot Solutions", img: "/eDOT.png", stretch: true },
+    { name: "Computer Vision", img: "/computer_vision.jpeg", stretch: true },
+    { name: "Ashtavinayak Travels", img: "/travels.jpeg" },
+
+
 
 ];
 
@@ -455,13 +465,23 @@ const EventsGrid = ({ onEventSelect }) => (
                     />
                 </ExplosiveEntry>
 
-                <ExplosiveEntry delay={0.5}>
+                {/* <ExplosiveEntry delay={0.5}>
                     <EventCard
                         title="SPORTS"
                         icon={Trophy}
                         desc="Peak physical performance. Dominate the field through tactical grit and athletic prowess."
                         color="from-orange-500/20 to-red-600/20"
                         onClick={() => onEventSelect("SPORTS")}
+                    />
+                </ExplosiveEntry> */}
+
+                <ExplosiveEntry delay={0.6}>
+                    <EventCard
+                        title="OPEN"
+                        icon={Activity}  // You can import 'Activity' or use another icon like 'Star' or 'Layers'
+                        desc="The rogue sector. Engage in standalone battles for individual glory. Separate registration required; these events operate outside the main trophy algorithm."
+                        color="from-gray-500/20 to-gray-600/20"
+                        onClick={() => onEventSelect("OPEN")}
                     />
                 </ExplosiveEntry>
             </div>
@@ -607,6 +627,131 @@ const SponsorsSection = () => {
 };
 
 
+const PublicSchedule = ({ schedules, loading }) => {
+    // Helper: Format 24h to 12h (Catchy Display)
+    const to12Hour = (time24) => {
+        if (!time24) return "";
+        let [hrs, mins] = time24.split(':').map(Number);
+        const suffix = hrs >= 12 ? "PM" : "AM";
+        hrs = hrs % 12 || 12;
+        return `${hrs}:${String(mins).padStart(2, '0')} ${suffix}`;
+    };
+
+    // Helper: Calculate End Time based on duration
+    const calculateEndTime = (start, duration) => {
+        if (!start) return "";
+        const [hrs, mins] = start.split(':').map(Number);
+        let totalMins = hrs * 60 + mins + Number(duration);
+        const endHrs = Math.floor(totalMins / 60) % 24;
+        const endMins = totalMins % 60;
+        const suffix = endHrs >= 12 ? "PM" : "AM";
+        const displayHrs = endHrs % 12 || 12;
+        return `${displayHrs}:${String(endMins).padStart(2, '0')} ${suffix}`;
+    };
+
+    // Grouping Logic: Date -> Exact Start Time
+    const processedData = useMemo(() => {
+        return (schedules || []).reduce((acc, item) => {
+            const dateKey = new Date(item.date).toLocaleDateString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            });
+            if (!acc[dateKey]) acc[dateKey] = {};
+            const timeKey = item.startTime;
+            if (!acc[dateKey][timeKey]) acc[dateKey][timeKey] = [];
+            acc[dateKey][timeKey].push(item);
+            return acc;
+        }, {});
+    }, [schedules]);
+
+    if (loading) return (
+        <div className="py-20 text-center">
+            <div className="animate-spin inline-block w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full mb-3"></div>
+            <p className="text-cyan-500 font-mono text-[10px] uppercase tracking-widest">Fetching Time Nodes...</p>
+        </div>
+    );
+
+    return (
+        <section id="schedule" className="py-16 bg-black relative overflow-hidden border-t border-white/5">
+            <div className="max-w-6xl mx-auto px-4 relative z-10">
+                <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-3 tracking-tighter italic uppercase">
+                        MISSION <span className="text-cyan-400">TIMELINE</span>
+                    </h2>
+                    <div className="h-[2px] w-20 bg-cyan-500 mx-auto rounded-full"></div>
+                </motion.div>
+
+                {Object.entries(processedData).map(([date, timeSlots]) => (
+                    <div key={date} className="mb-14 last:mb-0">
+                        {/* Date Header with Space */}
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="px-4 py-1.5 bg-cyan-500 text-black font-black text-[10px] rounded uppercase tracking-tighter">{date}</div>
+                            <div className="flex-grow h-[1px] bg-white/10"></div>
+                        </div>
+
+                        {/* Clean Schedule Grid */}
+                        <div className="space-y-3">
+                            {Object.entries(timeSlots)
+                                .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
+                                .map(([startTime, items], idx) => (
+                                    <div key={idx} className="flex flex-col md:flex-row items-start md:items-center bg-gray-900/40 border border-white/5 rounded-2xl p-3 md:p-4 gap-4 md:gap-0 transition-colors hover:bg-gray-900/60">
+
+                                        {/* Start Time Section */}
+                                        <div className="w-full md:w-[140px] flex-shrink-0 flex items-center">
+                                            <div className="px-3 py-1 bg-black border border-cyan-500/30 rounded-lg shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                                                <span className="text-cyan-400 font-mono font-bold text-sm">
+                                                    {to12Hour(startTime)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Event Capsules: Flex Wrap for side-by-side breathing room */}
+                                        <div className="flex flex-wrap gap-3 w-full">
+                                            {items.map((item) => (
+                                                <motion.div
+                                                    key={item._id}
+                                                    whileHover={{ y: -2 }}
+                                                    className={`flex-grow md:flex-initial p-3 px-4 rounded-xl border transition-all ${item.type === 'event'
+                                                            ? 'bg-cyan-500/5 border-cyan-500/20 min-w-[200px]'
+                                                            : 'bg-white/[0.03] border-white/10 w-full md:w-auto'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <div className={`p-2 rounded-lg ${item.type === 'event' ? 'bg-cyan-500/10' : 'bg-white/10'} shrink-0`}>
+                                                            {item.type === 'event' ? <Trophy size={14} className="text-cyan-400" /> : <Activity size={14} className="text-gray-400" />}
+                                                        </div>
+                                                        <div className="min-w-0 flex-grow">
+                                                            <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight mb-1 truncate">
+                                                                {item.type === 'event' ? item.eventId?.name : item.activityTitle}
+                                                                {item.type === 'event' && <span className="text-cyan-500/50 font-mono ml-2">R{item.round}</span>}
+                                                            </h4>
+
+                                                            {/* Metadata Row: Sharp backgrounds, no blur */}
+                                                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black border border-white/10 rounded text-[9px] font-mono text-gray-400 uppercase">
+                                                                    <MapPin size={10} className="text-cyan-500" />
+                                                                    {item.room}
+                                                                </div>
+                                                                <div className="px-2 py-0.5 bg-cyan-950/80 border border-cyan-500/20 rounded text-[9px] font-mono text-cyan-400 font-bold">
+                                                                    <span className="opacity-60 mr-1">ENDS:</span>
+                                                                    {calculateEndTime(item.startTime, item.duration)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+};
+
+
 const Coordinators = () => {
     const mainCoordinator = {
         name: "Rahil Jamadar",
@@ -634,6 +779,8 @@ const Coordinators = () => {
         { name: "Rahul Kauaripal", role: "BACKSTAGE CREW", photo: "/team/rahulKa.jpeg" },
         { name: "Artesh Mahalkar", role: "GAMING HEAD", photo: "/artesh.JPG" },
         { name: "Ezekiel Noronha", role: "DJ", photo: "/ezekial.jpeg" },
+        { name: "Mohammad Asif", role: "BACKSTAGE CREW", photo: "/ashif.jpeg" },
+
     ];
 
     // Duplicate list for seamless infinite loop
@@ -755,7 +902,7 @@ const Coordinators = () => {
                             style={{ x }}
                             drag="x"
                             // Constraints prevent dragging the list off-screen too far
-                            dragConstraints={{ left: -2000, right: 0 }} 
+                            dragConstraints={{ left: -2000, right: 0 }}
                             animate={controls}
                             onDragStart={() => controls.stop()}
                             onDragEnd={() => startAutoScroll()}
@@ -1115,6 +1262,8 @@ const EventInfoPage = ({ event, onBack, onRegister }) => {
 export default function GenesisLanding() {
     const [view, setView] = useState({ type: 'home', data: null });
     const [allEvents, setAllEvents] = useState([]);
+    const [allSchedules, setAllSchedules] = useState([]);
+    const [scheduleLoading, setScheduleLoading] = useState(true);
     const navigate = useNavigate();
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleRegister = () => navigate('/register');
@@ -1144,18 +1293,24 @@ export default function GenesisLanding() {
     }, [view.type, view.scrollToEvents]);
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchData = async () => {
             try {
                 const baseURL = getApiBase();
-                const res = await axios.get(`${baseURL}/api/admin/events/public`);
-                setAllEvents(res.data || []);
+                // Parallel fetching for performance
+                const [eventsRes, scheduleRes] = await Promise.all([
+                    axios.get(`${baseURL}/api/admin/events/public`),
+                    axios.get(`${baseURL}/api/admin/schedules`) // Ensure this public route exists on backend
+                ]);
+                setAllEvents(eventsRes.data || []);
+                setAllSchedules(scheduleRes.data || []);
             } catch (err) {
-                console.error("Critical: Failed to sync with neural network database.");
+                console.error("Critical: Link to Chronos Engine broken.");
             } finally {
                 setIsInitialLoad(false);
+                setScheduleLoading(false);
             }
         };
-        fetchEvents();
+        fetchData();
     }, []);
 
     const handleCategorySelect = (label) => {
@@ -1186,6 +1341,8 @@ export default function GenesisLanding() {
                             <div ref={eventsRef}>
                                 <EventsGrid onEventSelect={handleCategorySelect} />
                             </div>
+
+                            <PublicSchedule schedules={allSchedules} loading={scheduleLoading} />
                             <SponsorsSection />
                             <Coordinators />
                             <ContactSection />

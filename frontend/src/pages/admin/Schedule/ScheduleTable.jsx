@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import adminApi from '../../../api/adminApi';
 import { toast } from 'react-toastify';
+import { Edit3, Trash2, MapPin, Clock, Calendar, Save, XCircle, Award, Coffee } from 'lucide-react';
 
 const ScheduleTable = ({ schedules, onDelete, onEdit }) => {
   const [editingId, setEditingId] = useState(null);
@@ -19,7 +20,16 @@ const ScheduleTable = ({ schedules, onDelete, onEdit }) => {
     fetchEvents();
   }, []);
 
-  // Group schedules by date for a proper timeline view
+  // Helper to format time to 12-hour catchy format
+  const formatTime = (time24) => {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':');
+    const h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${minutes} ${ampm}`;
+  };
+
   const groupedSchedules = (schedules || []).reduce((acc, curr) => {
     const dateStr = new Date(curr.date).toLocaleDateString('en-GB', {
       day: '2-digit',
@@ -46,116 +56,102 @@ const ScheduleTable = ({ schedules, onDelete, onEdit }) => {
     });
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
   const handleSave = () => {
     onEdit(editingId, form);
     setEditingId(null);
   };
 
   return (
-    <div className="schedule-timeline p-3 p-md-4">
+    <div className="schedule-master-container">
       {Object.keys(groupedSchedules).length > 0 ? (
         Object.keys(groupedSchedules).map((date) => (
-          <div key={date} className="mb-5 animate-fade-in">
-            {/* Date Header */}
-            <div className="d-flex align-items-center gap-3 mb-4">
-              <div className="bg-info rounded-pill px-3 py-1 text-black fw-bold x-small shadow-glow">
+          <div key={date} className="date-group-section mb-5 animate-fade-in">
+            {/* Catchy Date Header */}
+            <div className="d-flex align-items-center gap-3 mb-4 mt-2">
+              <div className="date-pill shadow-glow">
+                <Calendar size={14} className="me-2" />
                 {date}
               </div>
-              <div className="flex-grow-1 border-bottom border-secondary border-opacity-25"></div>
+              <div className="flex-grow-1 header-line"></div>
             </div>
 
-            <div className="table-responsive rounded-3 border border-secondary border-opacity-10">
+            {/* Desktop View Table */}
+            <div className="d-none d-lg-block table-responsive rounded-4 border border-secondary border-opacity-10 bg-black bg-opacity-20">
               <table className="table table-dark table-hover align-middle mb-0">
                 <thead className="bg-white bg-opacity-5">
                   <tr className="text-info x-small text-uppercase fw-bold ls-1">
-                    <th className="ps-4 py-3">Time & Duration</th>
-                    <th className="py-3">Activity / Event</th>
+                    <th className="ps-4 py-3">Timing</th>
+                    <th className="py-3">Event / Activity</th>
                     <th className="py-3">Venue</th>
-                    <th className="text-center pe-4 py-3">Actions</th>
+                    <th className="text-center pe-4 py-3">Management</th>
                   </tr>
                 </thead>
                 <tbody>
                   {groupedSchedules[date].map((item) => (
-                    <tr key={item._id} className="border-bottom border-secondary border-opacity-10 transition-all">
+                    <tr key={item._id} className={`border-bottom border-secondary border-opacity-10 transition-all ${editingId === item._id ? 'editing-row' : ''}`}>
                       {editingId === item._id ? (
-                        /* --- INLINE EDIT MODE --- */
-                        <td colSpan="4" className="p-3 bg-info bg-opacity-5">
-                          <div className="row g-2">
-                            <div className="col-md-3">
-                              <label className="x-small text-info fw-bold">Type</label>
-                              <select name="type" value={form.type} onChange={handleChange} className="form-select form-select-sm bg-dark text-white border-secondary">
+                        <td colSpan="4" className="p-4 bg-info bg-opacity-5">
+                          <div className="row g-3">
+                            <div className="col-md-2">
+                              <label className="x-small text-info fw-bold mb-1">TYPE</label>
+                              <select className="form-select form-select-sm bg-dark text-white border-secondary" name="type" value={form.type} onChange={(e) => setForm({...form, type: e.target.value})}>
                                 <option value="event">Event</option>
                                 <option value="activity">Activity</option>
                               </select>
                             </div>
-                            {form.type === 'event' ? (
-                              <div className="col-md-6">
-                                <label className="x-small text-info fw-bold">Select Event</label>
-                                <select name="eventId" value={form.eventId} onChange={handleChange} className="form-select form-select-sm bg-dark text-white border-secondary">
+                            <div className="col-md-4">
+                              <label className="x-small text-info fw-bold mb-1">{form.type === 'event' ? 'SELECT EVENT' : 'TITLE'}</label>
+                              {form.type === 'event' ? (
+                                <select className="form-select form-select-sm bg-dark text-white border-secondary" name="eventId" value={form.eventId} onChange={(e) => setForm({...form, eventId: e.target.value})}>
                                   <option value="">Choose...</option>
                                   {events.map(ev => <option key={ev._id} value={ev._id}>{ev.name}</option>)}
                                 </select>
-                              </div>
-                            ) : (
-                              <div className="col-md-6">
-                                <label className="x-small text-info fw-bold">Title</label>
-                                <input name="activityTitle" value={form.activityTitle} onChange={handleChange} className="form-control form-control-sm bg-dark text-white border-secondary" />
-                              </div>
-                            )}
-                            <div className="col-md-3">
-                              <label className="x-small text-info fw-bold">Time</label>
-                              <input type="time" name="startTime" value={form.startTime} onChange={handleChange} className="form-control form-control-sm bg-dark text-white border-secondary" />
+                              ) : (
+                                <input className="form-control form-control-sm bg-dark text-white border-secondary" value={form.activityTitle} onChange={(e) => setForm({...form, activityTitle: e.target.value})} />
+                              )}
                             </div>
-                            <div className="col-md-3">
-                              <label className="x-small text-info fw-bold">Venue</label>
-                              <input name="room" value={form.room} onChange={handleChange} className="form-control form-control-sm bg-dark text-white border-secondary" />
+                            <div className="col-md-2">
+                              <label className="x-small text-info fw-bold mb-1">START</label>
+                              <input type="time" className="form-control form-control-sm bg-dark text-white border-secondary" value={form.startTime} onChange={(e) => setForm({...form, startTime: e.target.value})} />
                             </div>
-                            <div className="col-md-9 d-flex align-items-end justify-content-end gap-2">
-                              <button className="btn btn-sm btn-info text-black fw-bold px-3" onClick={handleSave}>SAVE</button>
-                              <button className="btn btn-sm btn-outline-secondary text-white px-3" onClick={() => setEditingId(null)}>EXIT</button>
+                            <div className="col-md-2">
+                              <label className="x-small text-info fw-bold mb-1">ROOM</label>
+                              <input className="form-control form-control-sm bg-dark text-white border-secondary" value={form.room} onChange={(e) => setForm({...form, room: e.target.value})} />
+                            </div>
+                            <div className="col-md-2 d-flex align-items-end gap-2">
+                              <button className="btn btn-sm btn-info w-100 fw-bold" onClick={handleSave}><Save size={14} /></button>
+                              <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => setEditingId(null)}><XCircle size={14} /></button>
                             </div>
                           </div>
                         </td>
                       ) : (
-                        /* --- DISPLAY MODE --- */
                         <>
                           <td className="ps-4">
-                            <div className="fw-bold text-white fs-6">{item.startTime}</div>
-                            <div className="x-small text-secondary font-mono uppercase">{item.duration} MINS</div>
+                            <div className="text-white fw-bold fs-6">{formatTime(item.startTime)}</div>
+                            <div className="x-small text-secondary font-mono">{item.duration} MINS</div>
                           </td>
                           <td>
-                            {item.type === 'event' ? (
-                              <div>
-                                <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 x-small-badge me-2">EVENT</span>
-                                <span className="fw-bold text-white">{item.eventId?.name || 'N/A'}</span>
-                                <div className="x-small text-secondary mt-1">Round {item.round} • {item.eventId?.category}</div>
+                            <div className="d-flex align-items-center gap-3">
+                              <div className={`icon-box ${item.type === 'event' ? 'text-info' : 'text-warning'}`}>
+                                {item.type === 'event' ? <Award size={20} /> : <Coffee size={20} />}
                               </div>
-                            ) : (
                               <div>
-                                <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 x-small-badge me-2">ACTIVITY</span>
-                                <span className="fw-bold text-warning">{item.activityTitle}</span>
-                                <div className="x-small text-secondary mt-1">{item.details || 'General Logistics'}</div>
+                                <div className="text-white fw-bold">{item.type === 'event' ? item.eventId?.name : item.activityTitle}</div>
+                                <div className="x-small text-info opacity-75">
+                                  {item.type === 'event' ? `ROUND ${item.round} • ${item.eventId?.category}` : item.details || 'LOGISTICS'}
+                                </div>
                               </div>
-                            )}
+                            </div>
                           </td>
                           <td>
-                            <div className="d-flex align-items-center gap-2">
-                              <i className="bi bi-geo-alt text-info"></i>
-                              <span className="text-light small">{item.room}</span>
+                            <div className="d-flex align-items-center gap-2 text-secondary small">
+                              <MapPin size={14} className="text-info" /> {item.room}
                             </div>
                           </td>
                           <td className="text-center pe-4">
-                            <div className="d-flex justify-content-center gap-2">
-                              <button className="btn btn-sm btn-outline-warning border-0 p-2" onClick={() => startEdit(item)}>
-                                <i className="bi bi-pencil-square"></i>
-                              </button>
-                              <button className="btn btn-sm btn-outline-danger border-0 p-2" onClick={() => onDelete(item._id)}>
-                                <i className="bi bi-trash3"></i>
-                              </button>
+                            <div className="btn-group border border-secondary border-opacity-20 rounded-3 overflow-hidden">
+                              <button className="btn btn-dark btn-sm text-warning py-2 px-3" onClick={() => startEdit(item)}><Edit3 size={16} /></button>
+                              <button className="btn btn-dark btn-sm text-danger py-2 px-3" onClick={() => onDelete(item._id)}><Trash2 size={16} /></button>
                             </div>
                           </td>
                         </>
@@ -165,23 +161,99 @@ const ScheduleTable = ({ schedules, onDelete, onEdit }) => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile View Cards */}
+            <div className="d-block d-lg-none">
+              {groupedSchedules[date].map((item) => (
+                <div key={item._id} className="mobile-schedule-card bg-glass border border-secondary border-opacity-10 mb-3 p-3 rounded-4">
+                  <div className="d-flex justify-content-between align-items-start mb-3">
+                    <div className="d-flex align-items-center gap-2">
+                       <Clock size={16} className="text-info" />
+                       <span className="fw-bold text-white">{formatTime(item.startTime)}</span>
+                       <span className="x-small text-secondary">({item.duration}m)</span>
+                    </div>
+                    <div className="d-flex gap-2">
+                       <button className="btn-icon-sm text-warning" onClick={() => startEdit(item)}><Edit3 size={16} /></button>
+                       <button className="btn-icon-sm text-danger" onClick={() => onDelete(item._id)}><Trash2 size={16} /></button>
+                    </div>
+                  </div>
+                  <h6 className="text-white fw-black mb-1">
+                    {item.type === 'event' ? item.eventId?.name : item.activityTitle}
+                  </h6>
+                  <div className="d-flex justify-content-between align-items-center mt-2">
+                    <span className={`badge ${item.type === 'event' ? 'bg-info' : 'bg-warning'} text-black x-small-badge uppercase`}>
+                      {item.type === 'event' ? `ROUND ${item.round}` : 'ACTIVITY'}
+                    </span>
+                    <span className="text-secondary x-small d-flex align-items-center gap-1">
+                      <MapPin size={12} /> {item.room}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))
       ) : (
-        <div className="text-center py-5">
-          <p className="text-secondary font-mono">NO ENTRIES FOUND IN DATABASE</p>
+        <div className="text-center py-5 bg-glass-dark rounded-4">
+          <Clock size={40} className="text-secondary opacity-20 mb-3" />
+          <p className="text-secondary font-mono small ls-1">NULL_TIMELINE_DETECTED</p>
         </div>
       )}
 
       <style>{`
-        .x-small { font-size: 0.65rem; }
-        .x-small-badge { font-size: 0.6rem; padding: 0.4em 0.8em; letter-spacing: 0.5px; }
+        .date-pill {
+          background: #0dcaf0;
+          color: black;
+          padding: 8px 20px;
+          border-radius: 100px;
+          font-weight: 800;
+          font-size: 0.75rem;
+          display: flex;
+          align-items: center;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .header-line {
+          height: 1px;
+          background: linear-gradient(to right, rgba(13, 202, 240, 0.3), transparent);
+        }
+
+        .icon-box {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mobile-schedule-card {
+          background: rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(10px);
+        }
+
+        .btn-icon-sm {
+          background: transparent;
+          border: none;
+          padding: 4px;
+          opacity: 0.7;
+          transition: 0.2s;
+        }
+        .btn-icon-sm:hover { opacity: 1; transform: scale(1.1); }
+
+        .editing-row { background: rgba(13, 202, 240, 0.05) !important; }
+
+        .x-small-badge { font-size: 0.6rem; padding: 0.3em 0.7em; font-weight: 900; }
         .ls-1 { letter-spacing: 1px; }
-        .shadow-glow { box-shadow: 0 0 15px rgba(13, 202, 240, 0.2); }
-        .transition-all { transition: all 0.2s ease-in-out; }
-        .animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+        .fw-black { font-weight: 900; }
+        .shadow-glow { box-shadow: 0 0 20px rgba(13, 202, 240, 0.2); }
+        
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
+          from { opacity: 0; transform: translateY(15px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import adminApi from '../../../api/adminApi';
 import Navbar from '../../../components/Navbar';
 import { toast } from 'react-toastify';
-const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events'];
+const categories = ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events','Open'];
 
 const EditEvent = () => {
   const { id } = useParams();

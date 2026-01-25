@@ -24,7 +24,7 @@ const RegisterHub = () => {
     main: 10,
     valorant: 8,
     football: 16,
-    hackathon: 10
+    hackathon: 12
   };
 
   const fetchData = useCallback(async () => {

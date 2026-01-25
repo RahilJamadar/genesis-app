@@ -10,7 +10,7 @@ const EventSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events']
+    enum: ['Tech', 'Cultural', 'Gaming', 'Sports', 'Pre-events','Open']
   },
   isTrophyEvent: {
     type: Boolean,
