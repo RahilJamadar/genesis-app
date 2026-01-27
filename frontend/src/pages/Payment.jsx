@@ -16,17 +16,19 @@ const Payment = () => {
             COLLEGE_TROPHY: 2500,
             FOOTBALL: 800,
             VALORANT: 500, 
-            HACKATHON: 0
+            HACKATHON_PER_MEMBER: 100 // Updated: 100 per member
         },
         QR_CODES: {
             MAIN: "/mes_qr.jpeg",
             FOOTBALL: "/mes_qr.jpeg",
-            VALORANT: "/mes_qr.jpeg"
+            VALORANT: "/mes_qr.jpeg",
+            HACKATHON: "/mes_qr.jpeg" // Added QR for Hackathon
         },
         FORM_LINKS: {
             MAIN: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor",
             FOOTBALL: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor",
-            VALORANT: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor"
+            VALORANT: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor",
+            HACKATHON: "https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor"
         }
     };
 
@@ -48,8 +50,17 @@ const Payment = () => {
         if (!team) return { total: 0, type: 'UNKNOWN', qr: CONFIG.QR_CODES.MAIN, form: "#" };
         const registeredNames = team.registeredEvents?.map(e => e.name.toLowerCase().trim()) || [];
         
+        // Hackathon logic: Calculates total based on member count
         if (registeredNames.includes('hackathon') && registeredNames.length === 1) {
-            return { total: CONFIG.FEES.HACKATHON, type: 'HACKATHON', qr: null, form: null };
+            const memberCount = team.members?.length || 0;
+            return { 
+                total: memberCount * CONFIG.FEES.HACKATHON_PER_MEMBER, 
+                type: 'HACKATHON', 
+                qr: CONFIG.QR_CODES.HACKATHON, 
+                form: CONFIG.FORM_LINKS.HACKATHON,
+                isPerMember: true,
+                count: memberCount
+            };
         }
         if (registeredNames.includes('valorant') && registeredNames.length === 1) {
             return { total: CONFIG.FEES.VALORANT, type: 'VALORANT', qr: CONFIG.QR_CODES.VALORANT, form: CONFIG.FORM_LINKS.VALORANT };
@@ -79,7 +90,7 @@ const Payment = () => {
                 <div className="text-center mb-5">
                     <h5 className="text-cyan-400 font-mono desktop-label uppercase mb-3">Secure_Payment_Protocol</h5>
                     <h2 className="text-white font-black display-5 uppercase tracking-tighter desktop-title">
-                        {payment.total === 0 ? 'Protocol' : 'Finalize'} <span className="text-cyan-400">Uplink</span>
+                        Finalize <span className="text-cyan-400">Uplink</span>
                     </h2>
                 </div>
 
@@ -98,66 +109,52 @@ const Payment = () => {
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
                             <span className="text-white text-opacity-40 font-mono desktop-small-label uppercase tracking-widest">Deployment Sector</span>
-                            <span className="text-white fw-bold desktop-data tracking-wider uppercase">{payment.type.replace('_', ' ')}</span>
+                            <span className="text-white fw-bold desktop-data tracking-wider uppercase">
+                                {payment.type.replace('_', ' ')}
+                                {payment.isPerMember && <span className="text-cyan-400 ms-2" style={{fontSize: '0.8rem'}}>({payment.count} Members)</span>}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Payment vs. Confirmation Logic */}
-                    {payment.total > 0 ? (
-                        <div className="text-center mb-5 position-relative" style={{ zIndex: 1 }}>
-                            <p className="text-white text-opacity-60 desktop-p mb-4 font-light">Scan code with any UPI app (GPay, PhonePe, Paytm) to transfer ₹{payment.total}.</p>
-                            
-                            <div className="bg-white p-3 d-inline-block rounded-4 shadow-lg mb-4 border border-4 border-cyan-400 qr-wrapper">
-                                <img 
-                                    src={payment.qr} 
-                                    alt={`${payment.type} QR`} 
-                                    className="img-fluid"
-                                    style={{ width: '280px', height: '280px', objectFit: 'contain' }}
-                                />
-                            </div>
-                            
-                            <div className="bg-cyan-500 bg-opacity-10 border border-cyan-500 border-opacity-20 py-4 rounded-4">
-                                <span className="text-white text-opacity-50 font-mono desktop-small-label block mb-1 tracking-widest uppercase">Transaction_Value</span>
-                                <h2 className="text-white font-black mb-0 display-4">₹{payment.total}</h2>
-                            </div>
+                    <div className="text-center mb-5 position-relative" style={{ zIndex: 1 }}>
+                        <p className="text-white text-opacity-60 desktop-p mb-4 font-light">Scan code with any UPI app to transfer ₹{payment.total}.</p>
+                        
+                        <div className="bg-white p-3 d-inline-block rounded-4 shadow-lg mb-4 border border-4 border-cyan-400 qr-wrapper">
+                            <img 
+                                src={payment.qr} 
+                                alt={`${payment.type} QR`} 
+                                className="img-fluid"
+                                style={{ width: '280px', height: '280px', objectFit: 'contain' }}
+                            />
                         </div>
-                    ) : (
-                        <div className="text-center mb-5 py-5 position-relative" style={{ zIndex: 1 }}>
-                            <i className="bi bi-patch-check-fill text-cyan-400 display-1 mb-3 d-block"></i>
-                            <h3 className="text-white font-black uppercase display-6">Direct Entry Verified</h3>
-                            <p className="text-white text-opacity-50 font-mono small mt-2 uppercase">No_Payment_Required_For_{payment.type}</p>
-                            <div className="bg-black bg-opacity-5 border border-white border-opacity-10 p-4 rounded-4 mt-4 text-start">
-                                <p className="mb-0 desktop-p leading-relaxed text-white text-opacity-70">
-                                    Your registration for <strong>{payment.type}</strong> has been logged. Our sector admins will verify your crew list shortly. You do not need to perform any further actions.
-                                </p>
-                            </div>
+                        
+                        <div className="bg-cyan-500 bg-opacity-10 border border-cyan-500 border-opacity-20 py-4 rounded-4">
+                            <span className="text-white text-opacity-50 font-mono desktop-small-label block mb-1 tracking-widest uppercase">Transaction_Value</span>
+                            <h2 className="text-white font-black mb-0 display-4">₹{payment.total}</h2>
+                            {payment.isPerMember && <p className="text-cyan-400 x-small font-mono mt-1 mb-0">₹100 x {payment.count} UNITS</p>}
                         </div>
-                    )}
+                    </div>
 
-                    {/* Verification Step (Only if paid) */}
-                    {payment.total > 0 && (
-                        <div className="mb-5 position-relative text-start" style={{ zIndex: 1 }}>
-                            <h4 className="text-white font-bold uppercase mb-3 font-mono tracking-widest d-flex align-items-center gap-2 desktop-p">
-                                <i className="bi bi-shield-check text-cyan-400"></i> Step 2: Protocol Log
-                            </h4>
-                            <p className="text-white text-opacity-60 desktop-p leading-relaxed font-light">
-                                Take a screenshot of the successful transaction. Ensure the <strong>UTR / Transaction ID</strong> is visible. Upload it using the button below.
-                            </p>
-                        </div>
-                    )}
+                    {/* Verification Step */}
+                    <div className="mb-5 position-relative text-start" style={{ zIndex: 1 }}>
+                        <h4 className="text-white font-bold uppercase mb-3 font-mono tracking-widest d-flex align-items-center gap-2 desktop-p">
+                            <i className="bi bi-shield-check text-cyan-400"></i> Step 2: Protocol Log
+                        </h4>
+                        <p className="text-white text-opacity-60 desktop-p leading-relaxed font-light">
+                            Take a screenshot of the successful transaction. Ensure the <strong>UTR / Transaction ID</strong> is visible. Upload it using the button below.
+                        </p>
+                    </div>
 
                     {/* Action Links */}
                     <div className="d-grid gap-3 position-relative" style={{ zIndex: 1 }}>
-                        {payment.total > 0 && (
-                            <a 
-                                href={payment.form} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="btn-genesis text-center text-decoration-none"
-                            >
-                                UPLOAD SCREENSHOT (Google Form)
-                            </a>
-                        )}
+                        <a 
+                            href={payment.form} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn-genesis text-center text-decoration-none"
+                        >
+                            UPLOAD SCREENSHOT (Google Form)
+                        </a>
                         <Link to="/" className="btn-genesis-outline text-center text-decoration-none">
                             RETURN TO MAIN_BASE
                         </Link>
@@ -167,12 +164,11 @@ const Payment = () => {
                 {/* Footer Uplink ID */}
                 <p className="text-center text-white text-opacity-20 font-mono mt-5 tracking-[0.3em] uppercase" style={{ fontSize: '0.75rem' }}>
                     UPLINK_ID: {teamId?.substring(0, 8).toUpperCase()} {' // '} 
-                    STATUS: {payment.total > 0 ? 'WAITING_FOR_LOG' : 'SYNC_COMPLETE'}
+                    STATUS: WAITING_FOR_LOG
                 </p>
             </div>
 
             <style>{`
-                /* Desktop Typography Overrides */
                 @media (min-width: 992px) {
                     .desktop-title { font-size: 3.5rem !important; }
                     .desktop-label { font-size: 1rem !important; letter-spacing: 0.5em !important; }
@@ -189,6 +185,7 @@ const Payment = () => {
                     border-radius: 16px; font-weight: 900; transition: all 0.3s; 
                     text-transform: uppercase; font-size: 1rem; letter-spacing: 2px;
                     font-family: 'Inter', sans-serif;
+                    cursor: pointer;
                 }
                 .btn-genesis:hover { background: #00bacf; transform: translateY(-4px); box-shadow: 0 15px 35px rgba(13,202,240,0.4); }
 
@@ -200,6 +197,7 @@ const Payment = () => {
                 .btn-genesis-outline:hover { background: rgba(255, 255, 255, 0.05); color: #0dcaf0; border-color: #0dcaf0; }
                 
                 .font-mono { font-family: 'JetBrains Mono', 'Courier New', monospace !important; }
+                .x-small { font-size: 0.7rem; }
             `}</style>
         </div>
     );

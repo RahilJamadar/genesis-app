@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Cpu, Trophy, Activity, Ghost, Lock } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Cpu, Trophy, Activity, Ghost, Lock, AlertCircle } from 'lucide-react';
 import getApiBase from '../utils/getApiBase'; 
 import { ToastContainer } from 'react-toastify';
 
@@ -19,12 +19,12 @@ const RegisterHub = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Hardcoded limits per requirement
+  // Updated limits and specifications
   const limits = {
     main: 10,
     valorant: 8,
     football: 16,
-    hackathon: 12
+    hackathon: 20 // Required: 20 slots
   };
 
   const fetchData = useCallback(async () => {
@@ -44,7 +44,7 @@ const RegisterHub = () => {
       });
       setEventSpecs(specs);
 
-      // 2. Fetch Registration Counts from Public Route
+      // 2. Fetch Registration Counts
       const countRes = await axios.get(`${baseURL}/api/admin/teams/public/registration-counts`);
       if (countRes.data?.counts) {
         setTeamCounts(countRes.data.counts);
@@ -93,10 +93,11 @@ const RegisterHub = () => {
       id: 'hackathon', 
       title: 'Hackathon', 
       desc: '24-Hour Coding Competition',
-      fee: 'FREE',
+      fee: '₹100/Member', // Required: 100 per member
       icon: <Cpu size={28} />,
-      tag: 'FREE_EVENT',
-      color: 'warning'
+      tag: 'TECH_LIMIT',
+      color: 'warning',
+      note: 'Command Directive: Maximum 3 teams allowed per college.' // Required: College limit note
     },
   ];
 
@@ -125,7 +126,7 @@ const RegisterHub = () => {
             <h1 className="fw-black tracking-tighter uppercase m-0 display-4 text-white">
               Registration <span className="text-info">Center</span>
             </h1>
-            <p className="text-secondary font-mono x-small uppercase mt-1 tracking-widest">Pick your event category</p>
+            <p className="text-secondary font-mono x-small uppercase mt-1 tracking-widest">Sector Selection Protocol</p>
           </div>
         </div>
 
@@ -137,12 +138,12 @@ const RegisterHub = () => {
                 <ShieldCheck className="text-info" size={20} />
               </div>
               <div>
-                <h6 className="text-white mb-0 fw-bold">Need help with Payment?</h6>
-                <p className="font-mono x-small text-secondary mb-0">Contact support if you missed the upload step.</p>
+                <h6 className="text-white mb-0 fw-bold">Payment Uplink Help?</h6>
+                <p className="font-mono x-small text-secondary mb-0">Contact support for manual verification if required.</p>
               </div>
             </div>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSc2QfteykjBgtNk2-2XgwJznjO-xoRB20dCSZryO-dA47iaVQ/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="btn btn-sm btn-info fw-bold px-4 py-2 font-mono x-small">
-              GET HELP
+              OPEN TICKET
             </a>
           </div>
         </div>
@@ -166,7 +167,7 @@ const RegisterHub = () => {
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min((teamCounts[p.id] / limits[p.id]) * 100, 100)}%` }}
                         className={`bg-${isFull ? 'danger' : p.color}`} 
-                        style={{ height: '100%', boxShadow: isFull ? '0 0 10px rgba(220,53,69,0.5)' : '0 0 10px rgba(13,202,240,0.5)' }}
+                        style={{ height: '100%', boxShadow: isFull ? '0 0 10px rgba(220,53,69,0.5)' : `0 0 10px var(--bs-${p.color})` }}
                      />
                   </div>
 
@@ -180,12 +181,12 @@ const RegisterHub = () => {
                         className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-black bg-opacity-80" 
                         style={{ zIndex: 10, backdropFilter: 'blur(8px)' }}
                       >
-                          <div className="bg-danger text-white px-3 py-1 rounded-pill x-small fw-bold mb-3 shadow-lg animate-pulse">REGISTRATION CLOSED</div>
+                          <div className="bg-danger text-white px-3 py-1 rounded-pill x-small fw-bold mb-3 shadow-lg animate-pulse">CAPACITY REACHED</div>
                           <Lock size={44} className="text-danger mb-2" />
                           <h5 className="fw-black text-white text-uppercase m-0 tracking-tighter text-center px-3">
-                            {p.title} TEAMS FULL
+                            {p.title} SECTOR FULL
                           </h5>
-                          <p className="font-mono x-small text-danger mt-1 opacity-100 fw-bold uppercase">LIMIT REACHED: {limits[p.id]} SLOTS</p>
+                          <p className="font-mono x-small text-danger mt-1 opacity-100 fw-bold uppercase">MAX LIMIT: {limits[p.id]} TEAMS</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -200,25 +201,33 @@ const RegisterHub = () => {
                           {p.tag}
                         </span>
                         <span className={`font-mono x-small fw-bold ${isFull ? 'text-danger' : 'text-secondary'}`}>
-                          {loading ? '...' : teamCounts[p.id]} / {limits[p.id]} SLOTS
+                          {loading ? '...' : teamCounts[p.id]} / {limits[p.id]} TEAMS
                         </span>
                       </div>
                     </div>
 
                     <h3 className="fw-bold text-white mb-2 uppercase tracking-tight">{p.title}</h3>
-                    <p className="text-secondary small mb-4 leading-relaxed">
+                    <p className="text-secondary small mb-3 leading-relaxed">
                       {p.desc} 
                       {eventSpecs[p.id] && (
-                        <span className="d-block mt-3 text-info fw-bold font-mono" style={{ fontSize: '0.6rem' }}>
-                          {`SYSTEM REQUIRES: ${eventSpecs[p.id].min} - ${eventSpecs[p.id].max} MEMBERS`}
+                        <span className="d-block mt-3 text-info fw-bold font-mono uppercase" style={{ fontSize: '0.6rem' }}>
+                          {`UNIT SIZE: ${eventSpecs[p.id].min} - ${eventSpecs[p.id].max} OPERATIVES`}
                         </span>
                       )}
                     </p>
+
+                    {/* Special Restriction Note (Hackathon) */}
+                    {p.note && (
+                        <div className="d-flex align-items-start gap-2 p-2 rounded bg-warning bg-opacity-5 border border-warning border-opacity-10 mb-4">
+                            <AlertCircle size={14} className="text-warning mt-1 shrink-0" />
+                            <p className="m-0 text-black fw-bold font-mono" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>{p.note}</p>
+                        </div>
+                    )}
                     
-                    <div className="d-flex justify-content-between align-items-center pt-4 border-top border-secondary border-opacity-10">
+                    <div className="d-flex justify-content-between align-items-center pt-4 border-top border-secondary border-opacity-10 mt-auto">
                       <span className="text-white font-mono fw-black h4 m-0">{p.fee}</span>
                       <span className={`${isFull ? 'text-danger' : 'text-info'} fw-bold x-small font-mono tracking-widest`}>
-                        {isFull ? 'CLOSED' : 'REGISTER NOW →'}
+                        {isFull ? 'LOCKED' : 'INITIALIZE →'}
                       </span>
                     </div>
                   </div>
@@ -241,6 +250,7 @@ const RegisterHub = () => {
         .text-danger { color: #ff4d4d !important; }
         .bg-danger { background-color: #dc3545 !important; }
         .border-danger { border-color: rgba(220, 53, 69, 0.5) !important; }
+        .shrink-0 { flex-shrink: 0; }
 
         @keyframes pulse-glow { 
           0%, 100% { border-color: rgba(13, 202, 240, 0.5); box-shadow: 0 0 5px rgba(13, 202, 240, 0.2); }
@@ -248,6 +258,8 @@ const RegisterHub = () => {
         }
         .regicard {
           transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s ease;
+          display: flex;
+          flex-direction: column;
         }
         .leading-relaxed { line-height: 1.6; }
       `}</style>

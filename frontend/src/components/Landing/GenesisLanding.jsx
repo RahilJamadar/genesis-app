@@ -61,9 +61,9 @@ const TOP_SPONSORS = [
     { name: "AR Computer Services", img: "/ar.jpeg", stretch: true }, // Marked for stretching
     { name: "Shri Krishna Daji Salkar", img: "/daji.JPG", portrait: true },
     { name: "Brain Behind AI", img: "/bbai.jpeg" },
-    { name: "Kamesh Para", img: "/kamesh.jpeg" },
-    { name: "shri kamala prasad yadav", img: "/kamla.png" },
-    { name: "Dr. Celso Fernandes", img: "/celso.jpeg" },
+    { name: "Kamesh Para", img: "/kamesh.jpeg" , portrait: true},
+    { name: "shri kamala prasad yadav", img: "/kamla.png", portrait: true },
+    { name: "Dr. Celso Fernandes", img: "/celso.jpeg" , portrait: true},
 ];
 
 const GENERAL_SPONSORS = [

@@ -7,207 +7,164 @@ const verifyAdmin = require('../middleware/verifyAdmin');
 const mongoose = require('mongoose');
 
 // ==========================================
-// 🔐 PROTECTED ANALYTICS ROUTES (Admin Only)
+// 🌐 PUBLIC / REGISTRATION UTILITY ROUTES
 // ==========================================
 
 /**
- * @route   POST /api/admin/teams/reset-all-scores
+ * @route   GET /api/admin/teams/check-limit
+ * @desc    Strict validation for Event 3-team cap per college
  */
-router.post('/reset-all-scores', verifyAdmin, async (req, res) => {
+router.get('/check-limit', async (req, res) => {
   try {
-    await Team.updateMany(
-      {}, 
-      { $set: { finalPoints: {}, totalTrophyPoints: 0 } }
-    );
-    await Score.deleteMany({}); 
-    res.json({ success: true, message: "Database scores purged successfully." });
-  } catch (err) {
-    console.error('Reset Error:', err);
-    res.status(500).json({ error: "Failed to reset database." });
-  }
-});
+    const { college, event } = req.query;
 
-/**
- * @route   GET /api/admin/teams/catering-report
- */
-router.get('/catering-report', verifyAdmin, async (req, res) => {
-  try {
-    const teams = await Team.find();
-    const collegeBreakdown = teams.map(t => {
-      const veg = Number(t.vegCount) || 0;
-      const nonVeg = Number(t.nonVegCount) || 0;
-      return {
-        college: t.college || 'Unknown Institution',
-        teamName: t.teamName || '',
-        veg: veg,
-        nonVeg: nonVeg,
-        total: veg + nonVeg
-      };
+    if (!college || !event) {
+      return res.status(400).json({ message: "College and Event name are required." });
+    }
+
+    // 1. Find the actual Event document to get its ObjectId
+    const eventDoc = await Event.findOne({ name: { $regex: new RegExp(`^${event}$`, 'i') } });
+    
+    if (!eventDoc) {
+      // If event doesn't exist, count is obviously 0
+      return res.json({ count: 0 });
+    }
+
+    // 2. Count teams from this college that have this Event ID in their registeredEvents array
+    const count = await Team.countDocuments({
+      college: { $regex: new RegExp(`^${college.trim()}$`, 'i') },
+      registeredEvents: eventDoc._id // Matches the ObjectId reference
     });
 
-    const totals = teams.reduce((acc, team) => {
-      acc.veg += Number(team.vegCount) || 0;
-      acc.nonVeg += Number(team.nonVegCount) || 0;
-      return acc;
-    }, { veg: 0, nonVeg: 0 });
-
-    res.json({ success: true, summary: totals, breakdown: collegeBreakdown });
+    res.json({ count });
   } catch (err) {
-    res.status(500).json({ error: 'Logistics calculation failed' });
-  }
-});
-
-
-
-/**
- * @route   GET /api/admin/teams/leaderboard/overall
- * @desc    Calculates overall score correctly handling Mongoose Maps
- */
-router.get('/leaderboard/overall', verifyAdmin, async (req, res) => {
-  try {
-    const teams = await Team.find(); 
-    const result = teams.map(t => {
-      let liveScore = 0;
-      if (t.finalPoints && t.finalPoints instanceof Map) {
-        t.finalPoints.forEach((val) => {
-          liveScore += (Number(val) || 0);
-        });
-      }
-      return {
-        id: t._id,
-        college: t.college,
-        teamName: t.teamName || '',
-        leader: t.leader,
-        score: liveScore 
-      };
-    }).sort((a, b) => b.score - a.score);
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: 'Overall leaderboard sync failed' });
+    console.error("Limit Check Error:", err);
+    res.status(500).json({ error: "Internal server error during validation." });
   }
 });
 
 /**
- * @route   GET /api/admin/teams/leaderboard/event/:eventId
- * @desc    NEW: Fetches event-specific scores AND calculates Gender Splits for Power Pair
+ * @route   GET /api/admin/teams/public/registration-counts
+ * @desc    Get counts for public registration limits (No Auth Required)
  */
-router.get('/leaderboard/event/:eventId', verifyAdmin, async (req, res) => {
+router.get('/public/registration-counts', async (req, res) => {
   try {
-    const { eventId } = req.params;
-    const event = await Event.findById(eventId);
-    const isPowerPair = event?.name?.toLowerCase().includes("power pair");
+    const teams = await Team.find().populate('registeredEvents', 'name');
 
-    // Fetch teams registered for this event
-    const teams = await Team.find({ registeredEvents: eventId });
-    
-    // Fetch all finalized scores for this event to calculate splits
-    const scores = await Score.find({ event: eventId, finalized: true });
+    const counts = { main: 0, football: 0, valorant: 0, hackathon: 0 };
 
-    const leaderboard = teams.map(team => {
-      const tId = team._id.toString();
+    teams.forEach(team => {
+      if (!team.registeredEvents || team.registeredEvents.length === 0) return;
+
+      // Logic for College Team (Main Trophy)
+      if (team.registeredEvents.length > 1) counts.main++;
+
+      // Logic for specific Open Events using strict name matching
+      const eventNames = team.registeredEvents.map(e => e.name.toLowerCase());
       
-      // Get trophy points (100, 50, 10, etc.)
-      const trophyPoints = team.finalPoints instanceof Map 
-        ? team.finalPoints.get(eventId) 
-        : (team.finalPoints ? team.finalPoints[eventId] : 0);
+      if (eventNames.includes('football')) counts.football++;
+      if (eventNames.includes('valorant')) counts.valorant++;
+      if (eventNames.includes('hackathon')) counts.hackathon++;
+    });
 
-      // 🚀 POWER PAIR SPLIT CALCULATION
-      let mTotal = 0;
-      let fTotal = 0;
-
-      if (isPowerPair) {
-        // Find judge scores for this team and sum M/F criteria
-        const teamScores = scores.filter(s => s.team?.toString() === tId);
-        teamScores.forEach(s => {
-          if (s.criteriaScores && s.criteriaScores.length === 6) {
-            // Indices 0,1,2 are Male | 3,4,5 are Female
-            mTotal += (Number(s.criteriaScores[0]) + Number(s.criteriaScores[1]) + Number(s.criteriaScores[2]));
-            fTotal += (Number(s.criteriaScores[3]) + Number(s.criteriaScores[4]) + Number(s.criteriaScores[5]));
-          }
-        });
-      }
-
-      return {
-        id: team._id,
-        college: team.college,
-        teamName: team.teamName || '',
-        leader: team.leader,
-        score: Number(trophyPoints) || 0,
-        mTotal: mTotal, 
-        fTotal: fTotal
-      };
-    }).sort((a, b) => b.score - a.score);
-
-    res.json(leaderboard);
+    res.json({ success: true, counts });
   } catch (err) {
-    console.error("Event Leaderboard Error:", err);
-    res.status(500).json({ error: 'Event ranking calculation failed' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// ==========================================
-// 🌐 PUBLIC ROUTES
-// ==========================================
-
+/**
+ * @route   POST /api/admin/teams
+ */
 router.post('/', async (req, res) => {
     try {
         const newTeam = new Team(req.body);
         await newTeam.save(); 
         res.status(201).json({ success: true, team: newTeam });
     } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
+        // Handle unique email/contact errors nicely
+        const message = err.code === 11000 
+            ? "Email or Contact Number already registered." 
+            : err.message;
+        res.status(400).json({ success: false, message });
     }
 });
 
-router.get('/:id', async (req, res) => {
-    try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-            return res.status(400).json({ success: false, message: 'Invalid ID format' });
-        }
-        const team = await Team.findById(req.params.id).populate('registeredEvents', 'name category');
-        if (!team) return res.status(404).json({ success: false, message: 'ID not found' });
-        res.status(200).json(team);
-    } catch (err) {
-        res.status(500).json({ success: false, message: 'Error fetching profile' });
-    }
-});
-/**
- * @route   GET /api/teams/public/registration-counts
- * @desc    Get counts for public registration limits (No Auth Required)
- */
-router.get('/public/registration-counts', async (req, res) => {
+// ==========================================
+// 🔐 PROTECTED ANALYTICS ROUTES (Admin Only)
+// ==========================================
+
+router.post('/reset-all-scores', verifyAdmin, async (req, res) => {
   try {
-    // 1. Fetch teams and populate their event names
-    const teams = await Team.find().populate('registeredEvents', 'name');
-
-    const counts = {
-      main: 0,
-      football: 0,
-      valorant: 0,
-      hackathon: 0
-    };
-
-    teams.forEach(team => {
-      if (!team.registeredEvents || team.registeredEvents.length === 0) return;
-
-      // Logic for College Team (Main Trophy)
-      // We count them as 'main' if they are registered for multiple events (Compulsory events)
-      if (team.registeredEvents.length > 1) {
-        counts.main++;
-      }
-
-      // Logic for specific Open Events
-      const eventNames = team.registeredEvents.map(e => e.name.toLowerCase());
-      
-      if (eventNames.some(n => n.includes('football'))) counts.football++;
-      if (eventNames.some(n => n.includes('valorant'))) counts.valorant++;
-      if (eventNames.some(n => n.includes('hackathon'))) counts.hackathon++;
-    });
-
-    res.json({ success: true, counts });
+    await Team.updateMany({}, { $set: { finalPoints: {}, totalTrophyPoints: 0 } });
+    await Score.deleteMany({}); 
+    res.json({ success: true, message: "Database purged." });
   } catch (err) {
-    console.error("Public Count Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Reset failed." });
+  }
+});
+
+router.get('/catering-report', verifyAdmin, async (req, res) => {
+  try {
+    const teams = await Team.find();
+    const collegeBreakdown = teams.map(t => ({
+        college: t.college || 'Unknown',
+        veg: Number(t.vegCount) || 0,
+        nonVeg: Number(t.nonVegCount) || 0,
+        total: (Number(t.vegCount) || 0) + (Number(t.nonVegCount) || 0)
+    }));
+    const totals = teams.reduce((acc, team) => {
+      acc.veg += Number(team.vegCount) || 0;
+      acc.nonVeg += Number(team.nonVegCount) || 0;
+      return acc;
+    }, { veg: 0, nonVeg: 0 });
+    res.json({ success: true, summary: totals, breakdown: collegeBreakdown });
+  } catch (err) {
+    res.status(500).json({ error: 'Catering fetch failed' });
+  }
+});
+
+router.get('/leaderboard/overall', verifyAdmin, async (req, res) => {
+  try {
+    const teams = await Team.find(); 
+    const result = teams.map(t => {
+      let liveScore = 0;
+      if (t.finalPoints instanceof Map) {
+        t.finalPoints.forEach((val) => { liveScore += (Number(val) || 0); });
+      }
+      return { id: t._id, college: t.college, teamName: t.teamName || '', score: liveScore };
+    }).sort((a, b) => b.score - a.score);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Leaderboard sync failed' });
+  }
+});
+
+router.get('/leaderboard/event/:eventId', verifyAdmin, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const event = await Event.findById(eventId);
+    const isPowerPair = event?.name?.toLowerCase().includes("power pair");
+    const teams = await Team.find({ registeredEvents: eventId });
+    const scores = await Score.find({ event: eventId, finalized: true });
+
+    const leaderboard = teams.map(team => {
+      const trophyPoints = team.finalPoints instanceof Map ? team.finalPoints.get(eventId) : 0;
+      let mTotal = 0, fTotal = 0;
+      if (isPowerPair) {
+        const teamScores = scores.filter(s => s.team?.toString() === team._id.toString());
+        teamScores.forEach(s => {
+          if (s.criteriaScores?.length === 6) {
+            mTotal += (Number(s.criteriaScores[0]) + Number(s.criteriaScores[1]) + Number(s.criteriaScores[2]));
+            fTotal += (Number(s.criteriaScores[3]) + Number(s.criteriaScores[4]) + Number(s.criteriaScores[5]));
+          }
+        });
+      }
+      return { id: team._id, college: team.college, score: Number(trophyPoints) || 0, mTotal, fTotal };
+    }).sort((a, b) => b.score - a.score);
+    res.json(leaderboard);
+  } catch (err) {
+    res.status(500).json({ error: 'Event ranking failed' });
   }
 });
 
@@ -217,22 +174,33 @@ router.get('/public/registration-counts', async (req, res) => {
 
 router.get('/', verifyAdmin, async (req, res) => {
   try {
-    const teams = await Team.find()
-      .populate('registeredEvents', 'name category')
-      .sort({ college: 1 });
+    const teams = await Team.find().populate('registeredEvents', 'name category').sort({ college: 1 });
     res.status(200).json(teams);
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch teams' });
+    res.status(500).json({ success: false, message: 'Fetch failed' });
   }
+});
+
+/**
+ * GENERIC ID ROUTE - KEEP AT BOTTOM
+ */
+router.get('/:id', async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'Invalid ID' });
+        }
+        const team = await Team.findById(req.params.id).populate('registeredEvents', 'name category');
+        if (!team) return res.status(404).json({ success: false, message: 'Not found' });
+        res.status(200).json(team);
+    } catch (err) {
+        res.status(500).json({ success: false });
+    }
 });
 
 router.put('/:id', verifyAdmin, async (req, res) => {
   try {
-    const team = await Team.findById(req.params.id);
-    if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
-    Object.assign(team, req.body);
-    await team.save();
-    res.status(200).json({ success: true, message: 'Team updated', team });
+    const team = await Team.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.status(200).json({ success: true, team });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
@@ -240,11 +208,10 @@ router.put('/:id', verifyAdmin, async (req, res) => {
 
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
-    const deleted = await Team.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ success: false, message: 'Team not found' });
-    res.status(200).json({ success: true, message: 'Team deleted' });
+    await Team.findByIdAndDelete(req.params.id);
+    res.status(200).json({ success: true, message: 'Purged' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Error deleting team' });
+    res.status(500).json({ success: false });
   }
 });
 
