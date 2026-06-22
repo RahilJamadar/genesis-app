@@ -7,14 +7,13 @@ import * as XLSX from 'xlsx';
 
 const Teams = () => {
   const [teams, setTeams] = useState([]);
-  const [events, setEvents] = useState([]); 
+  const [events, setEvents] = useState([]);
   const [filteredTeams, setFilteredTeams] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'main', 'individual'
+  const [categoryFilter, setCategoryFilter] = useState('all'); 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Robust ID Extraction for Trophy Events
   const trophyEventIds = useMemo(() => {
     return events
       .filter(e => e.isTrophyEvent === true)
@@ -30,12 +29,8 @@ const Teams = () => {
         adminApi.get('/teams'),
         adminApi.get('/events')
       ]);
-      
-      const teamData = teamRes.data || [];
-      const eventData = eventRes.data || [];
-      
-      setTeams(teamData);
-      setEvents(eventData);
+      setTeams(teamRes.data || []);
+      setEvents(eventRes.data || []);
     } catch (err) {
       toast.error('❌ Failed to synchronize data');
     } finally {
@@ -47,18 +42,31 @@ const Teams = () => {
     fetchInitialData();
   }, []);
 
-  // Logic for Combined Searching and Filtering
+  // Updated Filter Logic for hackathon, football, valorant, college team
   useEffect(() => {
-    let results = teams.filter(team => 
+    let results = teams.filter(team =>
       (team.college?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (team.leader?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (team.teamName?.toLowerCase() || "").includes(searchTerm.toLowerCase())
     );
 
-    if (categoryFilter === 'main') {
-      results = results.filter(team => (team.registeredEvents?.length || 0) > 1);
-    } else if (categoryFilter === 'individual') {
-      results = results.filter(team => (team.registeredEvents?.length || 0) === 1);
+    if (categoryFilter !== 'all') {
+      results = results.filter(team => {
+        const eventNames = team.registeredEvents?.map(e => (typeof e === 'object' ? e.name : "").toLowerCase()) || [];
+        
+        switch (categoryFilter) {
+          case 'main':
+            return team.registeredEvents?.length > 1;
+          case 'hackathon':
+            return eventNames.some(name => name.includes('hackathon'));
+          case 'football':
+            return eventNames.some(name => name.includes('football'));
+          case 'valorant':
+            return eventNames.some(name => name.includes('valorant'));
+          default:
+            return true;
+        }
+      });
     }
 
     setFilteredTeams(results);
@@ -66,23 +74,23 @@ const Teams = () => {
 
   const exportToExcel = () => {
     if (filteredTeams.length === 0) {
-        toast.info("No data in current view to export");
-        return;
+      toast.info("No data in current view to export");
+      return;
     }
     const masterData = filteredTeams.map(team => {
-        const count = team.registeredEvents?.filter(item => {
-            const id = typeof item === 'object' ? item._id : item;
-            return trophyEventIds.includes(id?.toString());
-        }).length || 0;
+      const count = team.registeredEvents?.filter(item => {
+        const id = typeof item === 'object' ? item._id : item;
+        return trophyEventIds.includes(id?.toString());
+      }).length || 0;
 
-        return {
-            "Assigned Name": team.teamName || "N/A",
-            "College": team.college,
-            "Leader": team.leader,
-            "Type": team.registeredEvents?.length > 1 ? "Main College" : "Individual",
-            "Participation": `${count} / ${trophyEventCount}`,
-            "Payment": team.paymentStatus?.toUpperCase()
-        };
+      return {
+        "Assigned Name": team.teamName || "N/A",
+        "College": team.college,
+        "Leader": team.leader,
+        "Type": team.registeredEvents?.length > 1 ? "Main College" : "Individual",
+        "Participation": `${count} / ${trophyEventCount}`,
+        "Payment": team.paymentStatus?.toUpperCase()
+      };
     });
     const ws = XLSX.utils.json_to_sheet(masterData);
     const wb = XLSX.utils.book_new();
@@ -116,41 +124,45 @@ const Teams = () => {
     <div className="d-flex bg-dark min-vh-100 flex-column flex-lg-row">
       <Navbar />
 
-      <main className="dashboard-content flex-grow-1 p-3 p-md-4 p-lg-5">
-        <header className="mb-4 mb-lg-5 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
-          <div className="text-center text-sm-start flex-grow-1">
-            <h2 className="fw-bold text-white mb-1">Team Management</h2>
-            <div className="d-flex flex-wrap gap-2 mt-3 justify-content-center justify-content-sm-start">
-                <div className="input-group input-group-sm" style={{ maxWidth: '250px' }}>
-                    <span className="input-group-text bg-black border-secondary text-secondary"><i className="bi bi-search"></i></span>
-                    <input type="text" className="form-control bg-dark border-secondary text-white shadow-none" placeholder="Search identity..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                </div>
-                
-                <select 
-                  className="form-select form-select-sm bg-dark text-info border-secondary shadow-none fw-bold" 
-                  style={{ maxWidth: '180px' }}
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                >
-                  <option value="all">📁 All Categories</option>
-                  <option value="main">🏆 Main College</option>
-                  <option value="individual">👤 Individual Entry</option>
-                </select>
+      <main className="dashboard-content flex-grow-1 p-3 p-md-4">
+        <header className="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+          <div className="text-center text-md-start w-100">
+            <h2 className="fw-bold text-white mb-1">Sector Management</h2>
+            <div className="d-flex flex-wrap gap-2 mt-3 justify-content-center justify-content-md-start">
+              <div className="input-group input-group-sm" style={{ maxWidth: '300px' }}>
+                <span className="input-group-text bg-black border-secondary text-secondary"><i className="bi bi-search"></i></span>
+                <input type="text" className="form-control bg-dark border-secondary text-white shadow-none" placeholder="Search team or college..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
 
-                <button className="btn btn-sm btn-outline-info fw-bold px-3" onClick={fetchInitialData}><i className="bi bi-arrow-clockwise"></i></button>
-                <button className="btn btn-sm btn-success fw-bold px-3" onClick={exportToExcel} disabled={loading}><i className="bi bi-file-earmark-excel me-2"></i>Export</button>
+              <select 
+                className="form-select form-select-sm bg-dark text-info border-secondary shadow-none fw-bold" 
+                style={{ maxWidth: '200px' }}
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">📁 All Units</option>
+                <option value="main">🏆 College Teams</option>
+                <option value="hackathon">💻 Hackathon</option>
+                <option value="football">⚽ Football</option>
+                <option value="valorant">🔫 Valorant</option>
+              </select>
+
+              <div className="d-flex gap-2">
+                <button className="btn btn-sm btn-outline-info fw-bold" onClick={fetchInitialData} title="Refresh"><i className="bi bi-arrow-clockwise"></i></button>
+                <button className="btn btn-sm btn-success fw-bold px-3" onClick={exportToExcel} disabled={loading}><i className="bi bi-file-earmark-excel me-1"></i>Export</button>
+              </div>
             </div>
           </div>
-          <div className="bg-glass px-4 py-2 rounded border border-secondary text-center min-w-[120px]">
+          <div className="bg-glass px-4 py-2 rounded border border-secondary text-center min-w-[120px] d-none d-sm-block">
             <div className="text-info fw-bold fs-3 leading-none">{filteredTeams.length}</div>
-            <div className="text-white x-small text-uppercase ls-1">Matches</div>
+            <div className="text-white x-small text-uppercase ls-1">Active Nodes</div>
           </div>
         </header>
 
         {loading ? (
           <div className="text-center py-5"><div className="spinner-border text-info" role="status"></div></div>
         ) : (
-          <div className="row g-3 g-lg-4">
+          <div className="row g-3">
             {filteredTeams.length > 0 ? (
               filteredTeams.map((team) => {
                 const teamTrophyParticipations = team.registeredEvents?.filter(item => {
@@ -160,88 +172,76 @@ const Teams = () => {
 
                 const isMainCollegeTeam = (team.registeredEvents?.length || 0) > 1;
                 const isEligible = teamTrophyParticipations >= trophyEventCount && trophyEventCount > 0;
-                const standaloneEvent = !isMainCollegeTeam && team.registeredEvents?.[0]?.name;
+                const standaloneEvent = !isMainCollegeTeam && (typeof team.registeredEvents?.[0] === 'object' ? team.registeredEvents?.[0]?.name : 'OPEN EVENT');
 
                 return (
                   <div key={team._id} className="col-12 col-xl-6 animate-fade-in">
-                    <div className={`card bg-glass team-card h-100 ${isMainCollegeTeam && !isEligible ? 'border-danger border-opacity-40' : 'border-secondary border-opacity-20'}`}>
+                    <div className={`card bg-glass team-card h-100 ${isMainCollegeTeam && !isEligible ? 'border-danger' : 'border-secondary border-opacity-20'}`}>
                       <div className="card-body p-3 p-md-4">
                         
-                        {isMainCollegeTeam ? (
-                          <div className={`mb-3 p-2 rounded border d-flex justify-content-between align-items-center ${isEligible ? 'bg-success bg-opacity-10 border-success border-opacity-20' : 'bg-danger bg-opacity-10 border-danger border-opacity-20'}`}>
-                            <div className="d-flex align-items-center gap-2">
-                               <i className={`bi ${isEligible ? 'bi-trophy-fill text-warning' : 'bi-exclamation-triangle-fill text-danger'}`}></i>
-                               <span className={`fw-bold x-small ls-1 ${isEligible ? 'text-success' : 'text-danger'}`}>
-                                 {isEligible ? 'CHAMPIONSHIP ELIGIBLE' : 'CHAMPIONSHIP INELIGIBLE'}
-                               </span>
-                            </div>
-                            <span className={`badge ${isEligible ? 'bg-success' : 'bg-danger'} border border-secondary text-white x-small-badge`}>
-                              {teamTrophyParticipations} / {trophyEventCount} EVENTS
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="mb-3 p-2 rounded border border-info border-opacity-20 bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
-                             <div className="d-flex align-items-center gap-2">
-                               <i className="bi bi-person-check-fill text-info"></i>
-                               <span className="text-info fw-bold x-small ls-1 uppercase">INDIVIDUAL ENTRY</span>
-                             </div>
-                             <span className="badge bg-info text-dark x-small-badge">
-                               {standaloneEvent || 'OPEN EVENT'}
+                        {/* Status Header */}
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          {isMainCollegeTeam ? (
+                             <span className={`badge ${isEligible ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${isEligible ? 'text-success' : 'text-danger'} border ${isEligible ? 'border-success' : 'border-danger'} border-opacity-20 x-small-badge`}>
+                               {isEligible ? '🏆 TROPHY ELIGIBLE' : '⚠️ INELIGIBLE'}
                              </span>
+                          ) : (
+                             <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-20 x-small-badge">
+                               {standaloneEvent}
+                             </span>
+                          )}
+                          <div className="d-flex gap-2">
+                             {renderPaymentBadge(team.paymentStatus)}
                           </div>
-                        )}
-
-                        {isMainCollegeTeam && !isEligible && (
-                          <div className="mb-3 bg-danger bg-opacity-10 p-2 rounded border border-danger border-opacity-10">
-                            <p className="text-danger x-small fw-bold mb-0 italic">
-                               ⚠️ ALERT: MISSING {trophyEventCount - teamTrophyParticipations} COMPULSORY TROPHY EVENTS.
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="mb-3 pb-2 border-bottom border-white border-opacity-10">
-                          <span className="text-secondary x-small fw-bold text-uppercase ls-1">Team Identity</span>
-                          <h4 className="text-white fw-black mb-0 tracking-tight">{team.teamName || <span className="opacity-25 fw-normal small italic">NOT ASSIGNED</span>}</h4>
                         </div>
 
-                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2 mb-3">
-                          <div className="flex-grow-1 overflow-hidden">
-                            <h5 className="text-info fw-bold mb-1 text-truncate">{team.college}</h5>
-                            <div className="d-flex flex-wrap align-items-center gap-2 text-white opacity-75 x-small">
-                              <span><i className="bi bi-person-badge text-warning me-1"></i>{team.leader}</span>
-                              <span className="opacity-25">|</span>
-                              <span><i className="bi bi-telephone text-warning me-1"></i>{team.contact}</span>
+                        {/* Team Name / College Section */}
+                        <div className="mb-3">
+                          <span className="text-secondary x-small fw-bold text-uppercase ls-1 d-block mb-1">Node Identity</span>
+                          <h4 className="text-white fw-black mb-1 text-wrap break-word">{team.teamName || <span className="opacity-25 fw-normal small italic">ID_NOT_SET</span>}</h4>
+                          <h6 className="text-info fw-bold text-wrap break-word m-0" style={{ lineHeight: '1.4' }}>{team.college}</h6>
+                        </div>
+
+                        <div className="row g-2 mb-4">
+                            <div className="col-12 col-sm-6">
+                                <div className="p-2 bg-black bg-opacity-30 rounded border border-white border-opacity-5">
+                                    <div className="text-secondary x-small fw-bold uppercase mb-1">Commander</div>
+                                    <div className="text-white small text-truncate"><i className="bi bi-person-fill text-warning me-2"></i>{team.leader}</div>
+                                </div>
                             </div>
-                          </div>
-                          <div className="d-flex flex-row flex-md-column align-items-center align-items-md-end gap-2 w-100 w-md-auto justify-content-between">
-                            {renderPaymentBadge(team.paymentStatus)}
-                            <span className="text-white opacity-50 x-small-badge font-mono">{team.isOutstation ? 'OUTSTATION' : 'LOCAL'}</span>
-                          </div>
+                            <div className="col-12 col-sm-6">
+                                <div className="p-2 bg-black bg-opacity-30 rounded border border-white border-opacity-5">
+                                    <div className="text-secondary x-small fw-bold uppercase mb-1">Comms Link</div>
+                                    <div className="text-white small text-truncate"><i className="bi bi-telephone-fill text-warning me-2"></i>{team.contact}</div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="bg-black bg-opacity-40 rounded p-3 mb-4 border border-secondary border-opacity-50">
+                        {/* Logistics Grid */}
+                        <div className="bg-dark bg-opacity-50 rounded p-2 mb-4 border border-secondary border-opacity-20">
                           <div className="row text-center text-white g-0">
-                            <div className="col-4 border-end border-secondary border-opacity-30">
-                              <div className="text-secondary x-small fw-bold uppercase">Members</div>
+                            <div className="col-4 border-end border-white border-opacity-10">
+                              <div className="text-secondary x-small fw-bold">UNITS</div>
                               <div className="fw-bold">{team.members?.length || 0}</div>
                             </div>
-                            <div className="col-4 border-end border-secondary border-opacity-30">
-                              <div className="text-success x-small fw-bold uppercase">Veg</div>
+                            <div className="col-4 border-end border-white border-opacity-10">
+                              <div className="text-success x-small fw-bold">VEG</div>
                               <div className="fw-bold">{team.vegCount || 0}</div>
                             </div>
                             <div className="col-4">
-                              <div className="text-danger x-small fw-bold uppercase">Non-Veg</div>
+                              <div className="text-danger x-small fw-bold">NV</div>
                               <div className="fw-bold">{team.nonVegCount || 0}</div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="d-flex gap-2">
+                        {/* Actions */}
+                        <div className="d-flex flex-wrap gap-2 mt-auto">
                           <button className="btn btn-info btn-sm flex-grow-1 fw-bold text-black" onClick={() => navigate(`/admin/teams/view/${team._id}`)}>
-                            <i className="bi bi-eye me-2"></i>VIEW PROFILE
+                            <i className="bi bi-cpu-fill me-2"></i>VIEW DATA
                           </button>
                           <button className="btn btn-outline-warning btn-sm" onClick={() => navigate(`/admin/teams/edit/${team._id}`)}><i className="bi bi-pencil-square"></i></button>
-                          <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(team._id)}><i className="bi bi-trash3"></i></button>
+                          <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(team._id)}><i className="bi bi-trash3-fill"></i></button>
                         </div>
                       </div>
                     </div>
@@ -251,7 +251,7 @@ const Teams = () => {
             ) : (
               <div className="col-12 text-center py-5">
                 <i className="bi bi-search fs-1 text-secondary opacity-25"></i>
-                <p className="text-secondary mt-3">No teams found matching those filters.</p>
+                <p className="text-secondary mt-3">No neural signatures match your query.</p>
               </div>
             )}
           </div>
@@ -260,15 +260,23 @@ const Teams = () => {
 
       <style>{`
         @media (min-width: 992px) { .dashboard-content { margin-left: 280px; } }
-        .bg-glass { background: rgba(255, 255, 255, 0.03) !important; backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); }
-        .team-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .team-card:hover { border-color: #0dcaf0 !important; transform: translateY(-4px); box-shadow: 0 10px 30px -10px rgba(13, 202, 240, 0.2); }
+        .bg-glass { background: rgba(15, 15, 20, 0.9) !important; backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); }
+        .team-card { transition: all 0.3s ease; }
+        .team-card:hover { border-color: #0dcaf0 !important; transform: translateY(-4px); box-shadow: 0 12px 40px -10px rgba(0, 255, 255, 0.15); }
         .x-small { font-size: 0.65rem; }
-        .x-small-badge { font-size: 0.6rem; font-weight: 800; border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .x-small-badge { font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px; }
         .ls-1 { letter-spacing: 0.8px; }
         .fw-black { font-weight: 900; }
+        .break-word { word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Mobile-specific adjustments */
+        @media (max-width: 576px) {
+            .dashboard-content { padding: 1rem !important; }
+            h4 { font-size: 1.1rem; }
+            h6 { font-size: 0.9rem; }
+        }
       `}</style>
     </div>
   );

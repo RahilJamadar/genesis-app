@@ -61,6 +61,8 @@ const TOP_SPONSORS = [
     { name: "AR Computer Services", img: "/ar.jpeg", stretch: true }, // Marked for stretching
     { name: "Shri Krishna Daji Salkar", img: "/daji.JPG", portrait: true },
     { name: "Brain Behind AI", img: "/bbai.jpeg" },
+    { name: "Inclusimpact", img: "/inclusipact.jpeg", portrait: true },
+    { name: "Vasco Digital Network", img: "/vdn.png", portrait: true },
     { name: "Kamesh Para", img: "/kamesh.jpeg" , portrait: true},
     { name: "shri kamala prasad yadav", img: "/kamla.png", portrait: true },
     { name: "Dr. Celso Fernandes", img: "/celso.jpeg" , portrait: true},
@@ -74,12 +76,17 @@ const GENERAL_SPONSORS = [
     { name: "Raymond Hardware", img: "/raymond.png" },
     { name: "Sayani Fashion", img: "/sayani.png", stretch: true },
     { name: "Viral Sensei", img: "/viral.jpeg", portrait: true },
+    { name: "Aarish kadar", img: "/Aarish.jpeg", portrait: true },
     { name: "Vikas InfoTech", img: "/vikas.jpeg" },
     { name: "de Vasco", img: "/devasco.jpeg", stretch: true },
     { name: "Krishnaurals", img: "/krishna.jpeg" },
     { name: "eDot Solutions", img: "/eDOT.png", stretch: true },
     { name: "Computer Vision", img: "/computer_vision.jpeg", stretch: true },
     { name: "Ashtavinayak Travels", img: "/travels.jpeg" },
+    { name: "Mandi House", img: "/mandi.jpeg", stretch: true },
+    { name: "Nandadeep Raut", img: "/raut.jpeg" ,portrait: true},
+    { name: "Cafe Cake", img: "/cafe.jpeg" ,portrait: true},
+
 
 
 
